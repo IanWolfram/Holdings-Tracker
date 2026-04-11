@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import TopBar from "@/components/TopBar";
 import PositionCard from "@/components/PositionCard";
-import type { Position } from "@/lib/etrade";
-import type { ClassifiedStory } from "@/lib/news";
-
-const POLL_INTERVAL_MS = 5 * 60 * 1000;
+import LiquidGlassDemo from "@/components/ui/LiquidGlass/LiquidGlassDemo";
+import { POLL_INTERVAL_MS } from "@/lib/constants";
+import type { Position } from "@/types/position.types";
+import type { ClassifiedStory } from "@/types/news.types";
 
 export default function Dashboard() {
   const [positions, setPositions] = useState<Position[]>([]);
@@ -61,7 +61,8 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen flex flex-col bg-[#111317]">
       <TopBar lastUpdated={lastUpdated} refreshing={refreshing} onRefresh={refresh} />
-      <main className="p-6">
+      <main className="p-6 space-y-8">
+        <LiquidGlassDemo />
         {positions.length === 0 && !refreshing && (
           <div className="flex flex-col items-center justify-center h-64 gap-3 text-center">
             <span className="material-symbols-outlined text-5xl text-slate-700">candlestick_chart</span>

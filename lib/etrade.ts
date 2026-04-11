@@ -13,25 +13,13 @@
 
 import OAuth from "oauth-1.0a";
 import crypto from "crypto";
-
-export interface Position {
-  ticker: string;
-  quantity: number;
-  marketValue: number;
-  gainLoss: number;
-  pricePaid: number;
-  currentPrice: number;
-}
-
-const BASE_URL =
-  process.env.ETRADE_ENV === "sandbox"
-    ? "https://apisb.etrade.com"
-    : "https://api.etrade.com";
-
-const AUTH_BASE_URL =
-  process.env.ETRADE_ENV === "sandbox"
-    ? "https://apisb.etrade.com"
-    : "https://etws.etrade.com";
+import {
+  NEWS_CACHE_TTL_MS,
+  ACCOUNT_CACHE_TTL_MS,
+  ETRADE_BASE_URL,
+  ETRADE_AUTH_BASE_URL,
+} from "./constants";
+import type { Position } from "@/types/position.types";
 
 function buildOAuth(): OAuth {
   return new OAuth({
@@ -68,7 +56,7 @@ export async function getRequestToken(): Promise<{
   authUrl: string;
 }> {
   const oauth = buildOAuth();
-  const url = `${AUTH_BASE_URL}/oauth/request_token`;
+  const url = `${ETRADE_AUTH_BASE_URL}/oauth/request_token`;
   const requestData = { url, method: "GET" };
 
   const headers = toHeader(oauth, oauth.authorize(requestData));
@@ -96,7 +84,7 @@ export async function getAccessToken(
   verifier: string
 ): Promise<{ token: string; tokenSecret: string }> {
   const oauth = buildOAuth();
-  const url = `${AUTH_BASE_URL}/oauth/access_token`;
+  const url = `${ETRADE_AUTH_BASE_URL}/oauth/access_token`;
   const requestData = { url, method: "GET" };
   const tokenObj: OAuth.Token = { key: requestToken, secret: requestTokenSecret };
 
@@ -121,7 +109,7 @@ export async function getAccessToken(
 /** Fetch all accounts and return the first accountIdKey */
 async function fetchAccountIdKey(): Promise<string> {
   const oauth = buildOAuth();
-  const url = `${BASE_URL}/v1/accounts/list.json`;
+  const url = `${ETRADE_BASE_URL}/v1/accounts/list.json`;
   const requestData = { url, method: "GET" };
   const headers = toHeader(oauth, oauth.authorize(requestData, accessToken()));
 
@@ -148,7 +136,7 @@ async function fetchAccountIdKey(): Promise<string> {
 /** Fetch positions from E*Trade for a given accountIdKey */
 async function fetchPortfolio(accountIdKey: string): Promise<Position[]> {
   const oauth = buildOAuth();
-  const url = `${BASE_URL}/v1/accounts/${accountIdKey}/portfolio.json`;
+  const url = `${ETRADE_BASE_URL}/v1/accounts/${accountIdKey}/portfolio.json`;
   const requestData = { url, method: "GET" };
   const headers = toHeader(oauth, oauth.authorize(requestData, accessToken()));
 
@@ -170,15 +158,23 @@ async function fetchPortfolio(accountIdKey: string): Promise<Position[]> {
   for (const accountPortfolio of accountPortfolios) {
     const positionList = accountPortfolio?.Position ?? [];
     for (const pos of positionList) {
-      const ticker: string =
-        pos?.symbolDescription ?? pos?.Product?.symbol ?? "UNKNOWN";
+      const ticker: string = pos?.Product?.symbol ?? "UNKNOWN";
+      const description: string = pos?.symbolDescription ?? ticker;
       const quantity: number = Number(pos?.quantity ?? 0);
       const marketValue: number = Number(pos?.marketValue ?? 0);
       const totalGain: number = Number(pos?.totalGain ?? 0);
       const pricePaid: number = Number(pos?.pricePaid ?? 0);
       const currentPrice: number = Number(pos?.Quick?.lastTrade ?? 0);
 
-      positions.push({ ticker, quantity, marketValue, gainLoss: totalGain, pricePaid, currentPrice });
+      positions.push({
+        ticker,
+        description,
+        quantity,
+        marketValue,
+        gainLoss: totalGain,
+        pricePaid,
+        currentPrice,
+      });
     }
   }
 
@@ -198,7 +194,7 @@ function fromCache<T>(key: string): T | null {
   return entry.data as T;
 }
 
-function setCache(key: string, data: unknown, ttlMs = 5 * 60 * 1000): void {
+function setCache(key: string, data: unknown, ttlMs = NEWS_CACHE_TTL_MS): void {
   cache.set(key, { data, expiresAt: Date.now() + ttlMs });
 }
 
@@ -212,7 +208,7 @@ export async function getPositions(): Promise<Position[]> {
   let accountIdKey = fromCache<string>("accountIdKey");
   if (!accountIdKey) {
     accountIdKey = await fetchAccountIdKey();
-    setCache("accountIdKey", accountIdKey, 60 * 60 * 1000); // 1 hour
+    setCache("accountIdKey", accountIdKey, ACCOUNT_CACHE_TTL_MS);
   }
 
   const raw = await fetchPortfolio(accountIdKey);
@@ -234,10 +230,12 @@ export async function getPositions(): Promise<Position[]> {
 // ---------------------------------------------------------------------------
 
 export const MOCK_POSITIONS: Position[] = [
-  { ticker: "AAPL", quantity: 50, marketValue: 9250.0, gainLoss: 1250.0, pricePaid: 160.0, currentPrice: 185.0 },
-  { ticker: "NVDA", quantity: 10, marketValue: 9350.0, gainLoss: 3850.0, pricePaid: 550.0, currentPrice: 935.0 },
-  { ticker: "TSLA", quantity: 20, marketValue: 4400.0, gainLoss: -600.0, pricePaid: 250.0, currentPrice: 220.0 },
-  { ticker: "MSFT", quantity: 15, marketValue: 6375.0, gainLoss: 1125.0, pricePaid: 350.0, currentPrice: 425.0 },
+  { ticker: "BR",   description: "Broadridge Financial Solutions", quantity: 15, marketValue: 3105.00,  gainLoss: 450.00,  pricePaid: 177.00, currentPrice: 207.00 },
+  { ticker: "GLD",  description: "SPDR Gold Shares",               quantity: 2,  marketValue: 467.04,   gainLoss: 32.04,   pricePaid: 217.50, currentPrice: 233.52 },
+  { ticker: "MSFT", description: "Microsoft Corporation",          quantity: 5,  marketValue: 2103.25,  gainLoss: 153.15,  pricePaid: 390.00, currentPrice: 420.65 },
+  { ticker: "RBL",  description: "Roblox Corporation",             quantity: 50, marketValue: 1850.00,  gainLoss: -150.00, pricePaid: 40.00,  currentPrice: 37.00  },
+  { ticker: "RPI",  description: "Royal Pharma Inc",               quantity: 100,marketValue: 2860.00,  gainLoss: -400.00, pricePaid: 32.60,  currentPrice: 28.60  },
+  { ticker: "RXD",  description: "ProShares UltraShort Health Care",quantity: 20, marketValue: 331.00,   gainLoss: 31.00,   pricePaid: 15.00,  currentPrice: 16.55  },
 ];
 
 /** Returns mock data or live data depending on ETRADE_ENV.
@@ -254,5 +252,16 @@ export async function getPositionsSafe(): Promise<Position[]> {
     );
     return MOCK_POSITIONS;
   }
-  return getPositions();
+  try {
+    return await getPositions();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const expired = msg.includes("401") || msg.includes("403");
+    console.warn(
+      expired
+        ? "[etrade] OAuth tokens expired — run `npm run etrade:auth` to refresh. Returning mock data."
+        : `[etrade] API error (${msg}) — returning mock data.`
+    );
+    return MOCK_POSITIONS;
+  }
 }

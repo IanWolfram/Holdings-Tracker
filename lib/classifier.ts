@@ -1,11 +1,4 @@
-export type Verdict = "BUY" | "SELL" | "HOLD";
-
-export interface Classification {
-  verdict: Verdict;
-  confidence: number;
-  reason: string;
-  classifiedAt: string;
-}
+import type { Verdict, Classification } from "@/types/news.types";
 
 const FALLBACK: Classification = {
   verdict: "HOLD",

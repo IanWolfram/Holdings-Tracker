@@ -1,17 +1,9 @@
 import { fetchFinnhubNews } from "./finnhub";
 import { fetchTwitterNews } from "./twitter";
-import { classifyNews, Classification } from "./classifier";
+import { classifyNews } from "./classifier";
 import { MOCK_NEWS } from "./mock-news";
-
-export interface ClassifiedStory extends Classification {
-  ticker: string;
-  headline: string;
-  summary: string;
-  url: string;
-  datetime: number;
-  author?: string;
-  source: "finnhub" | "twitter";
-}
+import { NEWS_CACHE_TTL_MS } from "./constants";
+import type { ClassifiedStory } from "@/types/news.types";
 
 // Per-ticker 5-minute cache
 const cache = new Map<string, { data: ClassifiedStory[]; expiresAt: number }>();
@@ -37,15 +29,7 @@ export async function getNewsForTicker(ticker: string): Promise<ClassifiedStory[
     }),
   ]);
 
-  const stories: Array<{
-    ticker: string;
-    headline: string;
-    summary: string;
-    url: string;
-    datetime: number;
-    author?: string;
-    source: "finnhub" | "twitter";
-  }> = [
+  const stories = [
     ...finnhubArticles.map((a) => ({
       ticker,
       headline: a.headline,
@@ -76,6 +60,6 @@ export async function getNewsForTicker(ticker: string): Promise<ClassifiedStory[
   // Sort newest first
   classified.sort((a, b) => b.datetime - a.datetime);
 
-  cache.set(ticker, { data: classified, expiresAt: Date.now() + 5 * 60 * 1000 });
+  cache.set(ticker, { data: classified, expiresAt: Date.now() + NEWS_CACHE_TTL_MS });
   return classified;
 }

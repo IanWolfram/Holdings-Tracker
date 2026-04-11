@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import NewsItem from "./NewsItem";
-import type { Position } from "@/lib/etrade";
-import type { ClassifiedStory } from "@/lib/news";
-
-const PREVIEW_COUNT = 3;
+import { AnimatePresence, motion } from "framer-motion";
+import NewsCard from "./NewsCard";
+import GlassContainer from "./ui/LiquidGlass/GlassContainer";
+import GlassView from "./ui/LiquidGlass/GlassView";
+import { NEWS_PREVIEW_COUNT } from "@/lib/constants";
+import { formatCurrency, formatPercent, formatGainLoss } from "@/lib/utils/format";
+import type { Position } from "@/types/position.types";
+import type { ClassifiedStory } from "@/types/news.types";
 
 interface Props {
   position: Position;
@@ -23,50 +26,72 @@ function glowClass(buy: number, sell: number, loading: boolean): string {
 export default function PositionCard({ position, stories, loading }: Props) {
   const [expanded, setExpanded] = useState(false);
 
-  const { ticker, marketValue, gainLoss, quantity } = position;
+  const { ticker, description, marketValue, gainLoss, quantity, currentPrice, pricePaid } = position;
 
-  const buy  = stories.filter((s) => s.verdict === "BUY").length;
+  const buy = stories.filter((s) => s.verdict === "BUY").length;
   const sell = stories.filter((s) => s.verdict === "SELL").length;
   const hold = stories.filter((s) => s.verdict === "HOLD").length;
   const total = buy + sell + hold || 1;
 
   const gainPositive = gainLoss >= 0;
-  const gainStr = `${gainPositive ? "▲ +" : "▼ "}$${Math.abs(gainLoss).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  const mvStr = `$${marketValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const gainStr = formatGainLoss(gainLoss);
 
-  const gainPct = position.pricePaid > 0
-    ? ((position.currentPrice - position.pricePaid) / position.pricePaid) * 100
-    : 0;
+  const gainPct = pricePaid > 0 ? ((currentPrice - pricePaid) / pricePaid) * 100 : 0;
+  const gainPctStr = formatPercent(gainPct);
+
+  const mvStr = formatCurrency(marketValue);
+  const priceStr = formatCurrency(currentPrice);
+
   const isHot = gainPct > 10;
 
-  const visibleStories = expanded ? stories : stories.slice(0, PREVIEW_COUNT);
-  const hiddenCount = stories.length - PREVIEW_COUNT;
+  const visibleStories = expanded ? stories : stories.slice(0, NEWS_PREVIEW_COUNT);
+  const hiddenCount = stories.length - NEWS_PREVIEW_COUNT;
 
   return (
-    <section className="bg-[#1e2023] rounded-lg overflow-hidden flex flex-col border border-white/5 hover:border-white/20 transition-colors group">
+    <section className="bg-surface rounded-lg overflow-hidden flex flex-col border border-white/5 hover:border-white/20 transition-colors group">
       {/* Card header with glow */}
       <div
-        className={`p-4 bg-[#282a2d] flex justify-between items-start ticker-header-glow ${glowClass(buy, sell, loading)}`}
+        className={`p-3 bg-surface-container ticker-header-glow ${glowClass(buy, sell, loading)}`}
       >
-        <div>
+        {/* Top Row: Symbol & Market Value */}
+        <div className="flex justify-between items-end mb-1">
           <div className="flex items-center gap-2">
-            <h2 className="font-['JetBrains_Mono'] text-xl font-bold text-[#e2e2e6]">{ticker}</h2>
+            <h2 className="font-['JetBrains_Mono'] text-2xl font-bold text-white tracking-tighter leading-none">{ticker}</h2>
             {isHot && (
-              <span className="bg-white text-black text-[8px] font-black px-1 rounded-sm">HOT</span>
+              <span className="bg-[#f43f5e] text-white text-[8px] font-black px-1 rounded-sm animate-pulse">HOT</span>
             )}
           </div>
-          <p className="text-xs text-slate-500 font-medium">{quantity} shares</p>
+          <div className="text-right">
+            <p className="font-['JetBrains_Mono'] text-xl font-bold text-white leading-none tracking-tight">{mvStr}</p>
+          </div>
         </div>
-        <div className="text-right">
-          <p className="font-['JetBrains_Mono'] text-lg font-bold text-[#e2e2e6]">{mvStr}</p>
-          <p className={`font-['JetBrains_Mono'] text-xs font-medium ${gainPositive ? "text-[#22c55e]" : "text-[#f43f5e]"}`}>
-            {gainStr}
+
+        {/* Middle Row: Description & Current Price */}
+        <div className="flex justify-between items-start mb-2">
+          <p className="text-[11px] text-slate-400 font-medium truncate max-w-[140px]" title={description}>
+            {description}
+          </p>
+          <div className="text-right">
+            <p className="font-['JetBrains_Mono'] text-xs font-medium text-slate-300">
+              {priceStr} <span className="text-[9px] text-slate-500 ml-0.5">/ SH</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Bottom Row: P/L & Quantity */}
+        <div className="flex justify-between items-center border-t border-white/5 pt-1.5">
+          <div className={`flex items-baseline gap-1.5 font-['JetBrains_Mono'] ${gainPositive ? "text-[#22c55e]" : "text-[#f43f5e]"}`}>
+            <span className="text-sm font-bold">{gainStr}</span>
+            <span className="text-[10px] font-medium opacity-80">{gainPctStr}</span>
+          </div>
+          <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
+            {quantity} <span className="opacity-60">shares</span>
           </p>
         </div>
       </div>
 
       {/* Verdict bar */}
-      <div className="px-4 py-2 border-y border-white/5 flex gap-1 items-center bg-[#1a1c1f]">
+      <div className="px-4 py-1.5 border-y border-white/5 flex gap-1 items-center bg-surface-container-low">
         {buy > 0 && (
           <div className="h-1.5 bg-[#22c55e] rounded-full" style={{ flex: buy }} title={`${buy} BUY`} />
         )}
@@ -84,27 +109,42 @@ export default function PositionCard({ position, stories, loading }: Props) {
         </span>
       </div>
 
-      {/* News feed */}
-      <div className="flex-1 p-4 space-y-4">
-        {loading && stories.length === 0 && <LoadingSkeleton />}
+      {/* News feed inside a Shared Glass Container */}
+      <GlassContainer className="flex-1 p-3">
+        <div className="space-y-3 relative">
+          {loading && stories.length === 0 && <LoadingSkeleton />}
 
-        {!loading && stories.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-8 gap-3 text-center">
-            <span className="material-symbols-outlined text-4xl text-slate-700">info</span>
-            <p className="text-xs text-slate-500 font-medium">No news found in the last 3 days</p>
-          </div>
-        )}
+          {!loading && stories.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-8 gap-3 text-center">
+              <span className="material-symbols-outlined text-4xl text-slate-700">info</span>
+              <p className="text-xs text-slate-500 font-medium">No news found in the last 3 days</p>
+            </div>
+          )}
 
-        {visibleStories.map((story, i) => (
-          <NewsItem key={`${story.url}-${i}`} story={story} />
-        ))}
-      </div>
+          <AnimatePresence initial={false}>
+            {visibleStories.map((story, i) => (
+              <motion.div
+                key={`${story.url}-${i}`}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="overflow-hidden"
+              >
+                <div className="mb-3">
+                  <NewsCard story={story} />
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+      </GlassContainer>
 
       {/* Expand / collapse toggle */}
-      {stories.length > PREVIEW_COUNT && (
+      {stories.length > NEWS_PREVIEW_COUNT && (
         <button
           onClick={() => setExpanded((v) => !v)}
-          className="w-full flex flex-col items-center gap-0.5 py-3 border-t border-white/5 bg-[#1a1c1f] hover:bg-white/5 transition-colors group/toggle"
+          className="w-full flex flex-col items-center gap-0.5 py-2 border-t border-white/5 bg-surface-container-low hover:bg-white/5 transition-colors group/toggle"
         >
           <span className="text-[10px] uppercase tracking-widest text-slate-500 group-hover/toggle:text-slate-300 transition-colors font-['Inter']">
             {expanded ? "Show less" : `${hiddenCount} more stories`}
