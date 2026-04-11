@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+/* ── Stitch Design Tokens ── */
+@theme {
+  --color-surface: #111317;
+  --color-surface-container: #1e2023;
+  --color-surface-container-low: #1a1c1f;
+  --color-surface-container-high: #282a2d;
+  --color-surface-container-highest: #333538;
+  --color-on-surface: #e2e2e6;
+  --color-on-surface-variant: #bccbb9;
+  --color-outline: #869585;
+  --color-outline-variant: #3d4a3d;
+
+  --font-headline: "Space Grotesk", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+body {
+  font-family: "Inter", sans-serif;
+  background-color: #111317;
+  color: #e2e2e6;
+}
+
+/* ── Glow line at top of card header ── */
+.ticker-header-glow {
+  position: relative;
+}
+.ticker-header-glow::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-size: 200% 100%;
+  animation: hue-move 4s linear infinite;
+  z-index: 10;
+  opacity: 1;
+  filter: blur(0.5px);
+}
+.glow-positive::before {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #4be277,
+    #22c55e,
+    #4be277,
+    transparent
+  );
+  box-shadow: 0 0 15px 1px rgba(75, 226, 119, 0.4);
+}
+.glow-negative::before {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #f43f5e,
+    #e11d48,
+    #f43f5e,
+    transparent
+  );
+  box-shadow: 0 0 15px 1px rgba(244, 63, 94, 0.4);
+}
+.glow-neutral::before {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #94a3b8,
+    #cbd5e1,
+    #94a3b8,
+    transparent
+  );
+  box-shadow: 0 0 15px 1px rgba(148, 163, 184, 0.2);
+}
+
+@keyframes hue-move {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ── Tapered border on news items ── */
+.news-item-frame {
+  position: relative;
+  background: transparent;
+}
+.news-item-frame::before,
+.news-item-frame::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 12px;
+  pointer-events: none;
+}
+.news-item-frame::before {
+  top: 0;
+  border-top: 1px solid var(--border-color);
+  border-left: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  mask-image: linear-gradient(to bottom, black 0%, black 2px, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, black 2px, transparent 100%);
+}
+.news-item-frame::after {
+  bottom: 0;
+  border-bottom: 1px solid var(--border-color);
+  border-left: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  mask-image: linear-gradient(to top, black 0%, black 2px, transparent 100%);
+  -webkit-mask-image: linear-gradient(to top, black 0%, black 2px, transparent 100%);
+}
+.border-buy  { --border-color: #22c55e; }
+.border-sell { --border-color: #f43f5e; }
+.border-hold { --border-color: #64748b; }
