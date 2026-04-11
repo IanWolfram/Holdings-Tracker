@@ -1,6 +1,7 @@
 import { fetchFinnhubNews } from "./finnhub";
 import { fetchTwitterNews } from "./twitter";
 import { classifyNews, Classification } from "./classifier";
+import { MOCK_NEWS } from "./mock-news";
 
 export interface ClassifiedStory extends Classification {
   ticker: string;
@@ -18,6 +19,12 @@ const cache = new Map<string, { data: ClassifiedStory[]; expiresAt: number }>();
 export async function getNewsForTicker(ticker: string): Promise<ClassifiedStory[]> {
   const cached = cache.get(ticker);
   if (cached && Date.now() < cached.expiresAt) return cached.data;
+
+  // Fall back to mock news when API keys are not configured
+  const hasKeys = !!process.env.FINNHUB_API_KEY || !!process.env.TWITTER_BEARER_TOKEN;
+  if (!hasKeys) {
+    return MOCK_NEWS[ticker] ?? [];
+  }
 
   const [finnhubArticles, tweets] = await Promise.all([
     fetchFinnhubNews(ticker).catch((err) => {
