@@ -62,6 +62,18 @@ export const MOCK_NEWS: Record<string, ClassifiedStory[]> = {
       summary: "Geopolitical tensions in Middle East driving safe-haven flows into gold and treasuries.",
       url: "#", verdict: "BUY", confidence: 0.74, classifiedAt: new Date().toISOString(),
     },
+    {
+      ticker: "GLD", source: "reddit", datetime: h(9), author: "u/goldbugsunite",
+      headline: "GLD vs physical gold — which do you hold and why?",
+      summary: "GLD vs physical gold — which do you hold and why?\n\nWith gold at all-time highs I keep going back and forth. GLD is more liquid but you don't own the metal. Curious what r/investing thinks.",
+      url: "#", verdict: "HOLD", confidence: 0.55, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "GLD", source: "newsapi", datetime: h(15),
+      headline: "Gold Hits Record High as Central Bank Demand Accelerates Into 2026",
+      summary: "Spot gold touched $2,380 per ounce on Monday, propelled by continued central bank accumulation and a weaker dollar following soft US retail sales data.",
+      url: "#", verdict: "BUY", confidence: 0.90, classifiedAt: new Date().toISOString(),
+    },
   ],
 
   MSFT: [
@@ -94,6 +106,18 @@ export const MOCK_NEWS: Record<string, ClassifiedStory[]> = {
       headline: "Analyst consensus on MSFT remains Strong Buy with average PT of $520.",
       summary: "Analyst consensus on MSFT remains Strong Buy with average PT of $520.",
       url: "#", verdict: "HOLD", confidence: 0.58, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "MSFT", source: "reddit", datetime: h(7), author: "u/techbull99",
+      headline: "Microsoft's AI push is unlike anything I've seen — here's why I'm doubling my position",
+      summary: "Microsoft's AI push is unlike anything I've seen — here's why I'm doubling my position\n\nAzure OpenAI usage is exploding at my company. Every enterprise team wants Copilot. The moat is real.",
+      url: "#", verdict: "BUY", confidence: 0.76, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "MSFT", source: "newsapi", datetime: h(11),
+      headline: "Microsoft Unveils Next-Generation Copilot Features at Build 2026",
+      summary: "Microsoft announced a sweeping set of AI updates at its annual developer conference, including autonomous agents capable of writing and deploying code without human intervention.",
+      url: "#", verdict: "BUY", confidence: 0.87, classifiedAt: new Date().toISOString(),
     },
   ],
 
