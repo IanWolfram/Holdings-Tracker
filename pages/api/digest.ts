@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getPositionsSafe } from "@/lib/etrade";
-import { getNewsForTicker, ClassifiedStory } from "@/lib/news";
+import { getNewsForTicker, type ClassifiedStory } from "@/lib/news";
 import { sendTelegramMessage, buildDigestMessage, TickerDigest } from "@/lib/telegram";
 
 export default async function handler(

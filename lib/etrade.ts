@@ -181,6 +181,40 @@ async function fetchPortfolio(accountIdKey: string): Promise<Position[]> {
   return positions;
 }
 
+/** 
+ * Generates a synthetic price history for positions that don't have one.
+ * Uses current price and gain/loss to create a plausible random walk.
+ */
+function withSyntheticHistory(positions: Position[]): Position[] {
+  return positions.map(pos => {
+    if (pos.history && pos.history.length > 0) return pos;
+
+    const points = 90; // Approx 3 months of daily data
+    const history: number[] = [];
+    const current = pos.currentPrice;
+    
+    // Create a plausible 3-month random walk
+    // Start at a price consistent with the gainLoss
+    const startingVal = current - (pos.gainLoss / pos.quantity);
+    let val = startingVal;
+    
+    // Add multiple levels of noise for "bumps and ridges"
+    for (let i = 0; i < points - 1; i++) {
+        history.push(val);
+        // Primary trend walk
+        const trend = (current - val) / (points - i);
+        // Volatility components
+        const noise = (Math.random() - 0.5) * (current * 0.015);
+        const ridges = Math.sin(i * 0.5) * (current * 0.005);
+        
+        val += trend + noise + ridges;
+    }
+    history.push(current);
+
+    return { ...pos, history };
+  });
+}
+
 // Simple in-memory cache: accountIdKey + positions with 5-min TTL
 const cache = new Map<string, { data: unknown; expiresAt: number }>();
 
@@ -221,8 +255,9 @@ export async function getPositions(): Promise<Position[]> {
     return true;
   });
 
-  setCache(CACHE_KEY, positions);
-  return positions;
+  const withHistory = withSyntheticHistory(positions);
+  setCache(CACHE_KEY, withHistory);
+  return withHistory;
 }
 
 // ---------------------------------------------------------------------------
@@ -233,35 +268,41 @@ export const MOCK_POSITIONS: Position[] = [
   { ticker: "BR",   description: "Broadridge Financial Solutions", quantity: 15, marketValue: 3105.00,  gainLoss: 450.00,  pricePaid: 177.00, currentPrice: 207.00 },
   { ticker: "GLD",  description: "SPDR Gold Shares",               quantity: 2,  marketValue: 467.04,   gainLoss: 32.04,   pricePaid: 217.50, currentPrice: 233.52 },
   { ticker: "MSFT", description: "Microsoft Corporation",          quantity: 5,  marketValue: 2103.25,  gainLoss: 153.15,  pricePaid: 390.00, currentPrice: 420.65 },
-  { ticker: "RBL",  description: "Roblox Corporation",             quantity: 50, marketValue: 1850.00,  gainLoss: -150.00, pricePaid: 40.00,  currentPrice: 37.00  },
-  { ticker: "RPI",  description: "Royal Pharma Inc",               quantity: 100,marketValue: 2860.00,  gainLoss: -400.00, pricePaid: 32.60,  currentPrice: 28.60  },
-  { ticker: "RXD",  description: "ProShares UltraShort Health Care",quantity: 20, marketValue: 331.00,   gainLoss: 31.00,   pricePaid: 15.00,  currentPrice: 16.55  },
+  { ticker: "RBL",  description: "Roblox Corporation",             quantity: 50, marketValue: 1850.00,  gainLoss: -150.00, pricePaid: 40.00,  currentPrice: 37.00 },
+  { ticker: "RPI",  description: "Royal Pharma Inc",               quantity: 100,marketValue: 2860.00,  gainLoss: -400.00, pricePaid: 32.60,  currentPrice: 28.60 },
+  { ticker: "RXD",  description: "ProShares UltraShort Health Care",quantity: 20, marketValue: 331.00,   gainLoss: 31.00,   pricePaid: 15.00,  currentPrice: 16.55 },
 ];
 
 /** Returns mock data or live data depending on ETRADE_ENV.
  *  Falls back to mock data automatically if OAuth tokens are not yet set. */
 export async function getPositionsSafe(): Promise<Position[]> {
+  let positions: Position[] = [];
+
   if (process.env.ETRADE_ENV === "mock") {
-    return MOCK_POSITIONS;
+    positions = MOCK_POSITIONS;
+  } else {
+    const hasTokens =
+      !!process.env.ETRADE_OAUTH_TOKEN && !!process.env.ETRADE_OAUTH_TOKEN_SECRET;
+    if (!hasTokens) {
+      console.warn(
+        "[etrade] OAuth tokens not set — returning mock data. Run `npm run etrade:auth` to authorize."
+      );
+      positions = MOCK_POSITIONS;
+    } else {
+      try {
+        return await getPositions();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        const expired = msg.includes("401") || msg.includes("403");
+        console.warn(
+          expired
+            ? "[etrade] OAuth tokens expired — run `npm run etrade:auth` to refresh. Returning mock data."
+            : `[etrade] API error (${msg}) — returning mock data.`
+        );
+        positions = MOCK_POSITIONS;
+      }
+    }
   }
-  const hasTokens =
-    !!process.env.ETRADE_OAUTH_TOKEN && !!process.env.ETRADE_OAUTH_TOKEN_SECRET;
-  if (!hasTokens) {
-    console.warn(
-      "[etrade] OAuth tokens not set — returning mock data. Run `npm run etrade:auth` to authorize."
-    );
-    return MOCK_POSITIONS;
-  }
-  try {
-    return await getPositions();
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    const expired = msg.includes("401") || msg.includes("403");
-    console.warn(
-      expired
-        ? "[etrade] OAuth tokens expired — run `npm run etrade:auth` to refresh. Returning mock data."
-        : `[etrade] API error (${msg}) — returning mock data.`
-    );
-    return MOCK_POSITIONS;
-  }
+
+  return withSyntheticHistory(positions);
 }

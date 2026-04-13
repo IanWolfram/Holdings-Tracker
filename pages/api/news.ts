@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getNewsForTicker, ClassifiedStory } from "@/lib/news";
+import { getNewsForTicker, type ClassifiedStory } from "@/lib/news";
 
 export default async function handler(
   req: NextApiRequest,

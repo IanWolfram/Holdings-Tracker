@@ -28,7 +28,7 @@ export function LiquidGlassProvider({ children, maskId }: { children: React.Reac
       >
         <defs>
           <filter id="liquid-glass-gooey" colorInterpolationFilters="sRGB">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="15" result="blur" />
+            <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
             <feColorMatrix
               in="blur"
               mode="matrix"

@@ -37,8 +37,45 @@ export default function GlassView({
   const context = useLiquidGlass();
   const [mounted, setMounted] = useState(false);
 
+  // High-performance mask coordinates (avoiding state re-renders)
+  const maskX = useMotionValue(0);
+  const maskY = useMotionValue(0);
+  const maskW = useMotionValue(0);
+  const maskH = useMotionValue(0);
+
   useEffect(() => {
     setMounted(true);
+    if (!containerRef.current) return;
+
+    const measure = () => {
+      const el = containerRef.current;
+      if (!el) return;
+      
+      const parent = el.closest(".relative");
+      if (!parent) return;
+
+      const rect = el.getBoundingClientRect();
+      const parentRect = parent.getBoundingClientRect();
+
+      maskX.set(rect.left - parentRect.left);
+      maskY.set(rect.top - parentRect.top);
+      maskW.set(rect.width);
+      maskH.set(rect.height);
+    };
+
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(containerRef.current);
+    
+    // Also re-measure on window scroll/resize to be safe
+    window.addEventListener("resize", measure);
+    window.addEventListener("scroll", measure, { capture: true });
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("scroll", measure, { capture: true });
+    };
   }, []);
 
   // Mouse position for reflection effect
@@ -73,7 +110,7 @@ export default function GlassView({
         layout={layout}
         layoutId={layoutId} // Use same layoutId as mask silhouette
         className={clsx(
-          "relative",
+          "relative overflow-visible",
           !hasContext && (variant === "regular" ? "glass-material" : "glass-prominent"),
           className
         )}
@@ -81,6 +118,7 @@ export default function GlassView({
           {
             ...style,
             borderRadius: `${cornerRadius}px`,
+            WebkitBorderRadius: `${cornerRadius}px`,
             "--mouse-x": springX.get() + "%",
             "--mouse-y": springY.get() + "%",
             backgroundColor: !hasContext && tint ? `${tint}0D` : undefined,
@@ -91,19 +129,22 @@ export default function GlassView({
         whileTap={interactive ? { scale: 0.99 } : {}}
       >
         <div className="glass-reflection pointer-events-none" />
-        <div className="relative z-10">{children}</div>
+        <div className="relative z-20">{children}</div>
       </motion.div>
 
       {/* The Silhouette Portal into Parent's SVG Mask */}
       {hasContext && mounted && context.maskRef.current && createPortal(
         <motion.rect
-          layout // Still use layout for internal sync within the mask
           initial={false}
+          style={{
+            x: maskX,
+            y: maskY,
+            width: maskW,
+            height: maskH,
+          }}
           rx={cornerRadius}
           ry={cornerRadius}
           fill="white"
-          // Avoid layoutId here to prevent cross-coordinate projection issues
-          // We can use style for basic sizing if needed, or let layout handle it
           className="pointer-events-none"
         />,
         context.maskRef.current

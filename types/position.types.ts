@@ -6,4 +6,5 @@ export interface Position {
   gainLoss: number;
   pricePaid: number;
   currentPrice: number;
+  history?: number[];
 }

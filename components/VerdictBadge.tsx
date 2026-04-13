@@ -6,8 +6,8 @@ interface Props {
 }
 
 const styles: Record<Verdict, { badge: string; conf: string }> = {
-  BUY:  { badge: "bg-[#22c55e]/10 text-[#22c55e]", conf: "text-[#22c55e] font-bold" },
-  SELL: { badge: "bg-[#f43f5e]/10 text-[#f43f5e]", conf: "text-[#f43f5e] font-bold" },
+  BUY:  { badge: "bg-positive/10 text-positive", conf: "text-positive font-bold" },
+  SELL: { badge: "bg-negative/10 text-negative", conf: "text-negative font-bold" },
   HOLD: { badge: "bg-slate-600/10 text-slate-400",  conf: "text-slate-500" },
 };
 

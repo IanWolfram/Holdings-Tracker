@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import VerdictBadge from "./VerdictBadge";
 import GlassView from "./ui/LiquidGlass/GlassView";
-import type { ClassifiedStory } from "@/lib/news";
+import type { ClassifiedStory } from "@/types/news.types";
 
 const R = 8; // border radius, must match card corner radius
 
@@ -16,14 +16,14 @@ const GROW_DURATION = 0.5;
 const SHRINK_DURATION = 0.35;
 
 const VERDICT_COLOR: Record<string, string> = {
-  BUY: "#22c55e",
-  SELL: "#f43f5e",
+  BUY: "#00FF88",
+  SELL: "#FF4444",
   HOLD: "#64748b",
 };
 
 const HIGHLIGHT_COLOR: Record<string, string> = {
-  BUY: "#86efac",
-  SELL: "#fda4af",
+  BUY: "#ccffeb",
+  SELL: "#ffd6cc",
   HOLD: "#cbd5e1",
 };
 
@@ -60,14 +60,16 @@ export default function NewsCard({ story }: { story: ClassifiedStory }) {
   const midY = h / 2;
 
 
+  // Define the paths for the border animation.
+  // perimeterPath is removed per user request to simplify border visuals.
 
-  // Define the 4 unified "cap" paths.
-  // Each path starts from the vertical tip, wraps the corner, and goes to edge midpoint.
+  // The 4 corner "cap" paths for the reveal animation on enter.
+  // Inset by 1px to prevent clipping at SVG boundaries.
   const capPaths = w > 0 ? {
-    topLeft: `M 0 12 L 0 ${R} Q 0 0 ${R} 0 L ${midX} 0`,
-    topRight: `M ${w} 12 L ${w} ${R} Q ${w} 0 ${w - R} 0 L ${midX} 0`,
-    bottomLeft: `M 0 ${h - 12} L 0 ${h - R} Q 0 ${h} ${R} ${h} L ${midX} ${h}`,
-    bottomRight: `M ${w} ${h - 12} L ${w} ${h - R} Q ${w} ${h} ${w - R} ${h} L ${midX} ${h}`,
+    topLeft: `M 1.5 12 L 1.5 ${R} Q 1.5 1.5 ${R} 1.5 L ${midX} 1.5`,
+    topRight: `M ${w - 1.5} 12 L ${w - 1.5} ${R} Q ${w - 1.5} 1.5 ${w - R} 1.5 L ${midX} 1.5`,
+    bottomLeft: `M 1.5 ${h - 12} L 1.5 ${h - R} Q 1.5 ${h - 1.5} ${R} ${h - 1.5} L ${midX} ${h - 1.5}`,
+    bottomRight: `M ${w - 1.5} ${h - 12} L ${w - 1.5} ${h - R} Q ${w - 1.5} ${h - 1.5} ${w - R} ${h - 1.5} L ${midX} ${h - 1.5}`,
   } : null;
 
   return (
@@ -76,12 +78,14 @@ export default function NewsCard({ story }: { story: ClassifiedStory }) {
       layoutId={id}
       interactive
       cornerRadius={R}
-      className={`relative cursor-pointer group/item news-item-frame border-${story.verdict.toLowerCase()}`}
+      className={`relative cursor-pointer group/item news-item-frame rounded-[8px] border-${story.verdict.toLowerCase()}`}
       onClick={() => window.open(story.url, "_blank")}
     >
-      <div 
+      <div
         ref={articleRef}
         className="p-3 relative"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
       >
         {/* Scanline reveal sweep */}
         <motion.div
@@ -109,54 +113,55 @@ export default function NewsCard({ story }: { story: ClassifiedStory }) {
               transition: "filter 0.4s ease",
             }}
           >
-              <defs>
-                <linearGradient id={`fadeGradient-${id}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="white" stopOpacity="1" />
-                  <stop offset="60%" stopColor="white" stopOpacity="1" />
-                  <stop offset="100%" stopColor="white" stopOpacity="0" />
-                </linearGradient>
-                <mask id={`topMask-${id}`}>
+            <defs>
+              <linearGradient id={`fadeGradient-${id}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="white" stopOpacity="1" />
+                <stop offset="60%" stopColor="white" stopOpacity="1" />
+                <stop offset="100%" stopColor="white" stopOpacity="0" />
+              </linearGradient>
+              <mask id={`topMask-${id}`}>
+                <rect x="-10" y="0" width={w + 20} height="20" fill={`url(#fadeGradient-${id})`} />
+              </mask>
+              <mask id={`bottomMask-${id}`}>
+                <g transform={`translate(0, ${h}) scale(1, -1)`}>
                   <rect x="-10" y="0" width={w + 20} height="20" fill={`url(#fadeGradient-${id})`} />
-                </mask>
-                <mask id={`bottomMask-${id}`}>
-                  <g transform={`translate(0, ${h}) scale(1, -1)`}>
-                    <rect x="-10" y="0" width={w + 20} height="20" fill={`url(#fadeGradient-${id})`} />
-                  </g>
-                </mask>
-              </defs>
-
-              {capPaths && (
-                <g stroke={color} strokeWidth={1.5} fill="none" strokeLinecap="round">
-                  <g mask={`url(#topMask-${id})`}>
-                    <motion.path
-                      d={capPaths.topLeft}
-                      initial={{ pathLength: 0.2, opacity: 0.4 }}
-                      animate={{ pathLength: hovered ? 1 : 0.2, opacity: hovered ? 1 : 0.4 }}
-                      transition={{ duration: 0.5, ease: REVEAL_EASE }}
-                    />
-                    <motion.path
-                      d={capPaths.topRight}
-                      initial={{ pathLength: 0.2, opacity: 0.4 }}
-                      animate={{ pathLength: hovered ? 1 : 0.2, opacity: hovered ? 1 : 0.4 }}
-                      transition={{ duration: 0.5, ease: REVEAL_EASE, delay: 0.02 }}
-                    />
-                  </g>
-                  <g mask={`url(#bottomMask-${id})`}>
-                    <motion.path
-                      d={capPaths.bottomLeft}
-                      initial={{ pathLength: 0.2, opacity: 0.4 }}
-                      animate={{ pathLength: hovered ? 1 : 0.2, opacity: hovered ? 1 : 0.4 }}
-                      transition={{ duration: 0.5, ease: REVEAL_EASE, delay: 0.04 }}
-                    />
-                    <motion.path
-                      d={capPaths.bottomRight}
-                      initial={{ pathLength: 0.2, opacity: 0.4 }}
-                      animate={{ pathLength: hovered ? 1 : 0.2, opacity: hovered ? 1 : 0.4 }}
-                      transition={{ duration: 0.5, ease: REVEAL_EASE, delay: 0.06 }}
-                    />
-                  </g>
                 </g>
-              )}
+              </mask>
+            </defs>
+
+
+            {capPaths && (
+              <g stroke={color} strokeWidth={1} fill="none" strokeLinecap="round">
+                <g mask={`url(#topMask-${id})`}>
+                  <motion.path
+                    d={capPaths.topLeft}
+                    initial={{ pathLength: 0.1, opacity: 0.2 }}
+                    animate={{ pathLength: hovered ? 1 : 0.1, opacity: hovered ? 1 : 0.2 }}
+                    transition={{ duration: 0.4, ease: REVEAL_EASE }}
+                  />
+                  <motion.path
+                    d={capPaths.topRight}
+                    initial={{ pathLength: 0.1, opacity: 0.2 }}
+                    animate={{ pathLength: hovered ? 1 : 0.1, opacity: hovered ? 1 : 0.2 }}
+                    transition={{ duration: 0.4, ease: REVEAL_EASE, delay: 0.02 }}
+                  />
+                </g>
+                <g mask={`url(#bottomMask-${id})`}>
+                  <motion.path
+                    d={capPaths.bottomLeft}
+                    initial={{ pathLength: 0.1, opacity: 0.2 }}
+                    animate={{ pathLength: hovered ? 1 : 0.1, opacity: hovered ? 1 : 0.2 }}
+                    transition={{ duration: 0.4, ease: REVEAL_EASE, delay: 0.04 }}
+                  />
+                  <motion.path
+                    d={capPaths.bottomRight}
+                    initial={{ pathLength: 0.1, opacity: 0.2 }}
+                    animate={{ pathLength: hovered ? 1 : 0.1, opacity: hovered ? 1 : 0.2 }}
+                    transition={{ duration: 0.4, ease: REVEAL_EASE, delay: 0.06 }}
+                  />
+                </g>
+              </g>
+            )}
           </svg>
         )}
 
@@ -167,9 +172,6 @@ export default function NewsCard({ story }: { story: ClassifiedStory }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          onViewportEnter={() => setHovered(false)}
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
         >
           <VerdictBadge verdict={story.verdict} confidence={story.confidence} />
 
@@ -185,9 +187,9 @@ export default function NewsCard({ story }: { story: ClassifiedStory }) {
           <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
             <div className="flex items-center gap-2">
               {story.source === "finnhub" ? (
-                <span className="border border-[#22c55e] px-1.5 py-0.5 rounded flex items-center gap-1">
+                <span className="border border-positive px-1.5 py-0.5 rounded flex items-center gap-1">
                   <Image src="/finnhub-logo.png" alt="Finnhub" width={12} height={12} className="object-contain" />
-                  <span className="text-[#22c55e] font-bold">Finnhub</span>
+                  <span className="text-positive font-bold">Finnhub</span>
                 </span>
               ) : (
                 <span className="bg-black px-1.5 py-0.5 rounded border border-white/20 flex items-center gap-1">
@@ -197,7 +199,32 @@ export default function NewsCard({ story }: { story: ClassifiedStory }) {
               )}
               {timeAgo && <span>{timeAgo}</span>}
             </div>
-            <span className="material-symbols-outlined text-[14px]">arrow_outward</span>
+            <motion.div
+              className="flex items-center justify-center relative w-[32px] h-[32px]"
+              animate={{ 
+                rotate: hovered ? -45 : 0,
+                scale: hovered ? 1.1 : 1,
+              }}
+              transition={{ duration: 0.4, ease: REVEAL_EASE }}
+            >
+              <svg viewBox="0 0 24 24" className="absolute inset-0 w-full h-full overflow-visible">
+                {/* Symmetrical Arrow Path: Modern Modern Line Arrow */}
+                <path 
+                  d="M 4 12 H 20 M 14 6 L 20 12 L 14 18" 
+                  fill="none" 
+                  stroke={hovered ? (story.source === "finnhub" ? "#00FF88" : "#000000") : "#64748b"} 
+                  strokeWidth="1.5" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                  className="transition-colors duration-400"
+                  style={{ 
+                    opacity: hovered ? 1 : 0.4,
+                    filter: (hovered && story.source !== "finnhub") ? "drop-shadow(0 0 2px rgba(255,255,255,0.8))" : "none"
+                  }}
+                />
+                
+              </svg>
+            </motion.div>
           </div>
 
           {story.reason && (

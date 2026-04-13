@@ -1,9 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import TopBar from "@/components/TopBar";
-import PositionCard from "@/components/PositionCard";
-import LiquidGlassDemo from "@/components/ui/LiquidGlass/LiquidGlassDemo";
+import DesktopDashboard from "@/components/DesktopDashboard";
+import MobileDashboard from "@/components/mobile/MobileDashboard";
 import { POLL_INTERVAL_MS } from "@/lib/constants";
 import type { Position } from "@/types/position.types";
 import type { ClassifiedStory } from "@/types/news.types";
@@ -40,7 +39,8 @@ export default function Dashboard() {
       const res = await fetch("/api/positions");
       if (!res.ok) throw new Error(`Positions fetch failed: ${res.status}`);
       const data: Position[] = await res.json();
-      setPositions(data);
+      const sortedData = [...data].sort((a, b) => b.marketValue - a.marketValue);
+      setPositions(sortedData);
       setLastUpdated(new Date());
       await fetchNews(data.map((p) => p.ticker));
     } catch (err) {
@@ -59,33 +59,26 @@ export default function Dashboard() {
   }, [refresh]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#111317]">
-      <TopBar lastUpdated={lastUpdated} refreshing={refreshing} onRefresh={refresh} />
-      <main className="p-6 space-y-8">
-        <LiquidGlassDemo />
-        {positions.length === 0 && !refreshing && (
-          <div className="flex flex-col items-center justify-center h-64 gap-3 text-center">
-            <span className="material-symbols-outlined text-5xl text-slate-700">candlestick_chart</span>
-            <p className="text-sm text-slate-500">No positions loaded.</p>
-            <button
-              onClick={refresh}
-              className="text-[10px] uppercase tracking-widest text-slate-400 border border-white/10 px-3 py-1 rounded-sm hover:bg-white/5 transition-colors"
-            >
-              Retry
-            </button>
-          </div>
-        )}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {positions.map((pos) => (
-            <PositionCard
-              key={pos.ticker}
-              position={pos}
-              stories={news[pos.ticker] ?? []}
-              loading={loadingNews[pos.ticker] ?? false}
-            />
-          ))}
-        </div>
-      </main>
-    </div>
+    <>
+      <div className="hidden md:block">
+        <DesktopDashboard
+          positions={positions}
+          news={news}
+          loadingNews={loadingNews}
+          refreshing={refreshing}
+          lastUpdated={lastUpdated}
+          onRefresh={refresh}
+        />
+      </div>
+      <div className="block md:hidden">
+        <MobileDashboard
+          positions={positions}
+          news={news}
+          loadingNews={loadingNews}
+          refreshing={refreshing}
+          onRefresh={refresh}
+        />
+      </div>
+    </>
   );
 }

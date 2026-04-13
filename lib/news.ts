@@ -6,7 +6,7 @@ import { getCompanyName } from "./company-names";
 import { classifyNews } from "./classifier";
 import { MOCK_NEWS } from "./mock-news";
 import { NEWS_CACHE_TTL_MS } from "./constants";
-import type { ClassifiedStory } from "@/types/news.types";
+export type { ClassifiedStory } from "@/types/news.types";
 
 // Per-ticker 5-minute cache
 const cache = new Map<string, { data: ClassifiedStory[]; expiresAt: number }>();
