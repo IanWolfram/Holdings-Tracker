@@ -14,5 +14,5 @@ export interface ClassifiedStory extends Classification {
   url: string;
   datetime: number;
   author?: string;
-  source: "finnhub" | "twitter";
+  source: "finnhub" | "twitter" | "reddit" | "newsapi";
 }
