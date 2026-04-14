@@ -171,6 +171,7 @@ export default function GlobeCanvas({
           line.userData = { code, verdict };
           globeGroup.add(line);
           countryLinesRef.current.push(line);
+        };
 
         const drawPolygonFill = (polygonRings: number[][][]) => {
             if (verdict === null) return;
