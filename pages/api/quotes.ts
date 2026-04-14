@@ -26,7 +26,6 @@ export default async function handler(
     res.status(200).json(quotes);
   } catch (err) {
     console.error("[/api/quotes]", err);
-    const message = err instanceof Error ? err.message : "Unknown error";
-    res.status(500).json({ error: message });
+    res.status(500).json({ error: "Failed to fetch quotes" });
   }
 }

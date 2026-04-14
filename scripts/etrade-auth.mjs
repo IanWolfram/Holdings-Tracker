@@ -175,10 +175,8 @@ try {
   updateEnvLocal("ETRADE_OAUTH_TOKEN", access.token);
   updateEnvLocal("ETRADE_OAUTH_TOKEN_SECRET", access.tokenSecret);
 
-  console.log("\nTokens written:");
-  console.log(`  ETRADE_OAUTH_TOKEN=${access.token}`);
-  console.log(`  ETRADE_OAUTH_TOKEN_SECRET=${access.tokenSecret}`);
-  console.log("\nYou can now start the dev server: npm run dev\n");
+  console.log("\nTokens written to .env.local successfully.");
+  console.log("You can now start the dev server: npm run dev\n");
 } catch (err) {
   rl.close();
   console.error("\n❌ Auth failed:", err.message);

@@ -28,6 +28,7 @@ export async function fetchTwitterNews(ticker: string): Promise<Tweet[]> {
 
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (!res.ok) {

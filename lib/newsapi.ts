@@ -26,6 +26,7 @@ export async function fetchNewsAPIArticles(
 
   const res = await fetch(url, {
     headers: { "X-Api-Key": key },
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (!res.ok) {

@@ -19,7 +19,6 @@ export default async function handler(
     res.status(200).json(stories);
   } catch (err) {
     console.error("[/api/news]", err);
-    const message = err instanceof Error ? err.message : "Unknown error";
-    res.status(500).json({ error: message });
+    res.status(500).json({ error: "Failed to fetch news" });
   }
 }

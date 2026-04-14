@@ -18,6 +18,7 @@ export async function fetchStooqQuote(ticker: string): Promise<QuoteData> {
       Accept: "text/csv,text/plain,*/*",
     },
     next: { revalidate: 0 },
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (!res.ok) {
