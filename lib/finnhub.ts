@@ -23,7 +23,9 @@ export async function fetchFinnhubNews(ticker: string): Promise<NewsArticle[]> {
   if (!key) throw new Error("FINNHUB_API_KEY is not set");
 
   const url = `${BASE_URL}/company-news?symbol=${encodeURIComponent(ticker)}&from=${daysAgo(3)}&to=${today()}&token=${key}`;
-  const res = await fetch(url);
+  const res = await fetch(url, {
+    signal: AbortSignal.timeout(10_000),
+  });
 
   if (!res.ok) {
     const body = await res.text();

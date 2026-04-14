@@ -41,7 +41,9 @@ export async function fetchCompanyProfile(
 
   let raw: FinnhubProfile;
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(10_000),
+    });
     if (!res.ok) {
       console.error(`[company-profile] Finnhub error ${res.status} for ${ticker}`);
       return null;

@@ -29,7 +29,10 @@ export async function getQuote(ticker: string): Promise<QuoteData | null> {
   if (apiKey) {
     try {
       const res = await fetch(
-        `https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${apiKey}`
+        `https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${apiKey}`,
+        {
+          signal: AbortSignal.timeout(10_000),
+        }
       );
       if (res.ok) {
         const json = (await res.json()) as {

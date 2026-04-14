@@ -30,7 +30,9 @@ export async function getCompanyName(ticker: string): Promise<string> {
 
   try {
     const url = `${BASE_URL}/stock/profile2?symbol=${encodeURIComponent(ticker)}&token=${key}`;
-    const res = await fetch(url);
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(10_000),
+    });
     if (!res.ok) return ticker;
 
     const data: { name?: string } = await res.json();

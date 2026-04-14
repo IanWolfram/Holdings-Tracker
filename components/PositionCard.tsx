@@ -280,8 +280,11 @@ export default function PositionCard({ position, stories, congressTrades = [], l
                     badge={<SourceBadge source={src} />}
                     count={group.length}
                   >
-                    {group.map((story, i) => (
-                      <NewsCard key={`${story.url}-${i}`} story={story} />
+                    {group.map((story) => (
+                      <NewsCard
+                        key={`${story.ticker}-${story.source}-${story.datetime}-${story.url}`}
+                        story={story}
+                      />
                     ))}
                   </NewsCollapsible>
                 );
@@ -298,8 +301,11 @@ export default function PositionCard({ position, stories, congressTrades = [], l
                       badge={<SourceBadge source={src} />}
                       count={group.length}
                     >
-                      {group.map((story, i) => (
-                        <NewsCard key={`${story.url}-${i}`} story={story} />
+                      {group.map((story) => (
+                        <NewsCard
+                          key={`${story.ticker}-${story.source}-${story.datetime}-${story.url}`}
+                          story={story}
+                        />
                       ))}
                     </NewsCollapsible>
                   );

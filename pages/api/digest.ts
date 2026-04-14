@@ -13,6 +13,9 @@ export default async function handler(
 
   // Authenticate OpenClaw / scheduler
   const secret = process.env.OPENCLAW_DIGEST_SECRET;
+  if (!secret && process.env.NODE_ENV === "production") {
+    return res.status(500).json({ success: false, error: "Server misconfigured" });
+  }
   if (secret) {
     const auth = req.headers.authorization ?? "";
     if (auth !== `Bearer ${secret}`) {
@@ -51,7 +54,6 @@ export default async function handler(
     res.status(200).json({ success: true, sentAt });
   } catch (err) {
     console.error("[/api/digest]", err);
-    const message = err instanceof Error ? err.message : "Unknown error";
-    res.status(500).json({ success: false, error: message });
+    res.status(500).json({ success: false, error: "Failed to send digest" });
   }
 }
