@@ -85,11 +85,7 @@ export default function NewsCollapsible({
             transition={{ duration: 0.32, ease: EASE }}
             className="overflow-hidden"
           >
-            <div className="space-y-2 pt-0.5">
-              {children.map((child, i) => (
-                <div key={i}>{child}</div>
-              ))}
-            </div>
+            <div className="space-y-2 pt-0.5">{children}</div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -133,8 +133,11 @@ export default function CountryTooltip({ state, mouseX, mouseY }: CountryTooltip
         {/* Stories */}
         {stories.length > 0 ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {stories.map((story, i) => (
-              <StoryRow key={i} story={story} />
+            {stories.map((story) => (
+              <StoryRow
+                key={`${story.ticker}-${story.source}-${story.datetime}-${story.url}`}
+                story={story}
+              />
             ))}
             {state.stories.length > 5 && (
               <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#475569", margin: 0, textAlign: "center" }}>

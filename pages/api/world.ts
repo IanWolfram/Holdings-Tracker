@@ -1,9 +1,19 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
+interface WorldMockResponse {
+  fetchedAt: number;
+  profiles: Record<string, unknown>;
+  countries: Record<string, unknown>;
+}
+
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<any>
+  res: NextApiResponse<WorldMockResponse | { error: string }>
 ) {
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
   const mockData = {
     fetchedAt: Date.now(),
     profiles: {
