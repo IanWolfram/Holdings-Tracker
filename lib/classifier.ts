@@ -1,80 +1,90 @@
+import fs from "fs";
+import path from "path";
 import type { Verdict, Classification } from "@/types/news.types";
 
-const FALLBACK: Classification = {
-  verdict: "HOLD",
-  confidence: 0,
-  reason: "Classification failed",
-  classifiedAt: new Date().toISOString(),
-};
+// ---------------------------------------------------------------------------
+// Agent context — loaded once from agents/stock-analyzer/*.md
+// ---------------------------------------------------------------------------
 
-const SYSTEM_PROMPT = `You are a financial news classifier. Given a news headline and optional summary, classify the sentiment for the mentioned stock ticker as exactly one of: BUY, SELL, or HOLD.
+function loadAgentContext(): string {
+  const agentDir = path.join(process.cwd(), "agents", "stock-analyzer");
+  const files = ["AGENT.md", "rules.md"];
+  return files
+    .map((f) => {
+      try {
+        return fs.readFileSync(path.join(agentDir, f), "utf-8");
+      } catch {
+        return "";
+      }
+    })
+    .filter(Boolean)
+    .join("\n\n---\n\n");
+}
 
-Rules:
-- BUY: clearly positive news (earnings beat, new product, partnership, analyst upgrade)
-- SELL: clearly negative news (earnings miss, lawsuit, executive departure, downgrade, scandal)
-- HOLD: neutral, ambiguous, or insufficient information
+// Cache so we only read the files once per process lifetime
+let agentContext: string | null = null;
+function getAgentContext(): string {
+  if (!agentContext) agentContext = loadAgentContext();
+  return agentContext;
+}
 
-Respond with ONLY a JSON object in this exact format:
-{"verdict": "BUY", "confidence": 0.87, "reason": "one sentence explanation"}
+// ---------------------------------------------------------------------------
+// Keyword fallback — used when Ollama is unreachable
+// ---------------------------------------------------------------------------
 
-Do not include any other text.`;
+const BUY_KEYWORDS = [
+  "beat", "beats", "exceeds", "surpasses", "record", "upgrade", "upgraded",
+  "outperform", "buy", "strong", "growth", "raises guidance", "raises forecast",
+  "partnership", "launches", "expands", "acquires", "acquisition", "wins",
+  "positive", "profit", "revenue up", "earnings beat", "bullish", "breakthrough",
+];
+
+const SELL_KEYWORDS = [
+  "miss", "misses", "below expectations", "downgrade", "downgraded", "underperform",
+  "sell", "lawsuit", "sued", "investigation", "fraud", "scandal", "departure",
+  "resigns", "exits", "cuts guidance", "cuts forecast", "loss", "decline",
+  "warning", "recall", "breach", "hack", "layoffs", "bearish", "disappoints",
+];
+
+function keywordClassify(headline: string, summary: string): Classification {
+  const text = `${headline} ${summary}`.toLowerCase();
+  const buyHits = BUY_KEYWORDS.filter((k) => text.includes(k)).length;
+  const sellHits = SELL_KEYWORDS.filter((k) => text.includes(k)).length;
+
+  if (buyHits === 0 && sellHits === 0) {
+    return { verdict: "HOLD", confidence: 0.5, reason: undefined, classifiedAt: new Date().toISOString() };
+  }
+  if (buyHits > sellHits) {
+    return { verdict: "BUY", confidence: Math.min(0.5 + buyHits * 0.1, 0.9), reason: undefined, classifiedAt: new Date().toISOString() };
+  }
+  if (sellHits > buyHits) {
+    return { verdict: "SELL", confidence: Math.min(0.5 + sellHits * 0.1, 0.9), reason: undefined, classifiedAt: new Date().toISOString() };
+  }
+  return { verdict: "HOLD", confidence: 0.5, reason: undefined, classifiedAt: new Date().toISOString() };
+}
+
+// ---------------------------------------------------------------------------
+// Global Ollama semaphore — serialize all requests (Ollama is single-threaded)
+// ---------------------------------------------------------------------------
+
+let ollamaQueue: Promise<unknown> = Promise.resolve();
+
+export function withOllamaSemaphore<T>(fn: () => Promise<T>): Promise<T> {
+  const result: Promise<T> = ollamaQueue.then(() => fn(), () => fn());
+  // Advance the queue but ignore errors so future requests aren't blocked
+  ollamaQueue = result.then(() => undefined, () => undefined);
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// Main classifier
+// ---------------------------------------------------------------------------
 
 export async function classifyNews(
   ticker: string,
   headline: string,
   summary: string
 ): Promise<Classification> {
-  const baseUrl = process.env.OLLAMA_BASE_URL ?? "http://localhost:11434";
-  const model = process.env.OLLAMA_MODEL ?? "gemma3:12b";
-
-  const prompt = `${SYSTEM_PROMPT}
-
-Ticker: ${ticker}
-Headline: ${headline}
-Summary: ${summary || "(none)"}`;
-
-  let raw: string;
-  try {
-    const res = await fetch(`${baseUrl}/api/generate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model, stream: false, prompt }),
-    });
-
-    if (!res.ok) {
-      console.error(`[classifier] Ollama error ${res.status}`);
-      return { ...FALLBACK, classifiedAt: new Date().toISOString() };
-    }
-
-    const json = await res.json();
-    raw = json.response ?? "";
-  } catch (err) {
-    console.error("[classifier] Ollama unreachable:", err);
-    return { ...FALLBACK, classifiedAt: new Date().toISOString() };
-  }
-
-  try {
-    // Extract JSON even if model adds surrounding text
-    const match = raw.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error("No JSON found in response");
-    const parsed = JSON.parse(match[0]) as {
-      verdict?: string;
-      confidence?: number;
-      reason?: string;
-    };
-
-    const verdict = (["BUY", "SELL", "HOLD"].includes(parsed.verdict ?? "")
-      ? parsed.verdict
-      : "HOLD") as Verdict;
-
-    return {
-      verdict,
-      confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0,
-      reason: parsed.reason ?? "",
-      classifiedAt: new Date().toISOString(),
-    };
-  } catch {
-    console.error("[classifier] JSON parse failed, raw:", raw);
-    return { ...FALLBACK, classifiedAt: new Date().toISOString() };
-  }
+  // Hard-bypass Ollama completely to prevent system lag and WebGL crashing
+  return keywordClassify(headline, summary);
 }

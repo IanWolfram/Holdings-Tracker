@@ -1,0 +1,353 @@
+{
+  "BR": [
+    {
+      "ticker": "BR",
+      "source": "finnhub",
+      "datetime": 1776117299,
+      "headline": "Broadridge Financial beats Q3 earnings estimates, raises full-year guidance",
+      "summary": "Broadridge reported EPS of $1.84 vs $1.71 expected, driven by strong recurring revenue growth in its investor communications segment.",
+      "url": "#",
+      "verdict": "BUY",
+      "confidence": 0.9,
+      "classifiedAt": "2026-04-13T22:56:07.341Z",
+      "reason": "The beat on EPS, coupled with raised full-year guidance, confirms strong operational momentum for Broadridge."
+    },
+    {
+      "ticker": "BR",
+      "source": "twitter",
+      "datetime": 1776110099,
+      "author": "FinancialTimes",
+      "headline": "BR stock upgrades from two analysts following strong wealth management platform adoption numbers.",
+      "summary": "BR stock upgrades from two analysts following strong wealth management platform adoption numbers.",
+      "url": "#",
+      "verdict": "BUY",
+      "confidence": 0.89,
+      "classifiedAt": "2026-04-13T22:57:10.269Z",
+      "reason": "Strong platform adoption has prompted analysts to upgrade BR, indicating robust business traction."
+    },
+    {
+      "ticker": "BR",
+      "source": "finnhub",
+      "datetime": 1776056099,
+      "headline": "Broadridge expands partnership with major European asset managers for back-office automation",
+      "summary": "The deal is expected to add $40M in ARR over the next two years.",
+      "url": "#",
+      "verdict": "BUY",
+      "confidence": 0.9,
+      "classifiedAt": "2026-04-13T22:58:23.190Z",
+      "reason": "This major partnership isn't just hype; it adds a verified $40M in ARR over the next two years."
+    },
+    {
+      "ticker": "BR",
+      "source": "finnhub",
+      "datetime": 1776012899,
+      "headline": "Fintech sector faces regulatory scrutiny over data handling practices",
+      "summary": "SEC is reviewing data sharing agreements across several financial technology firms.",
+      "url": "#",
+      "verdict": "SELL",
+      "confidence": 0.75,
+      "classifiedAt": "2026-04-13T22:59:37.885Z",
+      "reason": "Although sector-wide, SEC review of data agreements signals probable regulatory headwinds and material financial risk for BR."
+    }
+  ],
+  "GLD": [
+    {
+      "ticker": "GLD",
+      "source": "finnhub",
+      "datetime": 1776113699,
+      "headline": "Gold surges to 3-month high as Fed signals pause in rate hike cycle",
+      "summary": "Spot gold rose 1.4% to $2,041/oz after Fed minutes showed growing dissent over further tightening.",
+      "url": "#",
+      "verdict": "HOLD",
+      "confidence": 0.5,
+      "classifiedAt": "2026-04-13T23:14:22.350Z"
+    },
+    {
+      "ticker": "GLD",
+      "source": "twitter",
+      "datetime": 1776102899,
+      "author": "KitcoNews",
+      "headline": "Central banks globally added 290 tonnes of gold in Q1 — strongest quarter in decades.",
+      "summary": "Central banks globally added 290 tonnes of gold in Q1 — strongest quarter in decades.",
+      "url": "#",
+      "verdict": "BUY",
+      "confidence": 0.9,
+      "classifiedAt": "2026-04-13T23:15:29.427Z",
+      "reason": "Record central bank accumulation signals massive, sustained long-term demand for gold, directly boosting the underlying asset."
+    },
+    {
+      "ticker": "GLD",
+      "source": "finnhub",
+      "datetime": 1776048899,
+      "headline": "Dollar strengthens on better-than-expected jobs data, pressuring commodity prices",
+      "summary": "Nonfarm payrolls came in at 272k vs 185k expected, boosting DXY and weighing on gold.",
+      "url": "#",
+      "verdict": "SELL",
+      "confidence": 0.92,
+      "classifiedAt": "2026-04-13T23:16:57.357Z",
+      "reason": "The superior jobs report strengthened the dollar, weighing directly on gold valuations and pressuring GLD."
+    },
+    {
+      "ticker": "GLD",
+      "source": "finnhub",
+      "datetime": 1775976899,
+      "headline": "GLD ETF sees record weekly inflows of $1.2B from institutional investors",
+      "summary": "SPDR Gold Shares logged its largest single-week inflow since 2020.",
+      "url": "#",
+      "verdict": "BUY",
+      "confidence": 0.9,
+      "classifiedAt": "2026-04-13T23:19:00.469Z",
+      "reason": "Record weekly institutional inflows of $1.2 billion confirm massive demand and strong capital allocation toward the asset."
+    },
+    {
+      "ticker": "GLD",
+      "source": "twitter",
+      "datetime": 1775948099,
+      "author": "BloombergMkts",
+      "headline": "Geopolitical tensions in Middle East driving safe-haven flows into gold and treasuries.",
+      "summary": "Geopolitical tensions in Middle East driving safe-haven flows into gold and treasuries.",
+      "url": "#",
+      "verdict": "BUY",
+      "confidence": 0.9,
+      "classifiedAt": "2026-04-13T23:20:16.220Z",
+      "reason": "Safe-haven flows are actively driving capital into gold amidst escalating geopolitical tensions in the Middle East."
+    },
+    {
+      "ticker": "GLD",
+      "source": "reddit",
+      "datetime": 1776088499,
+      "author": "u/goldbugsunite",
+      "headline": "GLD vs physical gold — which do you hold and why?",
+      "summary": "GLD vs physical gold — which do you hold and why?\n\nWith gold at all-time highs I keep going back and forth. GLD is more liquid but you don't own the metal. Curious what r/investing thinks.",
+      "url": "#",
+      "verdict": "HOLD",
+      "confidence": 0.6,
+      "classifiedAt": "2026-04-13T23:21:22.867Z",
+      "reason": "The headline presents an open comparison of GLD's liquidity versus physical ownership, providing no definitive directional catalyst."
+    },
+    {
+      "ticker": "GLD",
+      "source": "newsapi",
+      "datetime": 1776066899,
+      "headline": "Gold Hits Record High as Central Bank Demand Accelerates Into 2026",
+      "summary": "Spot gold touched $2,380 per ounce on Monday, propelled by continued central bank accumulation and a weaker dollar following soft US retail sales data.",
+      "url": "#",
+      "verdict": "BUY",
+      "confidence": 0.9,
+      "classifiedAt": "2026-04-13T23:22:35.303Z",
+      "reason": "Record high pricing, fueled by accelerating central bank demand and a weaker dollar, strongly confirms upward momentum for GLD."
+    }
+  ],
+  "MSFT": [
+    {
+      "ticker": "MSFT",
+      "source": "finnhub",
+      "datetime": 1776117299,
+      "headline": "Microsoft Azure revenue grows 31% YoY, AI services cited as primary growth driver",
+      "summary": "Azure and other cloud services grew 31% in the latest quarter, ahead of the 28% analyst consensus.",
+      "url": "#",
+      "verdict": "BUY",
+      "confidence": 0.9,
+      "classifiedAt": "2026-04-13T23:24:00.284Z",
+      "reason": "Azure revenue significantly exceeded analyst expectations at 31% YoY, validating strong momentum within MSFT's high-growth AI segment."
+    },
+    {
+      "ticker": "MSFT",
+      "source": "twitter",
+      "datetime": 1776106499,
+      "author": "SatNadella",
+      "headline": "Copilot for Microsoft 365 reaches 1 million paid seats — fastest enterprise adoption in company history.",
+      "summary": "Copilot for Microsoft 365 reaches 1 million paid seats — fastest enterprise adoption in company history.",
+      "url": "#",
+      "verdict": "BUY",
+      "confidence": 0.9,
+      "classifiedAt": "2026-04-13T23:25:07.284Z",
+      "reason": "Record adoption of Copilot for M365 confirms massive market traction and accelerated revenue growth."
+    },
+    {
+      "ticker": "MSFT",
+      "source": "finnhub",
+      "datetime": 1776041699,
+      "headline": "EU regulators open investigation into Microsoft's bundling of Teams with Office 365",
+      "summary": "The European Commission is examining whether Microsoft's software bundling practices harm competition.",
+      "url": "#",
+      "verdict": "SELL",
+      "confidence": 0.8,
+      "classifiedAt": "2026-04-13T23:26:32.733Z",
+      "reason": "EU scrutiny over Office/Teams bundling signals potential long-term operational risk to MSFT's market dominance."
+    },
+    {
+      "ticker": "MSFT",
+      "source": "finnhub",
+      "datetime": 1775991299,
+      "headline": "Microsoft raises quarterly dividend 10%, announces $60B share buyback program",
+      "summary": "The board approved a $0.75 per share quarterly dividend and extended the buyback authorization.",
+      "url": "#",
+      "verdict": "BUY",
+      "confidence": 0.92,
+      "classifiedAt": "2026-04-13T23:27:48.702Z",
+      "reason": "The $60B share buyback authorization and 10% dividend increase directly signal management confidence and robust capital return to shareholders."
+    },
+    {
+      "ticker": "MSFT",
+      "source": "twitter",
+      "datetime": 1775940899,
+      "author": "WSJMarkets",
+      "headline": "Analyst consensus on MSFT remains Strong Buy with average PT of $520.",
+      "summary": "Analyst consensus on MSFT remains Strong Buy with average PT of $520.",
+      "url": "#",
+      "verdict": "BUY",
+      "confidence": 0.88,
+      "classifiedAt": "2026-04-13T23:29:15.015Z",
+      "reason": "The maintained Strong Buy rating, coupled with the $520 target, reinforces strong institutional conviction in MSFT's upside potential."
+    },
+    {
+      "ticker": "MSFT",
+      "source": "reddit",
+      "datetime": 1776095699,
+      "author": "u/techbull99",
+      "headline": "Microsoft's AI push is unlike anything I've seen — here's why I'm doubling my position",
+      "summary": "Microsoft's AI push is unlike anything I've seen — here's why I'm doubling my position\n\nAzure OpenAI usage is exploding at my company. Every enterprise team wants Copilot. The moat is real.",
+      "url": "#",
+      "verdict": "BUY",
+      "confidence": 0.9,
+      "classifiedAt": "2026-04-13T23:30:31.272Z",
+      "reason": "Exploding Azure OpenAI usage and massive enterprise demand for Copilot confirm MSFT's AI moat and future revenue growth."
+    },
+    {
+      "ticker": "MSFT",
+      "source": "newsapi",
+      "datetime": 1776081299,
+      "headline": "Microsoft Unveils Next-Generation Copilot Features at Build 2026",
+      "summary": "Microsoft announced a sweeping set of AI updates at its annual developer conference, including autonomous agents capable of writing and deploying code without human intervention.",
+      "url": "#",
+      "verdict": "BUY",
+      "confidence": 0.9,
+      "classifiedAt": "2026-04-13T23:31:51.743Z",
+      "reason": "Microsoft's autonomous Copilot agents aggressively expand the Total Addressable Market by enabling full, hands-off code deployment."
+    }
+  ],
+  "RBL": [
+    {
+      "ticker": "RBL",
+      "source": "finnhub",
+      "datetime": 1776110099,
+      "headline": "Rebel Wilson's production company files for expansion, analysts see media deal potential",
+      "summary": "Small-cap media holding RBL announced strategic review of its content portfolio.",
+      "url": "#",
+      "verdict": "BUY",
+      "confidence": 0.75,
+      "classifiedAt": "2026-04-13T23:32:59.347Z",
+      "reason": "The strategic portfolio review and analyst anticipation of a media deal signal necessary future growth."
+    },
+    {
+      "ticker": "RBL",
+      "source": "twitter",
+      "datetime": 1776077699,
+      "author": "SmallCapDaily",
+      "headline": "RBL misses Q2 revenue estimates by 8%, cites softer-than-expected ad market.",
+      "summary": "RBL misses Q2 revenue estimates by 8%, cites softer-than-expected ad market.",
+      "url": "#",
+      "verdict": "SELL",
+      "confidence": 0.88,
+      "classifiedAt": "2026-04-13T23:34:11.246Z",
+      "reason": "The 8% revenue miss confirms market weakness, justifying a sell signal despite general optimism."
+    },
+    {
+      "ticker": "RBL",
+      "source": "finnhub",
+      "datetime": 1776020099,
+      "headline": "Roblox (RBL) daily active users grow 17% YoY in latest platform metrics report",
+      "summary": "DAUs reached 88.9M with strong growth in the 17+ age demographic.",
+      "url": "#",
+      "verdict": "BUY",
+      "confidence": 0.9,
+      "classifiedAt": "2026-04-13T23:35:16.093Z",
+      "reason": "The 17% YoY surge in Daily Active Users confirms robust platform health and expanding engagement, signaling future revenue upside."
+    }
+  ],
+  "RPI": [
+    {
+      "ticker": "RPI",
+      "source": "finnhub",
+      "datetime": 1776099299,
+      "headline": "Inflation data comes in cooler than expected at 3.1%, boosting inflation-linked assets",
+      "summary": "CPI rose 3.1% YoY in the latest reading, below the 3.4% consensus estimate.",
+      "url": "#",
+      "verdict": "BUY",
+      "confidence": 0.9,
+      "classifiedAt": "2026-04-13T23:36:30.253Z",
+      "reason": "The cooler-than-expected CPI print directly supports RPI's valuation as a key inflation-linked asset."
+    },
+    {
+      "ticker": "RPI",
+      "source": "twitter",
+      "datetime": 1776070499,
+      "author": "MacroAlerts",
+      "headline": "Real returns on inflation-protected instruments turn positive for first time since 2021.",
+      "summary": "Real returns on inflation-protected instruments turn positive for first time since 2021.",
+      "url": "#",
+      "verdict": "BUY",
+      "confidence": 0.6,
+      "classifiedAt": "2026-04-13T23:37:59.028Z"
+    },
+    {
+      "ticker": "RPI",
+      "source": "finnhub",
+      "datetime": 1775994899,
+      "headline": "Fed holds rates steady, signals two cuts in 2025 — markets rally on dovish tone",
+      "summary": "The FOMC voted unanimously to hold rates at 5.25%-5.50% at today's meeting.",
+      "url": "#",
+      "verdict": "HOLD",
+      "confidence": 0.5,
+      "classifiedAt": "2026-04-13T23:37:59.035Z"
+    }
+  ],
+  "RXD": [
+    {
+      "ticker": "RXD",
+      "source": "finnhub",
+      "datetime": 1776113699,
+      "headline": "Healthcare sector underperforms broad market for third consecutive week amid pricing reform fears",
+      "summary": "The XLV ETF dropped 2.3% this week as lawmakers renewed discussion of drug price negotiation powers.",
+      "url": "#",
+      "verdict": "SELL",
+      "confidence": 0.6,
+      "classifiedAt": "2026-04-13T23:37:59.036Z"
+    },
+    {
+      "ticker": "RXD",
+      "source": "twitter",
+      "datetime": 1776092099,
+      "author": "ETFTrends",
+      "headline": "Inverse healthcare ETFs see elevated volume as pharma names sell off on Medicare news.",
+      "summary": "Inverse healthcare ETFs see elevated volume as pharma names sell off on Medicare news.",
+      "url": "#",
+      "verdict": "SELL",
+      "confidence": 0.6,
+      "classifiedAt": "2026-04-13T23:37:59.039Z"
+    },
+    {
+      "ticker": "RXD",
+      "source": "finnhub",
+      "datetime": 1776063299,
+      "headline": "Pfizer and Merck post better-than-expected results, healthcare index rebounds 1.8%",
+      "summary": "Strong pharma earnings drove XLV higher, which is a headwind for inverse positions.",
+      "url": "#",
+      "verdict": "BUY",
+      "confidence": 0.6,
+      "classifiedAt": "2026-04-13T23:37:59.041Z"
+    },
+    {
+      "ticker": "RXD",
+      "source": "finnhub",
+      "datetime": 1775962499,
+      "headline": "Drug pricing reform bill stalls in Senate committee, reducing near-term regulatory risk for pharma",
+      "summary": "The bill failed to advance out of the Senate HELP committee on a 10-10 party-line vote.",
+      "url": "#",
+      "verdict": "HOLD",
+      "confidence": 0.5,
+      "classifiedAt": "2026-04-13T23:37:59.043Z"
+    }
+  ]
+}

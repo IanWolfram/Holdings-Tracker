@@ -3,11 +3,30 @@ const BASE_URL = "https://finnhub.io/api/v1";
 // Permanent in-memory cache — company names don't change
 const nameCache = new Map<string, string>();
 
+// Fallback names used when no Finnhub API key is configured
+const FALLBACK_NAMES: Record<string, string> = {
+  MSFT: "Microsoft",
+  AAPL: "Apple",
+  GOOGL: "Alphabet",
+  AMZN: "Amazon",
+  TSLA: "Tesla",
+  NVDA: "Nvidia",
+  META: "Meta",
+  NFLX: "Netflix",
+  AMD: "AMD",
+  INTC: "Intel",
+  BR: "Broadridge Financial",
+  GLD: "Gold ETF",
+  RPI: "Royal Pharma",
+  RXD: "ProShares UltraShort Health Care",
+  RBLX: "Roblox",
+};
+
 export async function getCompanyName(ticker: string): Promise<string> {
   if (nameCache.has(ticker)) return nameCache.get(ticker)!;
 
   const key = process.env.FINNHUB_API_KEY;
-  if (!key) return ticker;
+  if (!key) return FALLBACK_NAMES[ticker] ?? ticker;
 
   try {
     const url = `${BASE_URL}/stock/profile2?symbol=${encodeURIComponent(ticker)}&token=${key}`;

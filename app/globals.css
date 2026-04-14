@@ -168,6 +168,25 @@ body {
 .news-cap-bottom-left { bottom: 0px; left: 0px; border-bottom: 1.5px solid currentColor; border-left: 1.5px solid currentColor; border-bottom-left-radius: 8px; }
 .news-cap-bottom-right { bottom: 0px; right: 0px; border-bottom: 1.5px solid currentColor; border-right: 1.5px solid currentColor; border-bottom-right-radius: 8px; }
 
+.news-edge {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  height: 1.5px;
+  background: currentColor;
+  pointer-events: none;
+  z-index: 20;
+  transform-origin: center;
+}
+.news-edge-top    { top: 0; }
+.news-edge-bottom { bottom: 0; }
+
+[data-hovered="true"] > .news-cap,
+[data-hovered="true"] > .news-edge {
+  filter: drop-shadow(0 0 4px currentColor) drop-shadow(0 0 8px currentColor);
+  transition: filter 0.4s ease;
+}
+
 .scanline {
     width: 100%;
     height: 2px;

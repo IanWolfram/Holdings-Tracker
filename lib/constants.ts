@@ -6,6 +6,9 @@
 export const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 export const NEWS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 export const ACCOUNT_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+export const WORLD_CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
+export const WORLD_VAULT_PATH = process.env.WORLD_VAULT_PATH ?? null;
+
 
 // UI Configuration
 export const NEWS_PREVIEW_COUNT = 3;

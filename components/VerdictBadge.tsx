@@ -1,4 +1,4 @@
-import type { Verdict } from "@/lib/classifier";
+import type { Verdict } from "@/types/news.types";
 
 interface Props {
   verdict: Verdict;

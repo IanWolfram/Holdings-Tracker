@@ -1,0 +1,215 @@
+{
+  "main": {
+    "id": "cd6e8acc4df575f9",
+    "type": "split",
+    "children": [
+      {
+        "id": "37c5f6c7b40458a9",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "73afc101da6f1e23",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "news/2026-04-13-central-banks-globally-added-290-tonnes-of-gold-in.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "2026-04-13-central-banks-globally-added-290-tonnes-of-gold-in"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "fa4613ee277a6169",
+    "type": "split",
+    "children": [
+      {
+        "id": "5c23b5c290ac75e3",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "3952ddfec551e3ef",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "99bd233cd8c053e6",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "df4df935d8a655a0",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "f60fe6aa85b015ef",
+    "type": "split",
+    "children": [
+      {
+        "id": "3468628ff6a7ac1c",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "69907b225385faad",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "news/2026-04-13-central-banks-globally-added-290-tonnes-of-gold-in.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for 2026-04-13-central-banks-globally-added-290-tonnes-of-gold-in"
+            }
+          },
+          {
+            "id": "e54befe1263d860e",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "news/2026-04-13-central-banks-globally-added-290-tonnes-of-gold-in.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from 2026-04-13-central-banks-globally-added-290-tonnes-of-gold-in"
+            }
+          },
+          {
+            "id": "6b1603c163396203",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "41ac907a83f4231d",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "7dbd9df99086669d",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "news/2026-04-13-central-banks-globally-added-290-tonnes-of-gold-in.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of 2026-04-13-central-banks-globally-added-290-tonnes-of-gold-in"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "73afc101da6f1e23",
+  "lastOpenFiles": [
+    "README.md",
+    "news/2026-04-12-microsoft-raises-quarterly-dividend-10-announces.md",
+    "daily/2026-04-14.md",
+    "news/2026-04-13-pfizer-and-merck-post-better-than-expected-results.md",
+    "news/2026-04-12-drug-pricing-reform-bill-stalls-in-senate-committe.md",
+    "news/2026-04-13-inverse-healthcare-etfs-see-elevated-volume-as-pha.md",
+    "news/2026-04-13-healthcare-sector-underperforms-broad-market-for-t.md",
+    "news/2026-04-12-fed-holds-rates-steady-signals-two-cuts-in-2025-.md",
+    "news/2026-04-13-real-returns-on-inflation-protected-instruments-tu.md",
+    "news/2026-04-13-inflation-data-comes-in-cooler-than-expected-at-3-.md",
+    "news/2026-04-12-roblox-rbl-daily-active-users-grow-17-yoy-in-la.md",
+    "news/2026-04-13-rbl-misses-q2-revenue-estimates-by-8-cites-softe.md",
+    "news/2026-04-13-rebel-wilson-s-production-company-files-for-expans.md",
+    "news/2026-04-13-microsoft-unveils-next-generation-copilot-features.md",
+    "news/2026-04-13-microsoft-s-ai-push-is-unlike-anything-i-ve-seen-.md",
+    "news/2026-04-11-analyst-consensus-on-msft-remains-strong-buy-with-.md",
+    "news/2026-04-13-eu-regulators-open-investigation-into-microsoft-s-.md",
+    "news/2026-04-13-copilot-for-microsoft-365-reaches-1-million-paid-s.md",
+    "news/2026-04-13-microsoft-azure-revenue-grows-31-yoy-ai-services.md",
+    "news/2026-04-13-gold-hits-record-high-as-central-bank-demand-accel.md",
+    "news/2026-04-13-gld-vs-physical-gold-which-do-you-hold-and-why-.md",
+    "news/2026-04-11-geopolitical-tensions-in-middle-east-driving-safe-.md",
+    "news/2026-04-12-gld-etf-sees-record-weekly-inflows-of-1-2b-from-i.md",
+    "news/2026-04-13-dollar-strengthens-on-better-than-expected-jobs-da.md",
+    "news/2026-04-13-central-banks-globally-added-290-tonnes-of-gold-in.md",
+    "news/2026-04-13-gold-surges-to-3-month-high-as-fed-signals-pause-i.md"
+  ]
+}

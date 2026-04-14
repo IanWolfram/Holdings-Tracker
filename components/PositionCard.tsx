@@ -1,22 +1,37 @@
 "use client";
 
-import { useRef, useState, useEffect, useId } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { useRef, useState, useEffect, useId, useMemo } from "react";
+import { motion } from "framer-motion";
 import NewsCard from "./NewsCard";
+import CongressTradeCard from "./CongressTradeCard";
+import NewsCollapsible from "./NewsCollapsible";
+import { FinnhubBadge, XBadge, RedditBadge } from "./mediabadges";
 import GlassContainer from "./ui/LiquidGlass/GlassContainer";
 import GlassView from "./ui/LiquidGlass/GlassView";
 import Sparkline from "./ui/Sparkline";
-import { NEWS_PREVIEW_COUNT } from "@/lib/constants";
 import { formatCurrency, formatPercent, formatGainLoss } from "@/lib/utils/format";
 import type { Position } from "@/types/position.types";
-import type { ClassifiedStory } from "@/types/news.types";
+import type { ClassifiedStory, CongressTrade } from "@/types/news.types";
 
-const POSITION_R = 12; // border radius for PositionCard
+// Sort order for news source groups (lower = first)
+const SOURCE_ORDER = ["twitter", "reddit", "finnhub", "newsapi"] as const;
+const SOURCE_PRIORITY: Record<string, number> = { twitter: 0, reddit: 1, finnhub: 2, newsapi: 3 };
+
+
+function SourceBadge({ source }: { source: string }) {
+  if (source === "finnhub") return <FinnhubBadge />;
+  if (source === "reddit") return <RedditBadge />;
+  if (source === "twitter") return <XBadge />;
+  return <span className="text-[10px] text-slate-500 font-bold">News</span>;
+}
+
+const POSITION_R = 12;
 const REVEAL_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 interface Props {
   position: Position;
   stories: ClassifiedStory[];
+  congressTrades?: CongressTrade[];
   loading: boolean;
 }
 
@@ -27,11 +42,18 @@ function glowClass(buy: number, sell: number, loading: boolean): string {
   return "glow-neutral";
 }
 
-export default function PositionCard({ position, stories, loading }: Props) {
+function CongressHeader() {
+  return (
+    <span className="material-symbols-outlined text-[15px]" style={{ color: "#b45309" }}>
+      gavel
+    </span>
+  );
+}
+
+export default function PositionCard({ position, stories, congressTrades = [], loading }: Props) {
   const articleRef = useRef<HTMLDivElement>(null);
   const rawId = useId();
   const id = rawId.replace(/:/g, "");
-  const [expanded, setExpanded] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [dims, setDims] = useState({ w: 0, h: 0 });
 
@@ -40,25 +62,34 @@ export default function PositionCard({ position, stories, loading }: Props) {
   const buy = stories.filter((s) => s.verdict === "BUY").length;
   const sell = stories.filter((s) => s.verdict === "SELL").length;
   const hold = stories.filter((s) => s.verdict === "HOLD").length;
-  
-  // Calculate verdict score for the ratio bar (0 to 1)
-  const verdictScore = (buy + sell) > 0 ? buy / (buy + sell) : (hold > 0 ? 0.5 : 0.5);
 
+  const verdictScore = (buy + sell) > 0 ? buy / (buy + sell) : (hold > 0 ? 0.5 : 0.5);
   const gainPositive = gainLoss >= 0;
   const gainStr = formatGainLoss(gainLoss);
-
   const gainPct = pricePaid > 0 ? ((currentPrice - pricePaid) / pricePaid) * 100 : 0;
   const gainPctStr = formatPercent(gainPct);
-
   const mvStr = formatCurrency(marketValue);
   const priceStr = formatCurrency(currentPrice);
-
   const isHot = gainPct > 10;
 
-  const visibleStories = expanded ? stories : stories.slice(0, NEWS_PREVIEW_COUNT);
-  const hiddenCount = stories.length - NEWS_PREVIEW_COUNT;
+  // Group stories by source, each group sorted by recency (newest first)
+  const storyGroups = useMemo(() => {
+    const groups: Record<string, ClassifiedStory[]> = {};
+    for (const story of stories) {
+      const src = story.source || "newsapi";
+      if (!groups[src]) groups[src] = [];
+      groups[src].push(story);
+    }
+    // Sort each group by datetime descending (most recent first)
+    for (const src of Object.keys(groups)) {
+      groups[src].sort((a, b) => (b.datetime ?? 0) - (a.datetime ?? 0));
+    }
+    return groups;
+  }, [stories]);
 
-  // Measurement logic for SVG border
+  const hasContent = stories.length > 0 || congressTrades.length > 0;
+
+  // SVG border measurement
   useEffect(() => {
     const el = articleRef.current;
     if (!el) return;
@@ -74,16 +105,12 @@ export default function PositionCard({ position, stories, loading }: Props) {
 
   const { w, h } = dims;
   const midX = w / 2;
-
-  // Determine border color based on verdict score
   const color = verdictScore > 0.5 ? "#00FF88" : verdictScore < 0.5 ? "#FF4444" : "#64748b";
   const highlight = verdictScore > 0.5 ? "#ccffeb" : verdictScore < 0.5 ? "#ffd6cc" : "#cbd5e1";
 
   const capPaths = w > 0 ? {
     topLeft: `M 1.5 20 L 1.5 ${POSITION_R} Q 1.5 1.5 ${POSITION_R} 1.5 L ${midX} 1.5`,
     topRight: `M ${w - 1.5} 20 L ${w - 1.5} ${POSITION_R} Q ${w - 1.5} 1.5 ${w - POSITION_R} 1.5 L ${midX} 1.5`,
-    bottomLeft: `M 1.5 ${h - 20} L 1.5 ${h - POSITION_R} Q 1.5 ${h - 1.5} ${POSITION_R} ${h - 1.5} L ${midX} ${h - 1.5}`,
-    bottomRight: `M ${w - 1.5} ${h - 20} L ${w - 1.5} ${h - POSITION_R} Q ${w - 1.5} ${h - 1.5} ${w - POSITION_R} ${h - 1.5} L ${midX} ${h - 1.5}`,
   } : null;
 
   return (
@@ -91,10 +118,10 @@ export default function PositionCard({ position, stories, loading }: Props) {
       layout
       layoutId={ticker}
       cornerRadius={POSITION_R}
-      className={`relative flex flex-col group shadow-2xl transition-all duration-300`}
-      style={{ backgroundColor: "rgba(0, 0, 0, 0.6)" }}
+      className="relative flex flex-col group shadow-2xl transition-all duration-300"
+      style={{ backgroundColor: "rgba(0, 0, 0, 0.6)", overflow: "hidden" }}
     >
-      <div 
+      <div
         ref={articleRef}
         className="relative"
         onMouseEnter={() => setHovered(true)}
@@ -135,41 +162,21 @@ export default function PositionCard({ position, stories, loading }: Props) {
               <mask id={`topMask-${id}`}>
                 <rect x="-10" y="0" width={w + 20} height={40} fill={`url(#fadeGradient-${id})`} />
               </mask>
-              <mask id={`bottomMask-${id}`}>
-                <g transform={`translate(0, ${h}) scale(1, -1)`}>
-                  <rect x="-10" y="0" width={w + 20} height={40} fill={`url(#fadeGradient-${id})`} />
-                </g>
-              </mask>
             </defs>
-
             {capPaths && (
               <g stroke={color} strokeWidth={1.5} fill="none" strokeLinecap="round">
                 <g mask={`url(#topMask-${id})`}>
                   <motion.path
                     d={capPaths.topLeft}
-                    initial={{ pathLength: 0.1, opacity: 0 }}
-                    animate={{ pathLength: hovered ? 1 : 0.1, opacity: hovered ? 1 : 0.3 }}
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: hovered ? 1 : 0, opacity: hovered ? 1 : 0 }}
                     transition={{ duration: 0.6, ease: REVEAL_EASE }}
                   />
                   <motion.path
                     d={capPaths.topRight}
-                    initial={{ pathLength: 0.1, opacity: 0 }}
-                    animate={{ pathLength: hovered ? 1 : 0.1, opacity: hovered ? 1 : 0.3 }}
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: hovered ? 1 : 0, opacity: hovered ? 1 : 0 }}
                     transition={{ duration: 0.6, ease: REVEAL_EASE, delay: 0.05 }}
-                  />
-                </g>
-                <g mask={`url(#bottomMask-${id})`}>
-                  <motion.path
-                    d={capPaths.bottomLeft}
-                    initial={{ pathLength: 0.1, opacity: 0 }}
-                    animate={{ pathLength: hovered ? 1 : 0.1, opacity: hovered ? 1 : 0.3 }}
-                    transition={{ duration: 0.6, ease: REVEAL_EASE, delay: 0.1 }}
-                  />
-                  <motion.path
-                    d={capPaths.bottomRight}
-                    initial={{ pathLength: 0.1, opacity: 0 }}
-                    animate={{ pathLength: hovered ? 1 : 0.1, opacity: hovered ? 1 : 0.3 }}
-                    transition={{ duration: 0.6, ease: REVEAL_EASE, delay: 0.15 }}
                   />
                 </g>
               </g>
@@ -177,39 +184,34 @@ export default function PositionCard({ position, stories, loading }: Props) {
           </svg>
         )}
 
-        {/* Card Wrapper with Glow Header */}
+        {/* Card header with glow */}
         <div className={`ticker-header-glow ${glowClass(buy, sell, loading)}`}>
-          
-          {/* Phase 1: CardHeader */}
+
+          {/* CardHeader */}
           <div className="p-4 pb-2">
-            <div className="flex justify-between items-end mb-1 gap-2">
-              <div className="ticker-group shrink-0">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-col gap-0.5 min-w-0">
                 <div className="flex items-center gap-2">
                   <h1 className="font-mono text-2xl font-black text-white tracking-tighter leading-none">{ticker}</h1>
                   {isHot && (
                     <span className="bg-negative text-white text-[8px] font-black px-1 rounded-sm animate-pulse">HOT</span>
                   )}
                 </div>
-                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-1 opacity-80 truncate max-w-[110px]" title={description}>
+                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest opacity-80 max-w-[65%] wrap-break-words" title={description}>
                   {description}
                 </p>
-              </div>
-
-              {/* Injected small graph between ticker and price */}
-              <div className="flex-1 flex justify-center px-2 -mb-0.5 opacity-100 transition-opacity duration-500 overflow-hidden">
-                <Sparkline data={history || []} width={100} height={22} />
-              </div>
-              
-              <div className="price-group text-right shrink-0">
-                <h2 className="font-mono text-xl font-bold text-white leading-none tracking-tight">{mvStr}</h2>
-                <p className="font-mono text-[9px] font-medium text-slate-400 mt-0.5">
+                <h2 className="font-mono text-xl font-bold text-white leading-none tracking-tight mt-1">{mvStr}</h2>
+                <span className="font-mono text-[9px] font-medium text-slate-400">
                   {priceStr} <span className="opacity-50 text-[8px]">/ SH</span>
-                </p>
+                </span>
+              </div>
+              <div className="shrink-0">
+                <Sparkline data={history || []} width={150} height={60} />
               </div>
             </div>
           </div>
 
-          {/* Phase 2: CardStats (Gain Row) */}
+          {/* Gain row */}
           <div className="px-4 py-2 flex justify-between items-center border-t border-white/[0.03] bg-black/20">
             <div className={`gain-row font-mono flex items-baseline gap-2 ${gainPositive ? "text-positive" : "text-negative"}`}>
               <span className="text-sm font-black">{gainStr}</span>
@@ -220,17 +222,17 @@ export default function PositionCard({ position, stories, loading }: Props) {
             </span>
           </div>
 
-          {/* Phase 4: CardFooter (Verdict Bar) */}
+          {/* Verdict bar */}
           <div className="px-4 py-3 border-t border-white/[0.05] bg-zinc-950/40">
             <div className="flex flex-col gap-2">
               <div className="verdict-bar w-full h-1.5 bg-white/5 rounded-full overflow-hidden flex">
-                <div 
-                  className="bar-green bg-positive transition-all duration-1000 ease-out" 
-                  style={{ width: `${verdictScore * 100}%`, boxShadow: "0 0 10px rgba(0, 255, 136, 0.3)" }} 
+                <div
+                  className="bar-green bg-positive transition-all duration-1000 ease-out"
+                  style={{ width: `${verdictScore * 100}%`, boxShadow: "0 0 10px rgba(0, 255, 136, 0.3)" }}
                 />
-                <div 
-                  className="bar-red bg-negative transition-all duration-1000 ease-out" 
-                  style={{ width: `${(1 - verdictScore) * 100}%`, boxShadow: "0 0 10px rgba(255, 68, 68, 0.3)" }} 
+                <div
+                  className="bar-red bg-negative transition-all duration-1000 ease-out"
+                  style={{ width: `${(1 - verdictScore) * 100}%`, boxShadow: "0 0 10px rgba(255, 68, 68, 0.3)" }}
                 />
               </div>
               <div className="flex justify-between items-center">
@@ -243,52 +245,68 @@ export default function PositionCard({ position, stories, loading }: Props) {
           </div>
         </div>
 
-        {/* News feed inside a Shared Glass Container */}
+        {/* News feed — grouped by source */}
         <GlassContainer className="flex-1 p-3 border-t border-white/[0.05]">
-          <div className="space-y-3 relative">
-            {loading && stories.length === 0 && <LoadingSkeleton />}
+          {loading && !hasContent && <LoadingSkeleton />}
 
-            {!loading && stories.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-6 gap-2 text-center opacity-40">
-                <span className="material-symbols-outlined text-3xl">info</span>
-                <p className="text-[10px] font-bold uppercase tracking-wider">No recent news</p>
-              </div>
-            )}
+          {!loading && !hasContent && (
+            <div className="flex flex-col items-center justify-center py-6 gap-2 text-center opacity-40">
+              <span className="material-symbols-outlined text-3xl">info</span>
+              <p className="text-[10px] font-bold uppercase tracking-wider">No recent news</p>
+            </div>
+          )}
 
-            <AnimatePresence initial={false}>
-              {visibleStories.map((story, i) => (
-                <motion.div
-                  key={`${story.url}-${i}`}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3, delay: i * 0.05 }}
+          {hasContent && (
+            <div className="space-y-3">
+              {/* Congress trades — always first */}
+              {congressTrades.length > 0 && (
+                <NewsCollapsible
+                  badge={<CongressHeader />}
+                  count={congressTrades.length}
+                  defaultExpanded={congressTrades.length === 1}
                 >
-                  <div className="mb-3">
-                    <NewsCard story={story} />
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-        </GlassContainer>
+                  {congressTrades.map((trade) => (
+                    <CongressTradeCard key={trade.id} trade={trade} />
+                  ))}
+                </NewsCollapsible>
+              )}
 
-        {/* Expand / collapse toggle */}
-        {stories.length > NEWS_PREVIEW_COUNT && (
-          <button
-            onClick={() => setExpanded((v) => !v)}
-            className="w-full flex items-center justify-center gap-2 py-2 border-t border-white/5 bg-surface-container-low/80 hover:bg-white/[0.03] transition-colors group/toggle"
-          >
-            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 group-hover/toggle:text-slate-300 transition-colors">
-              {expanded ? "Collapse" : `${hiddenCount} more insights`}
-            </span>
-            <span
-              className={`material-symbols-outlined text-[16px] text-slate-600 group-hover/toggle:text-slate-300 transition-all duration-300 ${expanded ? "rotate-180" : ""}`}
-            >
-              expand_more
-            </span>
-          </button>
-        )}
+              {/* News story decks — one per source, ordered twitter → reddit → finnhub → newsapi */}
+              {SOURCE_ORDER.filter((src) => storyGroups[src]?.length).map((src) => {
+                const group = storyGroups[src];
+                return (
+                  <NewsCollapsible
+                    key={src}
+                    badge={<SourceBadge source={src} />}
+                    count={group.length}
+                  >
+                    {group.map((story, i) => (
+                      <NewsCard key={`${story.url}-${i}`} story={story} />
+                    ))}
+                  </NewsCollapsible>
+                );
+              })}
+
+              {/* Any sources not in SOURCE_ORDER */}
+              {Object.keys(storyGroups)
+                .filter((src) => SOURCE_PRIORITY[src] === undefined)
+                .map((src) => {
+                  const group = storyGroups[src];
+                  return (
+                    <NewsCollapsible
+                      key={src}
+                      badge={<SourceBadge source={src} />}
+                      count={group.length}
+                    >
+                      {group.map((story, i) => (
+                        <NewsCard key={`${story.url}-${i}`} story={story} />
+                      ))}
+                    </NewsCollapsible>
+                  );
+                })}
+            </div>
+          )}
+        </GlassContainer>
       </div>
     </GlassView>
   );
@@ -296,7 +314,7 @@ export default function PositionCard({ position, stories, loading }: Props) {
 
 function LoadingSkeleton() {
   return (
-    <>
+    <div className="space-y-4">
       {[0, 1].map((i) => (
         <div key={i} className={`space-y-2 animate-pulse ${i === 1 ? "opacity-60" : ""}`}>
           <div className="h-3 w-12 bg-slate-800 rounded-sm" />
@@ -305,7 +323,6 @@ function LoadingSkeleton() {
           <div className="h-2 w-20 bg-slate-800 rounded-sm mt-4" />
         </div>
       ))}
-    </>
+    </div>
   );
 }
-

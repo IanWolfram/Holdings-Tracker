@@ -19,21 +19,23 @@ export function YAxis({ pl, py, height, max, min }: YAxisProps) {
         className="text-white/40" 
         strokeWidth={1} 
       />
-      <text 
-        x={pl - 4} y={py + 2} 
-        textAnchor="end" 
-        fontSize="6" 
+      <text
+        x={pl - 4} y={py + 2}
+        textAnchor="end"
+        fontSize="7"
         fontWeight="bold"
-        className="fill-white/40 font-mono"
+        fontFamily="monospace"
+        fill="rgba(255,255,255,0.5)"
       >
         {formatAxisLabel(max)}
       </text>
-      <text 
-        x={pl - 4} y={height - py + 2} 
-        textAnchor="end" 
-        fontSize="6" 
+      <text
+        x={pl - 4} y={height - py + 2}
+        textAnchor="end"
+        fontSize="7"
         fontWeight="bold"
-        className="fill-white/30 font-mono"
+        fontFamily="monospace"
+        fill="rgba(255,255,255,0.35)"
       >
         {formatAxisLabel(min)}
       </text>

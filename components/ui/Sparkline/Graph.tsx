@@ -21,17 +21,52 @@ export function Graph({ data, width = 60, height = 24 }: GraphProps) {
   const range = max - min || 1;
   const isPositive = data[data.length - 1] >= data[0];
   
-  const pl = 16; 
-  const pr = 2;
-  const py = 4;
+  const pl = 22;
+  const pr = 4;
+  const py = 6;
 
-  const points = data.map((val, i) => ({
-    x: (i / (data.length - 1)) * (width - pl - pr) + pl,
-    y: (height - py * 2) - ((val - min) / range) * (height - py * 2) + py,
-  }));
+  const toY = (val: number) =>
+    (height - py * 2) - ((val - min) / range) * (height - py * 2) + py;
+  const toX = (i: number) =>
+    (i / (data.length - 1)) * (width - pl - pr) + pl;
+
+  const points = data.map((val, i) => ({ x: toX(i), y: toY(val) }));
+
+  // SMA with window = ~25% of data length, min 3
+  const window = Math.max(3, Math.floor(data.length * 0.25));
+  const smaPoints = data.reduce<{ x: number; y: number }[]>((acc, _, i) => {
+    if (i < window - 1) return acc;
+    const avg = data.slice(i - window + 1, i + 1).reduce((s, v) => s + v, 0) / window;
+    acc.push({ x: toX(i), y: toY(avg) });
+    return acc;
+  }, []);
+
+  const priceColor = isPositive ? "#00FF88" : "#FF4444";
 
   return (
-    <div className="relative group/spark" style={{ width, height }}>
+    <div className="relative group/spark flex flex-col gap-1" style={{ width }}>
+      {/* Legend — offset right by half the Y-axis padding to center over the plot area */}
+      <div className="flex items-center justify-center" style={{ paddingLeft: pl - pr }}>
+      <div className="flex items-center gap-3 border border-white/10 px-2 py-1">
+        <div className="flex items-center gap-1">
+          <svg width="10" height="6">
+            <circle cx="5" cy="3" r="2" fill={priceColor} />
+          </svg>
+          <span style={{ fontSize: 5, fontFamily: "monospace", color: "rgba(255,255,255,0.5)", fontWeight: "bold", letterSpacing: "0.05em" }}>
+            PRICE
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          <svg width="10" height="6">
+            <circle cx="5" cy="3" r="2" fill="rgba(148,163,184,0.7)" />
+          </svg>
+          <span style={{ fontSize: 5, fontFamily: "monospace", color: "rgba(255,255,255,0.35)", fontWeight: "bold", letterSpacing: "0.05em" }}>
+            SMA
+          </span>
+        </div>
+      </div>
+      </div>
+
       <svg width={width} height={height} className="overflow-visible select-none">
         <defs>
           <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
@@ -40,21 +75,35 @@ export function Graph({ data, width = 60, height = 24 }: GraphProps) {
           </filter>
         </defs>
 
-        <XAxis 
-          pl={pl} pr={pr} py={py} 
-          width={width} height={height} 
-          points={points} dataLength={data.length} 
+        <XAxis
+          pl={pl} pr={pr} py={py}
+          width={width} height={height}
+          points={points} dataLength={data.length}
         />
         <YAxis pl={pl} py={py} height={height} max={max} min={min} />
-        
+
         {/* Interior Grid Line */}
-        <line 
-          x1={pl} y1={height / 2} x2={width - pr} y2={height / 2} 
-          stroke="currentColor" 
-          className="text-white/5" 
-          strokeWidth={0.5} 
-          strokeDasharray="2,2" 
+        <line
+          x1={pl} y1={height / 2} x2={width - pr} y2={height / 2}
+          stroke="rgba(255,255,255,0.05)"
+          strokeWidth={0.5}
+          strokeDasharray="2,2"
         />
+
+        {/* SMA dashed line */}
+        {smaPoints.length >= 2 && (
+          <path
+            d={smaPoints.reduce((acc, p, i) =>
+              i === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`, ""
+            )}
+            fill="none"
+            stroke="rgba(148,163,184,0.55)"
+            strokeWidth={1}
+            strokeDasharray="3,2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        )}
 
         <SparklinePath points={points} isPositive={isPositive} />
       </svg>

@@ -3,11 +3,12 @@
 import TopBar from "@/components/TopBar";
 import PositionCard from "@/components/PositionCard";
 import type { Position } from "@/types/position.types";
-import type { ClassifiedStory } from "@/types/news.types";
+import type { ClassifiedStory, CongressTrade } from "@/types/news.types";
 
 interface DesktopDashboardProps {
   positions: Position[];
   news: Record<string, ClassifiedStory[]>;
+  congressTrades: Record<string, CongressTrade[]>;
   loadingNews: Record<string, boolean>;
   refreshing: boolean;
   lastUpdated: Date | null;
@@ -17,6 +18,7 @@ interface DesktopDashboardProps {
 export default function DesktopDashboard({
   positions,
   news,
+  congressTrades,
   loadingNews,
   refreshing,
   lastUpdated,
@@ -44,6 +46,7 @@ export default function DesktopDashboard({
               key={pos.ticker}
               position={pos}
               stories={news[pos.ticker] ?? []}
+              congressTrades={congressTrades[pos.ticker] ?? []}
               loading={loadingNews[pos.ticker] ?? false}
             />
           ))}

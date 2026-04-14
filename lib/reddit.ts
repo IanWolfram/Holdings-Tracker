@@ -23,19 +23,21 @@ export async function fetchRedditPosts(
   }
   lastFetchedAt.set(ticker, now);
 
-  // Build query: use ticker + company name if different, otherwise just ticker
+  // Use $TICKER notation (standard in stock discussion communities)
+  // Include company name if different from ticker for broader coverage
   const queryTerms =
     companyName.toLowerCase() !== ticker.toLowerCase()
-      ? `${ticker} ${companyName}`
-      : ticker;
+      ? `$${ticker} OR "${companyName}"`
+      : `$${ticker}`;
   const query = encodeURIComponent(queryTerms);
 
-  const url = `https://www.reddit.com/r/${SUBREDDITS}/search.json?q=${query}&restrict_sr=1&sort=new&t=week&limit=20`;
+  const url = `https://www.reddit.com/r/${SUBREDDITS}/search.json?q=${query}&restrict_sr=1&sort=new&t=month&limit=20`;
 
   const res = await fetch(url, {
     headers: {
       "User-Agent": "Holdings-Tracker/1.0",
     },
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (!res.ok) {
