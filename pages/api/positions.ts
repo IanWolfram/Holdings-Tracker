@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getPositionsSafe } from "@/lib/etrade";
 import type { Position } from "@/types/position.types";
 import { getQuote, getHistory } from "@/lib/market-data";
+import { getServices } from "@/src/registry";
 
 async function enrichWithRealPrices(positions: Position[]): Promise<Position[]> {
   const results = await Promise.allSettled(
@@ -54,7 +54,8 @@ export default async function handler(
   }
 
   try {
-    const positions = await getPositionsSafe();
+    const { portfolioService } = getServices();
+    const positions = await portfolioService.getPositionsSafe();
     const isMock = process.env.ETRADE_ENV === "mock";
 
     if (isMock) {

@@ -1,0 +1,44 @@
+import type { Position } from "@/types/position.types";
+
+export function mapRawPosition(pos: {
+  Product?: { symbol?: string };
+  symbolDescription?: string;
+  quantity?: string | number;
+  marketValue?: string | number;
+  totalGain?: string | number;
+  pricePaid?: string | number;
+  Quick?: { lastTrade?: string | number };
+}): Position {
+  return {
+    ticker: (pos.Product?.symbol ?? "UNKNOWN") as string,
+    description: (pos.symbolDescription ?? pos.Product?.symbol ?? "UNKNOWN") as string,
+    quantity: Number(pos.quantity ?? 0),
+    marketValue: Number(pos.marketValue ?? 0),
+    gainLoss: Number(pos.totalGain ?? 0),
+    pricePaid: Number(pos.pricePaid ?? 0),
+    currentPrice: Number(pos.Quick?.lastTrade ?? 0),
+  };
+}
+
+export function withSyntheticHistory(positions: Position[]): Position[] {
+  return positions.map((pos) => {
+    if (pos.history && pos.history.length > 0) return pos;
+
+    const points = 90;
+    const history: number[] = [];
+    const current = pos.currentPrice;
+    const startingVal = current - pos.gainLoss / pos.quantity;
+    let val = startingVal;
+
+    for (let i = 0; i < points - 1; i++) {
+      history.push(val);
+      const trend = (current - val) / (points - i);
+      const noise = (Math.random() - 0.5) * (current * 0.015);
+      const ridges = Math.sin(i * 0.5) * (current * 0.005);
+      val += trend + noise + ridges;
+    }
+    history.push(current);
+
+    return { ...pos, history };
+  });
+}

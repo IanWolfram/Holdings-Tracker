@@ -66,6 +66,14 @@ function dotFillPolygon(rings: number[][][], density: number = 0.85): number[][]
 }
 
 // ---------------------------------------------------------------------------
+// Cluster separation — markers that share a city need tangential spacing
+// ---------------------------------------------------------------------------
+
+const CLUSTER_DIST_THRESHOLD = 0.08; // globe-unit distance (~4.5° ≈ ~500 km)
+const CLUSTER_REST_SEP = 0.022;      // resting gap between clustered markers
+const CLUSTER_HOVER_SEP = 0.044;     // gap when any cluster peer is hovered
+
+// ---------------------------------------------------------------------------
 // Country border color from verdict
 // ---------------------------------------------------------------------------
 
@@ -169,12 +177,19 @@ interface GlobeCanvasProps {
 interface HQMarkerState {
   ticker: string;
   countryCode: string;
-  sphere: THREE.Mesh;      // white sphere — visible at hoverT = 0
-  hitSphere: THREE.Mesh;   // invisible larger sphere used for hover/click detection
+  sphere: THREE.Mesh;       // white sphere — visible at hoverT = 0
+  hitSphere: THREE.Mesh;    // invisible larger sphere used for hover/click detection
   hoverDiamond: THREE.Mesh; // green diamond — visible at hoverT = 1
   group: THREE.Group;
-  outward: THREE.Vector3;  // unit surface normal (used for diamond orientation)
-  hoverT: number;          // 0 = fully sphere, 1 = fully diamond
+  outward: THREE.Vector3;   // unit surface normal (used for diamond orientation)
+  hoverT: number;           // 0 = fully sphere, 1 = fully diamond
+  // Cluster separation
+  basePos: THREE.Vector3;   // surface position before any separation offset
+  dHalfH: number;           // hover diamond half-height (for repositioning tip)
+  eastDir: THREE.Vector3 | null; // tangent east-axis of cluster; null if singleton
+  sepIndex: number;          // signed index in cluster: -1.5, -0.5, +0.5, +1.5…
+  clusterPeers: string[];    // all tickers in this cluster (including self)
+  separationT: number;       // 0 = rest separation, 1 = hover separation
 }
 
 // ---------------------------------------------------------------------------
@@ -287,9 +302,15 @@ export default function GlobeCanvas({
 
     const diamond = new THREE.Mesh(geo, mat);
 
-    // Surface position — 1.018 matches marker placement
-    const surfacePos = latLonToVector3(profile.lat, profile.lon, 1.018);
-    const outward = surfacePos.clone().normalize();
+    // Use fully-separated position for clustered markers so the diamond
+    // appears where the user clicked, not back at the shared base position.
+    let surfacePos: THREE.Vector3;
+    if (ms && ms.eastDir && ms.clusterPeers.length > 1) {
+      surfacePos = ms.basePos.clone().addScaledVector(ms.eastDir, ms.sepIndex * CLUSTER_HOVER_SEP);
+    } else {
+      surfacePos = ms?.basePos?.clone() ?? latLonToVector3(profile.lat, profile.lon, 1.018);
+    }
+    const outward = ms?.outward?.clone() ?? surfacePos.clone().normalize();
 
     // Sit the bottom tip ON the surface: move center up by one half-height
     // half-height = radius * 2.4 (the Y scale factor)
@@ -580,12 +601,32 @@ export default function GlobeCanvas({
         }
       }
 
-      // ── HQ marker hover animation (sphere → diamond crossfade) ───────────
+      // ── HQ marker hover animation (sphere → diamond crossfade + cluster separation) ──
       const hoveredTicker = hoveredMarkerTickerRef.current;
       for (const ms of hqMarkersRef.current) {
         if (!ms.group.visible) continue; // skip the focused/selected marker
-        const target = ms.ticker === hoveredTicker ? 1 : 0;
-        ms.hoverT += (target - ms.hoverT) * 0.14; // smooth lerp ~0.14/frame
+
+        // Individual hover: only this marker turns into a diamond
+        const hoverTarget = ms.ticker === hoveredTicker ? 1 : 0;
+        ms.hoverT += (hoverTarget - ms.hoverT) * 0.14;
+
+        // Cluster separation: any peer hovered OR focused → spread all members apart
+        if (ms.eastDir !== null && ms.clusterPeers.length > 1) {
+          const anyPeerActive =
+            (hoveredTicker !== null && ms.clusterPeers.includes(hoveredTicker)) ||
+            ms.clusterPeers.some((t) => {
+              const peer = hqMarkersRef.current.find((m) => m.ticker === t);
+              return peer && !peer.group.visible; // group hidden = this peer is focused
+            });
+          const sepTarget = anyPeerActive ? 1 : 0;
+          ms.separationT += (sepTarget - ms.separationT) * 0.10;
+
+          const sepDist = CLUSTER_REST_SEP + (CLUSTER_HOVER_SEP - CLUSTER_REST_SEP) * ms.separationT;
+          const newPos = ms.basePos.clone().addScaledVector(ms.eastDir, ms.sepIndex * sepDist);
+          ms.sphere.position.copy(newPos);
+          ms.hitSphere.position.copy(newPos);
+          ms.hoverDiamond.position.copy(newPos.clone().addScaledVector(ms.outward, ms.dHalfH));
+        }
 
         // Sphere: fade out and shrink as hoverT rises
         const sphereMat = ms.sphere.material as THREE.MeshBasicMaterial;
@@ -967,6 +1008,66 @@ export default function GlobeCanvas({
         group,
         outward,
         hoverT: 0,
+        basePos: surfacePos.clone(),
+        dHalfH,
+        eastDir: null,
+        sepIndex: 0,
+        clusterPeers: [],
+        separationT: 0,
+      });
+    }
+
+    // ── Cluster detection: group markers within CLUSTER_DIST_THRESHOLD ──────
+    // Union-find by proximity (O(n²) — fine for < 30 markers)
+    const markers = hqMarkersRef.current;
+    const clusterOf = new Map<string, string[]>(); // ticker → cluster array ref
+
+    for (let i = 0; i < markers.length; i++) {
+      const a = markers[i];
+      if (!clusterOf.has(a.ticker)) clusterOf.set(a.ticker, [a.ticker]);
+      for (let j = i + 1; j < markers.length; j++) {
+        const b = markers[j];
+        if (a.basePos.distanceTo(b.basePos) > CLUSTER_DIST_THRESHOLD) continue;
+        // Merge clusters
+        const ca = clusterOf.get(a.ticker) ?? [a.ticker];
+        const cb = clusterOf.get(b.ticker) ?? [b.ticker];
+        if (ca === cb) continue; // already merged
+        const merged = [...ca, ...cb];
+        for (const t of merged) clusterOf.set(t, merged);
+      }
+    }
+
+    // Collect unique clusters with ≥ 2 members
+    const seen = new Set<string[]>();
+    for (const cluster of clusterOf.values()) {
+      if (cluster.length < 2 || seen.has(cluster)) continue;
+      seen.add(cluster);
+
+      // Sort cluster west→east by original longitude so layout is predictable
+      cluster.sort((a, b) => {
+        const profA = worldData.profiles[a];
+        const profB = worldData.profiles[b];
+        return (profA?.lon ?? 0) - (profB?.lon ?? 0);
+      });
+
+      // East tangent at the cluster centroid (globe-local space)
+      const centroid = new THREE.Vector3();
+      for (const t of cluster) {
+        const ms = markers.find((m) => m.ticker === t)!;
+        centroid.add(ms.basePos);
+      }
+      centroid.divideScalar(cluster.length).normalize();
+      // east = cross(north_pole, outward) on the globe surface
+      const globeUp = new THREE.Vector3(0, 1, 0);
+      const eastDir = new THREE.Vector3().crossVectors(globeUp, centroid).normalize();
+
+      // Assign signed index so markers spread symmetrically: -0.5, +0.5 for N=2 etc.
+      const half = (cluster.length - 1) / 2;
+      cluster.forEach((t, idx) => {
+        const ms = markers.find((m) => m.ticker === t)!;
+        ms.eastDir = eastDir.clone();
+        ms.sepIndex = idx - half;
+        ms.clusterPeers = cluster;
       });
     }
   }, [worldData]);

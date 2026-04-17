@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getNewsForTicker, type ClassifiedStory } from "@/lib/news";
+import type { ClassifiedStory } from "@/types/news.types";
+import { getServices } from "@/src/registry";
 
 export default async function handler(
   req: NextApiRequest,
@@ -15,7 +16,8 @@ export default async function handler(
   }
 
   try {
-    const stories = await getNewsForTicker(ticker);
+    const { newsService } = getServices();
+    const stories = await newsService.getNewsForTicker(ticker);
     res.status(200).json(stories);
   } catch (err) {
     console.error("[/api/news]", err);

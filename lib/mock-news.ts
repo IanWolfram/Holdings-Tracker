@@ -163,6 +163,147 @@ export const MOCK_NEWS: Record<string, ClassifiedStory[]> = {
     },
   ],
 
+  AAPL: [
+    {
+      ticker: "AAPL", source: "finnhub", datetime: h(1),
+      headline: "Apple Vision Pro 2 leaks suggest 40% thinner form factor and standalone AI chip",
+      summary: "Supply chain sources point to a dramatic redesign for the second-generation spatial computing headset, targeting a late-2026 launch.",
+      url: "#", verdict: "BUY", confidence: 0.85, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "AAPL", source: "twitter", datetime: h(5), author: "MinchiKuo",
+      headline: "Apple iPhone 17 Pro shipments tracking 12% ahead of iPhone 16 Pro cycle at same point.",
+      summary: "Apple iPhone 17 Pro shipments tracking 12% ahead of iPhone 16 Pro cycle at same point.",
+      url: "#", verdict: "BUY", confidence: 0.82, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "AAPL", source: "finnhub", datetime: h(18),
+      headline: "EU Digital Markets Act forces Apple to allow third-party app stores in Europe",
+      summary: "Apple faces ongoing compliance costs and potential revenue drag from DMA-mandated sideloading rules.",
+      url: "#", verdict: "SELL", confidence: 0.63, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "AAPL", source: "newsapi", datetime: h(30),
+      headline: "Apple Services revenue hits all-time high of $26.9B, margin expansion continues",
+      summary: "App Store, iCloud, and Apple TV+ combined drove record gross margin of 74% in the segment.",
+      url: "#", verdict: "BUY", confidence: 0.90, classifiedAt: new Date().toISOString(),
+    },
+  ],
+
+  NVDA: [
+    {
+      ticker: "NVDA", source: "finnhub", datetime: h(2),
+      headline: "NVIDIA Blackwell GPU shipments exceed 400,000 units in Q1, smashing estimates",
+      summary: "Data center revenue surged 78% YoY to $22.6B as hyperscalers accelerated AI infrastructure buildout.",
+      url: "#", verdict: "BUY", confidence: 0.95, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "NVDA", source: "twitter", datetime: h(6), author: "SemiAnalysis",
+      headline: "NVIDIA H200 lead over AMD MI300X widens further — CUDA moat remains intact in enterprise deployments.",
+      summary: "NVIDIA H200 lead over AMD MI300X widens further — CUDA moat remains intact in enterprise deployments.",
+      url: "#", verdict: "BUY", confidence: 0.88, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "NVDA", source: "finnhub", datetime: h(14),
+      headline: "US export controls tighten on advanced AI chips to China — NVIDIA estimates $5.5B revenue impact",
+      summary: "Commerce Dept rule affects H100, H200, and Blackwell sales to mainland China buyers.",
+      url: "#", verdict: "SELL", confidence: 0.78, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "NVDA", source: "reddit", datetime: h(20), author: "u/AIInvestor42",
+      headline: "NVDA is the picks-and-shovels play of the AI gold rush — my thesis for $1200 PT",
+      summary: "NVDA is the picks-and-shovels play of the AI gold rush — my thesis for $1200 PT\n\nEvery major AI lab, cloud, and enterprise is buying more GPUs than analysts model. CUDA lock-in is real.",
+      url: "#", verdict: "BUY", confidence: 0.74, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "NVDA", source: "newsapi", datetime: h(36),
+      headline: "NVIDIA announces next-generation Rubin GPU architecture, sampling to partners in H2 2026",
+      summary: "Rubin promises 3x performance-per-watt improvement over Blackwell and native support for multi-agent AI workloads.",
+      url: "#", verdict: "BUY", confidence: 0.87, classifiedAt: new Date().toISOString(),
+    },
+  ],
+
+  JPM: [
+    {
+      ticker: "JPM", source: "finnhub", datetime: h(3),
+      headline: "JPMorgan Chase Q1 profit jumps 9% to $14.6B, investment banking surges 45%",
+      summary: "Strong M&A advisory and equity underwriting drove the beat; consumer credit remained resilient despite high rates.",
+      url: "#", verdict: "BUY", confidence: 0.86, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "JPM", source: "twitter", datetime: h(9), author: "WSJMarkets",
+      headline: "Jamie Dimon warns of stagflation risks in annual shareholder letter — calls it 'the most dangerous macro backdrop in 40 years'.",
+      summary: "Jamie Dimon warns of stagflation risks in annual shareholder letter — calls it 'the most dangerous macro backdrop in 40 years'.",
+      url: "#", verdict: "SELL", confidence: 0.60, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "JPM", source: "finnhub", datetime: h(22),
+      headline: "JPMorgan raises dividend 9.5% to $1.40/share, authorizes $30B buyback",
+      summary: "Capital return accelerates as CET1 ratio holds well above regulatory minimums at 15.1%.",
+      url: "#", verdict: "BUY", confidence: 0.83, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "JPM", source: "newsapi", datetime: h(40),
+      headline: "JPMorgan's AI-powered risk platform cuts operational losses by $1.8B in first full year",
+      summary: "The bank's LLM-based fraud detection and credit decisioning tools are now live across 18 markets.",
+      url: "#", verdict: "BUY", confidence: 0.79, classifiedAt: new Date().toISOString(),
+    },
+  ],
+
+  XOM: [
+    {
+      ticker: "XOM", source: "finnhub", datetime: h(4),
+      headline: "ExxonMobil Permian Basin output hits record 1.4M boe/d, driving $9.3B in quarterly FCF",
+      summary: "Pioneer Energy acquisition synergies now fully reflected; management raised 2026 production target by 6%.",
+      url: "#", verdict: "BUY", confidence: 0.84, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "XOM", source: "twitter", datetime: h(12), author: "EnergyIntelGroup",
+      headline: "Brent crude slips to $78 on OPEC+ production hike signals — energy majors under pressure.",
+      summary: "Brent crude slips to $78 on OPEC+ production hike signals — energy majors under pressure.",
+      url: "#", verdict: "SELL", confidence: 0.71, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "XOM", source: "finnhub", datetime: h(26),
+      headline: "ExxonMobil wins $4.9B carbon capture contract with Gulf Coast industrial consortium",
+      summary: "The Baytown CCS project will sequester up to 50Mt of CO2 per year once fully operational in 2029.",
+      url: "#", verdict: "BUY", confidence: 0.77, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "XOM", source: "newsapi", datetime: h(48),
+      headline: "Exxon increases quarterly dividend to $0.99/share — 42nd consecutive annual raise",
+      summary: "The company remains one of the most consistent dividend growers among S&P 500 energy names.",
+      url: "#", verdict: "BUY", confidence: 0.80, classifiedAt: new Date().toISOString(),
+    },
+  ],
+
+  AMZN: [
+    {
+      ticker: "AMZN", source: "finnhub", datetime: h(2),
+      headline: "Amazon AWS revenue accelerates to 21% YoY growth, beating estimates by $900M",
+      summary: "Generative AI workloads and enterprise cloud migrations drove the upside; operating margin expanded to 37%.",
+      url: "#", verdict: "BUY", confidence: 0.92, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "AMZN", source: "twitter", datetime: h(7), author: "TechCrunch",
+      headline: "Amazon Alexa+ with Claude integration reaches 50M households in 90 days — fastest AI consumer rollout ever.",
+      summary: "Amazon Alexa+ with Claude integration reaches 50M households in 90 days — fastest AI consumer rollout ever.",
+      url: "#", verdict: "BUY", confidence: 0.86, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "AMZN", source: "finnhub", datetime: h(20),
+      headline: "FTC renewed antitrust scrutiny targets Amazon marketplace seller fees and Buy Box algorithm",
+      summary: "Investigation could force structural changes to Amazon's third-party marketplace if settlement not reached.",
+      url: "#", verdict: "SELL", confidence: 0.66, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "AMZN", source: "reddit", datetime: h(32), author: "u/cloudwatch_bull",
+      headline: "AWS Bedrock wins are bigger than anyone realizes — here's what the enterprise sales data shows",
+      summary: "AWS Bedrock wins are bigger than anyone realizes — here's what the enterprise sales data shows\n\nEvery CTO I talk to is consolidating AI inference on Bedrock. The stickiness rivals Azure OpenAI.",
+      url: "#", verdict: "BUY", confidence: 0.76, classifiedAt: new Date().toISOString(),
+    },
+  ],
+
   RXD: [
     {
       ticker: "RXD", source: "finnhub", datetime: h(2),

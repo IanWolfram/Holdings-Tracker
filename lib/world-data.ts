@@ -84,14 +84,12 @@ export async function getWorldData(positions: Position[]): Promise<WorldData> {
     }
   }
 
-  // ── 3. Write to Obsidian vault (sync, fast — just fs.writeFileSync) ───────
+  // ── 3. Write individual story notes to Obsidian vault ────────────────────
   if (WORLD_VAULT_PATH && allGeoStories.length > 0) {
-    const today = new Date().toISOString().split("T")[0];
     for (const story of allGeoStories) {
       const sector = profiles[story.ticker]?.sector;
       writeStoryNote(story, WORLD_VAULT_PATH, sector);
     }
-    writeDailySummary(today, allGeoStories, WORLD_VAULT_PATH, data);
   }
 
   // ── 4. Build country states ───────────────────────────────────────────────
@@ -155,6 +153,12 @@ export async function getWorldData(positions: Position[]): Promise<WorldData> {
 
   const data: WorldData = { countries, profiles, fetchedAt: Date.now() };
   worldCache = { data, expiresAt: Date.now() + WORLD_CACHE_TTL_MS };
+
+  // Write daily summary now that `data` is available
+  if (WORLD_VAULT_PATH && allGeoStories.length > 0) {
+    const today = new Date().toISOString().split("T")[0];
+    writeDailySummary(today, allGeoStories, WORLD_VAULT_PATH, data);
+  }
 
   // ── 6. Kick off background world-brain enrichment (non-blocking) ──────────
   // This runs AFTER we've returned the fast response. It will refine

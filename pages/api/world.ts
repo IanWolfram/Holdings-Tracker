@@ -22,6 +22,11 @@ export default async function handler(
     profiles: {
       "BR":     { name: "Broadridge Financial Solutions",   ticker: "BR",     countryCode: "US", lat: 40.71,   lon: -74.00  },
       "MSFT":   { name: "Microsoft Corporation",            ticker: "MSFT",   countryCode: "US", lat: 47.60,   lon: -122.33 },
+      "AAPL":   { name: "Apple Inc.",                       ticker: "AAPL",   countryCode: "US", lat: 37.33,   lon: -122.03 },
+      "NVDA":   { name: "NVIDIA Corporation",               ticker: "NVDA",   countryCode: "US", lat: 37.36,   lon: -121.97 },
+      "JPM":    { name: "JPMorgan Chase & Co.",             ticker: "JPM",    countryCode: "US", lat: 40.75,   lon: -73.98  },
+      "XOM":    { name: "Exxon Mobil Corporation",          ticker: "XOM",    countryCode: "US", lat: 29.96,   lon: -95.37  },
+      "AMZN":   { name: "Amazon.com Inc.",                  ticker: "AMZN",   countryCode: "US", lat: 47.60,   lon: -122.33 },
       "GLD":    { name: "SPDR Gold Shares",                 ticker: "GLD",    countryCode: "CH", lat: 47.37,   lon:   8.54  },
       "RBL":    { name: "Roblox Corporation",               ticker: "RBL",    countryCode: "JP", lat: 35.67,   lon: 139.65  },
       "RPI":    { name: "Royal Pharma Inc",                 ticker: "RPI",    countryCode: "DE", lat: 52.52,   lon:  13.40  },
@@ -36,11 +41,20 @@ export default async function handler(
     },
     countries: {
       "US": {
-        countryCode: "US", netVerdict: "BUY", netScore: 0.8, isHQCountry: true, hqTickers: ["MSFT", "BR"], totalPositionValue: 5208.25,
+        countryCode: "US", netVerdict: "BUY", netScore: 0.78, isHQCountry: true,
+        hqTickers: ["MSFT", "BR", "AAPL", "NVDA", "JPM", "XOM", "AMZN"],
+        totalPositionValue: 16855.70,
         stories: [
-          { ticker: "MSFT", headline: "Copilot for Microsoft 365 reaches 1 million paid seats", summary: "Fastest enterprise adoption in company history.", url: "#", datetime: h(1), verdict: "BUY", confidence: 0.9, source: "twitter", relevanceScore: 0.9, originCountryCode: "US" },
-          { ticker: "BR",   headline: "Broadridge Financial beats Q3 earnings estimates", summary: "Broadridge reported EPS of $1.84 vs $1.71 expected.", url: "#", datetime: h(2), verdict: "BUY", confidence: 0.9, source: "finnhub", relevanceScore: 0.9, originCountryCode: "US" },
-          { ticker: "RXD",  headline: "Healthcare sector underperforms broad market", summary: "The XLV ETF dropped 2.3% this week.", url: "#", datetime: h(3), verdict: "SELL", confidence: 0.6, source: "finnhub", relevanceScore: 0.6, originCountryCode: "US" }
+          { ticker: "MSFT", headline: "Copilot for Microsoft 365 reaches 1 million paid seats", summary: "Fastest enterprise adoption in company history.", url: "#", datetime: h(1), verdict: "BUY", confidence: 0.89, source: "twitter", relevanceScore: 0.89, originCountryCode: "US" },
+          { ticker: "NVDA", headline: "NVIDIA Blackwell GPU shipments exceed 400,000 units in Q1", summary: "Data center revenue surged 78% YoY to $22.6B.", url: "#", datetime: h(2), verdict: "BUY", confidence: 0.95, source: "finnhub", relevanceScore: 0.95, originCountryCode: "US" },
+          { ticker: "AAPL", headline: "Apple Services revenue hits all-time high of $26.9B", summary: "App Store, iCloud, and Apple TV+ drove 74% gross margin.", url: "#", datetime: h(3), verdict: "BUY", confidence: 0.90, source: "newsapi", relevanceScore: 0.90, originCountryCode: "US" },
+          { ticker: "AMZN", headline: "Amazon AWS revenue accelerates to 21% YoY growth", summary: "Generative AI workloads and enterprise cloud migrations drove upside.", url: "#", datetime: h(4), verdict: "BUY", confidence: 0.92, source: "finnhub", relevanceScore: 0.92, originCountryCode: "US" },
+          { ticker: "JPM",  headline: "JPMorgan Q1 profit jumps 9% to $14.6B, investment banking surges 45%", summary: "M&A advisory and equity underwriting drove the beat.", url: "#", datetime: h(5), verdict: "BUY", confidence: 0.86, source: "finnhub", relevanceScore: 0.86, originCountryCode: "US" },
+          { ticker: "BR",   headline: "Broadridge Financial beats Q3 earnings estimates", summary: "Broadridge reported EPS of $1.84 vs $1.71 expected.", url: "#", datetime: h(6), verdict: "BUY", confidence: 0.91, source: "finnhub", relevanceScore: 0.91, originCountryCode: "US" },
+          { ticker: "XOM",  headline: "ExxonMobil Permian Basin output hits record 1.4M boe/d", summary: "Pioneer acquisition synergies fully reflected; raised 2026 production target.", url: "#", datetime: h(8), verdict: "BUY", confidence: 0.84, source: "finnhub", relevanceScore: 0.84, originCountryCode: "US" },
+          { ticker: "NVDA", headline: "US export controls tighten on advanced AI chips to China", summary: "NVIDIA estimates $5.5B revenue impact from Commerce Dept rule.", url: "#", datetime: h(14), verdict: "SELL", confidence: 0.78, source: "finnhub", relevanceScore: 0.78, originCountryCode: "US" },
+          { ticker: "AMZN", headline: "FTC antitrust scrutiny targets Amazon marketplace fees", summary: "Investigation could force structural marketplace changes.", url: "#", datetime: h(20), verdict: "SELL", confidence: 0.66, source: "finnhub", relevanceScore: 0.66, originCountryCode: "US" },
+          { ticker: "RXD",  headline: "Healthcare sector underperforms broad market", summary: "The XLV ETF dropped 2.3% this week on drug pricing reform fears.", url: "#", datetime: h(24), verdict: "SELL", confidence: 0.60, source: "finnhub", relevanceScore: 0.60, originCountryCode: "US" }
         ]
       },
       "CH": {
