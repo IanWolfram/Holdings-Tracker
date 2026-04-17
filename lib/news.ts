@@ -34,7 +34,10 @@ function withinThirtyDays(stories: ClassifiedStory[]): ClassifiedStory[] {
 // Per-ticker 5-minute cache
 const cache = new Map<string, { data: ClassifiedStory[]; expiresAt: number }>();
 
-export async function getNewsForTicker(ticker: string): Promise<ClassifiedStory[]> {
+export async function getNewsForTicker(
+  ticker: string,
+  sector?: string
+): Promise<ClassifiedStory[]> {
   const cached = cache.get(ticker);
   if (cached && Date.now() < cached.expiresAt) return cached.data;
 
@@ -55,7 +58,7 @@ export async function getNewsForTicker(ticker: string): Promise<ClassifiedStory[
           return [];
         })
       : [],
-    fetchRedditPosts(ticker, companyName).catch((err) => {
+    fetchRedditPosts(ticker, companyName, sector).catch((err) => {
       console.error(`[news] Reddit error for ${ticker}:`, err);
       return [];
     }),

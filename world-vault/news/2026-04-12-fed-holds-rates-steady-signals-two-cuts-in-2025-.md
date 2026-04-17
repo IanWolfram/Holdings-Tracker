@@ -1,13 +1,19 @@
 ---
 date: "2026-04-12"
-ticker: "RPI"
-verdict: "HOLD"
+ticker: RPI
+sector: Healthcare
+verdict: HOLD
 confidence: 0.50
 relevance: 0.50
-country: "unknown"
-source: "finnhub"
+country: unknown
+source: finnhub
 url: "#"
-tags: [news, rpi, hold, world-brain]
+tags:
+  - news
+  - rpi
+  - hold
+  - world-brain
+  - healthcare
 ---
 
 # Fed holds rates steady, signals two cuts in 2025 — markets rally on dovish tone

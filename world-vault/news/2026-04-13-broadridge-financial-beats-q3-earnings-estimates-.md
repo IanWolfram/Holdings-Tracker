@@ -1,13 +1,19 @@
 ---
 date: "2026-04-13"
-ticker: "BR"
-verdict: "BUY"
+ticker: BR
+sector: Financial Services
+verdict: BUY
 confidence: 0.90
 relevance: 0.90
-country: "unknown"
-source: "finnhub"
+country: unknown
+source: finnhub
 url: "#"
-tags: [news, br, buy, world-brain]
+tags:
+  - news
+  - br
+  - buy
+  - world-brain
+  - financial-services
 ---
 
 # Broadridge Financial beats Q3 earnings estimates, raises full-year guidance

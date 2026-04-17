@@ -1,13 +1,19 @@
 ---
 date: "2026-04-13"
-ticker: "MSFT"
-verdict: "BUY"
+ticker: MSFT
+sector: Tech
+verdict: BUY
 confidence: 0.90
 relevance: 0.90
-country: "unknown"
-source: "twitter"
+country: unknown
+source: twitter
 url: "#"
-tags: [news, msft, buy, world-brain]
+tags:
+  - news
+  - msft
+  - buy
+  - world-brain
+  - tech
 ---
 
 # Copilot for Microsoft 365 reaches 1 million paid seats — fastest enterprise adoption in company history.

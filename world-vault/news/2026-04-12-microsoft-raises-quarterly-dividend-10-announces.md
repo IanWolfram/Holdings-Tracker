@@ -1,13 +1,19 @@
 ---
 date: "2026-04-12"
-ticker: "MSFT"
-verdict: "BUY"
+ticker: MSFT
+sector: Tech
+verdict: BUY
 confidence: 0.92
 relevance: 0.92
-country: "unknown"
-source: "finnhub"
+country: unknown
+source: finnhub
 url: "#"
-tags: [news, msft, buy, world-brain]
+tags:
+  - news
+  - msft
+  - buy
+  - world-brain
+  - tech
 ---
 
 # Microsoft raises quarterly dividend 10%, announces $60B share buyback program

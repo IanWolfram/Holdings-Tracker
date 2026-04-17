@@ -1,13 +1,19 @@
 ---
 date: "2026-04-12"
-ticker: "BR"
-verdict: "SELL"
+ticker: BR
+sector: Financial Services
+verdict: SELL
 confidence: 0.75
 relevance: 0.75
-country: "unknown"
-source: "finnhub"
+country: unknown
+source: finnhub
 url: "#"
-tags: [news, br, sell, world-brain]
+tags:
+  - news
+  - br
+  - sell
+  - world-brain
+  - financial-services
 ---
 
 # Fintech sector faces regulatory scrutiny over data handling practices

@@ -1,13 +1,19 @@
 ---
 date: "2026-04-13"
-ticker: "RXD"
-verdict: "SELL"
+ticker: RXD
+sector: Financial
+verdict: SELL
 confidence: 0.60
 relevance: 0.60
-country: "unknown"
-source: "finnhub"
+country: unknown
+source: finnhub
 url: "#"
-tags: [news, rxd, sell, world-brain]
+tags:
+  - news
+  - rxd
+  - sell
+  - world-brain
+  - financial
 ---
 
 # Healthcare sector underperforms broad market for third consecutive week amid pricing reform fears

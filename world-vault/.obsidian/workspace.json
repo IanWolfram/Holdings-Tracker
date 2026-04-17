@@ -4,21 +4,17 @@
     "type": "split",
     "children": [
       {
-        "id": "37c5f6c7b40458a9",
+        "id": "43fef612750964ec",
         "type": "tabs",
         "children": [
           {
-            "id": "73afc101da6f1e23",
+            "id": "1d5247e891dcfa37",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "news/2026-04-13-central-banks-globally-added-290-tonnes-of-gold-in.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "2026-04-13-central-banks-globally-added-290-tonnes-of-gold-in"
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Graph view"
             }
           }
         ]
@@ -183,33 +179,38 @@
       "bases:Create new base": false
     }
   },
-  "active": "73afc101da6f1e23",
+  "active": "1d5247e891dcfa37",
   "lastOpenFiles": [
+    "news/2026-04-10-microsoft-msft-is-down-31-from-its-ath.md",
+    "Untitled 4.canvas",
+    "news/2026-04-11-analyst-consensus-on-msft-remains-strong-buy-with-.md",
+    "news/2026-03-23-copper-can-price-fast-new-supply-cannot.md",
+    "daily/2026-04-14.md",
+    "news/2026-04-09-i-legitimately-think-anthropic-is-worth-at-least-.md",
+    "news/2026-04-13-microsoft-s-ai-push-is-unlike-anything-i-ve-seen-.md",
+    "RXD.md",
+    "Untitled.base",
+    "2026-04-15.md",
+    "news/2026-04-13-copilot-for-microsoft-365-reaches-1-million-paid-s.md",
+    "Untitled 3.canvas",
+    "news/2026-04-10-msft-mixed-feedback-feelings.md",
+    "news/2026-04-09-okay-one-more-microsoft-post-.md",
+    "news/2026-04-13-br-stock-upgrades-from-two-analysts-following-stro.md",
+    "news/2026-03-27-gold-etf-momentum-analysis.md",
+    "news/2026-04-13-healthcare-sector-underperforms-broad-market-for-t.md",
+    "Untitled 2.canvas",
+    "Untitled 1.canvas",
+    "news/2026-04-15-raspberry-pi-stock-longterm-hold-or-just-lucky-spe.md",
+    "Untitled.canvas",
+    "news/2026-03-20-retail-leads-institutions-reduce-exposure.md",
+    "news/2026-04-13-broadridge-expands-partnership-with-major-european.md",
+    "news/2026-04-13-central-banks-globally-added-290-tonnes-of-gold-in.md",
     "README.md",
     "news/2026-04-12-microsoft-raises-quarterly-dividend-10-announces.md",
-    "daily/2026-04-14.md",
     "news/2026-04-13-pfizer-and-merck-post-better-than-expected-results.md",
     "news/2026-04-12-drug-pricing-reform-bill-stalls-in-senate-committe.md",
     "news/2026-04-13-inverse-healthcare-etfs-see-elevated-volume-as-pha.md",
-    "news/2026-04-13-healthcare-sector-underperforms-broad-market-for-t.md",
     "news/2026-04-12-fed-holds-rates-steady-signals-two-cuts-in-2025-.md",
-    "news/2026-04-13-real-returns-on-inflation-protected-instruments-tu.md",
-    "news/2026-04-13-inflation-data-comes-in-cooler-than-expected-at-3-.md",
-    "news/2026-04-12-roblox-rbl-daily-active-users-grow-17-yoy-in-la.md",
-    "news/2026-04-13-rbl-misses-q2-revenue-estimates-by-8-cites-softe.md",
-    "news/2026-04-13-rebel-wilson-s-production-company-files-for-expans.md",
-    "news/2026-04-13-microsoft-unveils-next-generation-copilot-features.md",
-    "news/2026-04-13-microsoft-s-ai-push-is-unlike-anything-i-ve-seen-.md",
-    "news/2026-04-11-analyst-consensus-on-msft-remains-strong-buy-with-.md",
-    "news/2026-04-13-eu-regulators-open-investigation-into-microsoft-s-.md",
-    "news/2026-04-13-copilot-for-microsoft-365-reaches-1-million-paid-s.md",
-    "news/2026-04-13-microsoft-azure-revenue-grows-31-yoy-ai-services.md",
-    "news/2026-04-13-gold-hits-record-high-as-central-bank-demand-accel.md",
-    "news/2026-04-13-gld-vs-physical-gold-which-do-you-hold-and-why-.md",
-    "news/2026-04-11-geopolitical-tensions-in-middle-east-driving-safe-.md",
-    "news/2026-04-12-gld-etf-sees-record-weekly-inflows-of-1-2b-from-i.md",
-    "news/2026-04-13-dollar-strengthens-on-better-than-expected-jobs-da.md",
-    "news/2026-04-13-central-banks-globally-added-290-tonnes-of-gold-in.md",
-    "news/2026-04-13-gold-surges-to-3-month-high-as-fed-signals-pause-i.md"
+    "news/2026-04-13-real-returns-on-inflation-protected-instruments-tu.md"
   ]
 }

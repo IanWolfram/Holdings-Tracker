@@ -14,7 +14,8 @@ const SUBREDDITS = "investing+stocks";
 
 export async function fetchRedditPosts(
   ticker: string,
-  companyName: string
+  companyName: string,
+  sector?: string
 ): Promise<RedditPost[]> {
   const now = Date.now();
   const last = lastFetchedAt.get(ticker) ?? 0;
@@ -24,14 +25,13 @@ export async function fetchRedditPosts(
   lastFetchedAt.set(ticker, now);
 
   // Use $TICKER notation (standard in stock discussion communities)
-  // Include company name if different from ticker for broader coverage
   const queryTerms =
     companyName.toLowerCase() !== ticker.toLowerCase()
       ? `$${ticker} OR "${companyName}"`
       : `$${ticker}`;
   const query = encodeURIComponent(queryTerms);
 
-  const url = `https://www.reddit.com/r/${SUBREDDITS}/search.json?q=${query}&restrict_sr=1&sort=new&t=month&limit=20`;
+  const url = `https://www.reddit.com/r/${SUBREDDITS}/search.json?q=${query}&restrict_sr=1&sort=new&t=month&limit=25`;
 
   const res = await fetch(url, {
     headers: {
@@ -60,10 +60,24 @@ export async function fetchRedditPosts(
   const seen = new Set<string>();
   const posts: RedditPost[] = [];
 
+  const lowerSector = sector?.toLowerCase() ?? "";
+  const isPharma = lowerSector.includes("pharma") || lowerSector.includes("health");
+  const exclusionKeywords = isPharma ? ["raspberry", "sbc", "linux", "hardware", "cpu", "compute"] : [];
+
   for (const child of children) {
     const { title, selftext, permalink, author, created_utc } = child.data;
     const text = title?.trim() ?? "";
     if (!text || seen.has(text)) continue;
+
+    const lowerText = text.toLowerCase();
+    const lowerBody = (selftext ?? "").toLowerCase();
+
+    // Basic disambiguation: if we are looking for a Pharma stock, skip hardware-heavy posts
+    if (exclusionKeywords.length > 0) {
+      const hasExclusion = exclusionKeywords.some(k => lowerText.includes(k) || lowerBody.includes(k));
+      if (hasExclusion) continue;
+    }
+
     seen.add(text);
 
     const body = selftext?.trim() ?? "";

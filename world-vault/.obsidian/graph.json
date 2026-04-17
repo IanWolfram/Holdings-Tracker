@@ -1,22 +1,79 @@
 {
   "collapse-filter": false,
-  "search": "",
+  "search": "[\"sector\":tech]",
   "showTags": false,
   "showAttachments": false,
   "hideUnresolved": false,
-  "showOrphans": true,
-  "collapse-color-groups": true,
-  "colorGroups": [],
+  "showOrphans": false,
+  "collapse-color-groups": false,
+  "colorGroups": [
+    {
+      "query": "[\"sector\":\"Agriculture\"]",
+      "color": {
+        "a": 1,
+        "rgb": 6081536
+      }
+    },
+    {
+      "query": "[\"sector\":Tech]\t",
+      "color": {
+        "a": 1,
+        "rgb": 5401056
+      }
+    },
+    {
+      "query": "[\"sector\": \"Healthcare\"]",
+      "color": {
+        "a": 1,
+        "rgb": 15400960
+      }
+    },
+    {
+      "query": "[\"sector\": \"Consumer Discretionary\"]",
+      "color": {
+        "a": 1,
+        "rgb": 5431473
+      }
+    },
+    {
+      "query": "[\"sector\": \"Energy\"]",
+      "color": {
+        "a": 1,
+        "rgb": 16753152
+      }
+    },
+    {
+      "query": "[\"sector\": \"Basic Materials\"]",
+      "color": {
+        "a": 1,
+        "rgb": 10048224
+      }
+    },
+    {
+      "query": "[\"sector\":\"Financial Services\"]",
+      "color": {
+        "a": 1,
+        "rgb": 23554
+      }
+    },
+    {
+      "query": "[\"sector\": \"Financial\"]",
+      "color": {
+        "a": 1,
+        "rgb": 23562
+      }
+    }
+  ],
   "collapse-display": true,
   "showArrow": false,
   "textFadeMultiplier": 0,
   "nodeSizeMultiplier": 1,
   "lineSizeMultiplier": 1,
-  "collapse-forces": true,
-  "centerStrength": 0.518713248970312,
-  "repelStrength": 10,
+  "collapse-forces": false,
+  "centerStrength": 0.441362847222222,
+  "repelStrength": 8.63368055555556,
   "linkStrength": 1,
   "linkDistance": 250,
-  "scale": 0.9619280877855498,
+  "scale": 0.8945525390289394,
   "close": false
 }

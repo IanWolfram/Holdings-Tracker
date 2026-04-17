@@ -1,13 +1,19 @@
 ---
 date: "2026-04-13"
-ticker: "RPI"
-verdict: "BUY"
+ticker: RPI
+sector: Healthcare
+verdict: BUY
 confidence: 0.60
 relevance: 0.60
-country: "unknown"
-source: "twitter"
+country: unknown
+source: twitter
 url: "#"
-tags: [news, rpi, buy, world-brain]
+tags:
+  - news
+  - rpi
+  - buy
+  - world-brain
+  - healthcare
 ---
 
 # Real returns on inflation-protected instruments turn positive for first time since 2021.

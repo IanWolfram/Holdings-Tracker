@@ -265,12 +265,20 @@ export async function getPositions(): Promise<Position[]> {
 // ---------------------------------------------------------------------------
 
 export const MOCK_POSITIONS: Position[] = [
-  { ticker: "BR",   description: "Broadridge Financial Solutions", quantity: 15, marketValue: 3105.00,  gainLoss: 450.00,  pricePaid: 177.00, currentPrice: 207.00 },
-  { ticker: "GLD",  description: "SPDR Gold Shares",               quantity: 2,  marketValue: 467.04,   gainLoss: 32.04,   pricePaid: 217.50, currentPrice: 233.52 },
-  { ticker: "MSFT", description: "Microsoft Corporation",          quantity: 5,  marketValue: 2103.25,  gainLoss: 153.15,  pricePaid: 390.00, currentPrice: 420.65 },
-  { ticker: "RBL",  description: "Roblox Corporation",             quantity: 50, marketValue: 1850.00,  gainLoss: -150.00, pricePaid: 40.00,  currentPrice: 37.00 },
-  { ticker: "RPI",  description: "Royal Pharma Inc",               quantity: 100,marketValue: 2860.00,  gainLoss: -400.00, pricePaid: 32.60,  currentPrice: 28.60 },
-  { ticker: "RXD",  description: "ProShares UltraShort Health Care",quantity: 20, marketValue: 331.00,   gainLoss: 31.00,   pricePaid: 15.00,  currentPrice: 16.55 },
+  { ticker: "BR",   description: "Broadridge Financial Solutions",  quantity: 15,  marketValue: 3105.00,  gainLoss:  450.00,  pricePaid: 177.00, currentPrice: 207.00 },
+  { ticker: "GLD",  description: "SPDR Gold Shares",                quantity: 2,   marketValue:  467.04,  gainLoss:   32.04,  pricePaid: 217.50, currentPrice: 233.52 },
+  { ticker: "MSFT", description: "Microsoft Corporation",           quantity: 5,   marketValue: 2103.25,  gainLoss:  153.15,  pricePaid: 390.00, currentPrice: 420.65 },
+  { ticker: "RBL",  description: "Roblox Corporation",              quantity: 50,  marketValue: 1850.00,  gainLoss: -150.00,  pricePaid:  40.00, currentPrice:  37.00 },
+  { ticker: "RPI",  description: "Royal Pharma Inc",                quantity: 100, marketValue: 2860.00,  gainLoss: -400.00,  pricePaid:  32.60, currentPrice:  28.60 },
+  { ticker: "RXD",  description: "ProShares UltraShort Health Care",quantity: 20,  marketValue:  331.00,  gainLoss:   31.00,  pricePaid:  15.00, currentPrice:  16.55 },
+  // International holdings
+  { ticker: "ITUB", description: "Itaú Unibanco Holding S.A.",      quantity: 200, marketValue: 1240.00,  gainLoss:   80.00,  pricePaid:   5.80, currentPrice:   6.20 },
+  { ticker: "TM",   description: "Toyota Motor Corporation",        quantity: 8,   marketValue: 1496.00,  gainLoss: -104.00,  pricePaid: 200.00, currentPrice: 187.00 },
+  { ticker: "INFY", description: "Infosys Limited",                 quantity: 60,  marketValue: 1122.00,  gainLoss:  162.00,  pricePaid:  16.00, currentPrice:  18.70 },
+  { ticker: "LVMH", description: "LVMH Moët Hennessy Louis Vuitton",quantity: 3,   marketValue: 2001.00,  gainLoss:  -99.00,  pricePaid: 700.00, currentPrice: 667.00 },
+  { ticker: "005930", description: "Samsung Electronics Co. Ltd",   quantity: 10,  marketValue:  620.00,  gainLoss:   20.00,  pricePaid:  60.00, currentPrice:  62.00 },
+  { ticker: "CNQ",  description: "Canadian Natural Resources",      quantity: 30,  marketValue:  924.00,  gainLoss:   84.00,  pricePaid:  28.00, currentPrice:  30.80 },
+  { ticker: "BHP",  description: "BHP Group Limited",               quantity: 25,  marketValue: 1487.50,  gainLoss:  112.50,  pricePaid:  55.00, currentPrice:  59.50 },
 ];
 
 /** Returns mock data or live data depending on ETRADE_ENV.

@@ -7,7 +7,7 @@ import type { Verdict, Classification } from "@/types/news.types";
 // ---------------------------------------------------------------------------
 
 function loadAgentContext(): string {
-  const agentDir = path.join(process.cwd(), "agents", "stock-analyzer");
+  const agentDir = path.join(process.cwd(), "agents", "economic-brain");
   const files = ["AGENT.md", "rules.md"];
   return files
     .map((f) => {
@@ -85,6 +85,49 @@ export async function classifyNews(
   headline: string,
   summary: string
 ): Promise<Classification> {
-  // Hard-bypass Ollama completely to prevent system lag and WebGL crashing
-  return keywordClassify(headline, summary);
+  const enabled = process.env.OLLAMA_ENABLED === "true";
+  if (!enabled) {
+    return keywordClassify(headline, summary);
+  }
+
+  const baseUrl = process.env.OLLAMA_BASE_URL ?? "http://localhost:11434";
+  const model = process.env.OLLAMA_MODEL ?? "gemma3:12b";
+  const context = getAgentContext();
+
+  const prompt = `${context}
+
+---
+
+Ticker: ${ticker}
+Headline: ${headline}
+Summary: ${summary || "(no summary)"}`;
+
+  try {
+    const raw = await withOllamaSemaphore(async () => {
+      const res = await fetch(`${baseUrl}/api/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model, stream: false, prompt }),
+        signal: AbortSignal.timeout(180_000),
+      });
+
+      if (!res.ok) throw new Error(`Ollama HTTP ${res.status}`);
+      const json = await res.json();
+      return (json.response ?? "") as string;
+    });
+
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error("No JSON in response");
+    const parsed = JSON.parse(match[0]);
+
+    return {
+      verdict: parsed.verdict as Verdict,
+      confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0.5,
+      reason: parsed.reason,
+      classifiedAt: new Date().toISOString(),
+    };
+  } catch (err) {
+    console.error(`[classifier] Ollama error for ${ticker}:`, err);
+    return keywordClassify(headline, summary);
+  }
 }

@@ -1,13 +1,19 @@
 ---
 date: "2026-04-13"
-ticker: "GLD"
-verdict: "HOLD"
+ticker: GLD
+sector: Financial
+verdict: HOLD
 confidence: 0.60
 relevance: 0.60
-country: "unknown"
-source: "reddit"
+country: unknown
+source: reddit
 url: "#"
-tags: [news, gld, hold, world-brain]
+tags:
+  - news
+  - gld
+  - hold
+  - world-brain
+  - financial
 ---
 
 # GLD vs physical gold — which do you hold and why?

@@ -189,4 +189,181 @@ export const MOCK_NEWS: Record<string, ClassifiedStory[]> = {
       url: "#", verdict: "SELL", confidence: 0.69, classifiedAt: new Date().toISOString(),
     },
   ],
+
+  ITUB: [
+    {
+      ticker: "ITUB", source: "finnhub", datetime: h(2),
+      headline: "Itaú Unibanco reports record net income of R$10.1B in Q1 2026, up 18% YoY",
+      summary: "Brazil's largest private bank beat estimates on strong loan growth and improved credit quality.",
+      url: "#", verdict: "BUY", confidence: 0.88, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "ITUB", source: "twitter", datetime: h(9), author: "BrazilFinanceDesk",
+      headline: "Brazil Selic rate held at 13.75% — positive for bank net interest margins heading into H2.",
+      summary: "Brazil Selic rate held at 13.75% — positive for bank net interest margins heading into H2.",
+      url: "#", verdict: "BUY", confidence: 0.79, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "ITUB", source: "finnhub", datetime: h(26),
+      headline: "Brazilian real weakens 4% against USD on fiscal deficit concerns, pressuring ADR pricing",
+      summary: "Currency headwinds could weigh on USD-denominated returns for ITUB ADR holders.",
+      url: "#", verdict: "SELL", confidence: 0.71, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "ITUB", source: "newsapi", datetime: h(38),
+      headline: "Itaú expands digital wallet platform to 5 new Latin American markets",
+      summary: "The bank's fintech arm signed partnership agreements covering Colombia, Chile, Peru, Uruguay, and Paraguay.",
+      url: "#", verdict: "BUY", confidence: 0.82, classifiedAt: new Date().toISOString(),
+    },
+  ],
+
+  TM: [
+    {
+      ticker: "TM", source: "finnhub", datetime: h(3),
+      headline: "Toyota posts strongest quarterly profit in five years on hybrid demand surge",
+      summary: "Operating profit rose 28% to ¥1.1T, driven by record Prius and RAV4 Hybrid sales globally.",
+      url: "#", verdict: "BUY", confidence: 0.86, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "TM", source: "twitter", datetime: h(11), author: "AutoAnalyst",
+      headline: "Toyota's solid-state battery timeline slips to 2028 — EV transition risk lingers.",
+      summary: "Toyota's solid-state battery timeline slips to 2028 — EV transition risk lingers.",
+      url: "#", verdict: "SELL", confidence: 0.68, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "TM", source: "finnhub", datetime: h(20),
+      headline: "Yen weakness boosts Toyota's export earnings — FX tailwind estimated at ¥400B for FY2026",
+      summary: "Every 1-yen depreciation against the dollar adds roughly ¥45B to Toyota's annual operating profit.",
+      url: "#", verdict: "BUY", confidence: 0.80, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "TM", source: "newsapi", datetime: h(48),
+      headline: "Toyota to invest $8B in U.S. battery manufacturing, securing IRA tax credits through 2032",
+      summary: "The investment will double capacity at its North Carolina gigafactory and create 3,000 jobs.",
+      url: "#", verdict: "BUY", confidence: 0.77, classifiedAt: new Date().toISOString(),
+    },
+  ],
+
+  INFY: [
+    {
+      ticker: "INFY", source: "finnhub", datetime: h(1),
+      headline: "Infosys raises FY2026 revenue guidance to 8-10% on strong AI consulting deal flow",
+      summary: "The Bengaluru-based IT giant cited accelerating enterprise AI adoption as the primary demand driver.",
+      url: "#", verdict: "BUY", confidence: 0.91, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "INFY", source: "twitter", datetime: h(7), author: "TechCrunchIndia",
+      headline: "Infosys wins $2.1B multi-year digital transformation contract with European financial consortium.",
+      summary: "Infosys wins $2.1B multi-year digital transformation contract with European financial consortium.",
+      url: "#", verdict: "BUY", confidence: 0.87, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "INFY", source: "finnhub", datetime: h(19),
+      headline: "US H-1B visa scrutiny intensifies — Indian IT firms face higher operating costs for US delivery",
+      summary: "Proposed H-1B reforms could add $150M-$200M in annual costs for Infosys's US workforce.",
+      url: "#", verdict: "SELL", confidence: 0.65, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "INFY", source: "reddit", datetime: h(33), author: "u/emergingmktsinvestor",
+      headline: "INFY is the safest play on India's tech boom — here's my 3-year thesis",
+      summary: "INFY is the safest play on India's tech boom — here's my 3-year thesis\n\nWith global enterprises pouring money into AI transformation, INFY's delivery model and margin profile look increasingly compelling.",
+      url: "#", verdict: "BUY", confidence: 0.72, classifiedAt: new Date().toISOString(),
+    },
+  ],
+
+  LVMH: [
+    {
+      ticker: "LVMH", source: "finnhub", datetime: h(4),
+      headline: "LVMH Q1 revenue grows 6% organically, Fashion & Leather leads with 9% gains",
+      summary: "Louis Vuitton and Dior drove outperformance while wines & spirits lagged on China demand softness.",
+      url: "#", verdict: "BUY", confidence: 0.83, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "LVMH", source: "twitter", datetime: h(14), author: "LuxuryIntelligence",
+      headline: "Chinese luxury spending down 12% YoY in March — LVMH China exposure at 26% of revenue.",
+      summary: "Chinese luxury spending down 12% YoY in March — LVMH China exposure at 26% of revenue.",
+      url: "#", verdict: "SELL", confidence: 0.74, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "LVMH", source: "finnhub", datetime: h(31),
+      headline: "Bernard Arnault's LVMH acquires majority stake in French jewellery house Mellerio",
+      summary: "The deal adds another iconic Parisian maison to LVMH's 75-brand portfolio.",
+      url: "#", verdict: "HOLD", confidence: 0.60, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "LVMH", source: "newsapi", datetime: h(52),
+      headline: "Euro strength vs dollar erodes LVMH's USD-reported margins by an estimated 2.5%",
+      summary: "A 5% EUR/USD appreciation reduces LVMH's translated USD operating income by roughly €380M annually.",
+      url: "#", verdict: "SELL", confidence: 0.67, classifiedAt: new Date().toISOString(),
+    },
+  ],
+
+  "005930": [
+    {
+      ticker: "005930", source: "finnhub", datetime: h(2),
+      headline: "Samsung Electronics swings to profit on DRAM price recovery, HBM3 yield improvements",
+      summary: "DS division posted ₩3.8T operating profit as DRAM spot prices rose 22% QoQ and HBM3 yields exceeded 70%.",
+      url: "#", verdict: "BUY", confidence: 0.89, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "005930", source: "twitter", datetime: h(10), author: "SemiAnalysis",
+      headline: "Samsung foundry losing ground to TSMC at 3nm — yield gap still 15-20 percentage points behind.",
+      summary: "Samsung foundry losing ground to TSMC at 3nm — yield gap still 15-20 percentage points behind.",
+      url: "#", verdict: "SELL", confidence: 0.72, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "005930", source: "finnhub", datetime: h(24),
+      headline: "Samsung wins $6.4B DRAM supply agreement with major US hyperscaler for AI infrastructure buildout",
+      summary: "The multi-year supply deal covers HBM3E modules for next-generation AI training clusters.",
+      url: "#", verdict: "BUY", confidence: 0.85, classifiedAt: new Date().toISOString(),
+    },
+  ],
+
+  CNQ: [
+    {
+      ticker: "CNQ", source: "finnhub", datetime: h(5),
+      headline: "Canadian Natural Resources raises dividend 14% after record oil sands free cash flow",
+      summary: "CNQ generated C$4.2B in free cash flow in Q1 as Athabasca oil sands production hit 1.4M boe/d.",
+      url: "#", verdict: "BUY", confidence: 0.84, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "CNQ", source: "twitter", datetime: h(15), author: "EnergyIntelGroup",
+      headline: "WTI crude falls below $75 on demand concerns — Canadian heavy oil differentials widen.",
+      summary: "WTI crude falls below $75 on demand concerns — Canadian heavy oil differentials widen.",
+      url: "#", verdict: "SELL", confidence: 0.70, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "CNQ", source: "finnhub", datetime: h(36),
+      headline: "Trans Mountain pipeline expansion reaches full capacity — Alberta producers gain Pacific market access",
+      summary: "The C$34B pipeline now moves 890,000 boe/d to Burnaby terminal, unlocking Asian premium pricing.",
+      url: "#", verdict: "BUY", confidence: 0.78, classifiedAt: new Date().toISOString(),
+    },
+  ],
+
+  BHP: [
+    {
+      ticker: "BHP", source: "finnhub", datetime: h(3),
+      headline: "BHP reports record copper production, raises FY2026 output guidance by 8%",
+      summary: "Escondida and Olympic Dam drove the beat; management cited improved ore grades and water recovery.",
+      url: "#", verdict: "BUY", confidence: 0.87, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "BHP", source: "twitter", datetime: h(13), author: "MiningWeekly",
+      headline: "Iron ore price slides to $98/tonne as Chinese steel output data disappoints for third straight month.",
+      summary: "Iron ore price slides to $98/tonne as Chinese steel output data disappoints for third straight month.",
+      url: "#", verdict: "SELL", confidence: 0.75, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "BHP", source: "finnhub", datetime: h(29),
+      headline: "BHP acquires Chilean lithium junior for $890M, accelerating battery materials strategy",
+      summary: "The Atacama acquisition adds 2.1Mt of lithium carbonate equivalent resources to BHP's portfolio.",
+      url: "#", verdict: "BUY", confidence: 0.80, classifiedAt: new Date().toISOString(),
+    },
+    {
+      ticker: "BHP", source: "newsapi", datetime: h(46),
+      headline: "Australia tightens critical minerals export controls — BHP lithium shipments to China face new scrutiny",
+      summary: "Canberra announced export licensing requirements for lithium, cobalt, and rare earths targeting Chinese buyers.",
+      url: "#", verdict: "HOLD", confidence: 0.62, classifiedAt: new Date().toISOString(),
+    },
+  ],
 };

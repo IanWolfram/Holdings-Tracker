@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect, useId, useMemo } from "react";
+import { useRef, useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import NewsCard from "./NewsCard";
 import CongressTradeCard from "./CongressTradeCard";
@@ -9,6 +9,7 @@ import { FinnhubBadge, XBadge, RedditBadge } from "./mediabadges";
 import GlassContainer from "./ui/LiquidGlass/GlassContainer";
 import GlassView from "./ui/LiquidGlass/GlassView";
 import Sparkline from "./ui/Sparkline";
+import CompanyLogo from "./ui/CompanyLogo";
 import { formatCurrency, formatPercent, formatGainLoss } from "@/lib/utils/format";
 import type { Position } from "@/types/position.types";
 import type { ClassifiedStory, CongressTrade } from "@/types/news.types";
@@ -26,13 +27,13 @@ function SourceBadge({ source }: { source: string }) {
 }
 
 const POSITION_R = 12;
-const REVEAL_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 interface Props {
   position: Position;
   stories: ClassifiedStory[];
   congressTrades?: CongressTrade[];
   loading: boolean;
+  frosted?: boolean;
 }
 
 function glowClass(buy: number, sell: number, loading: boolean): string {
@@ -44,18 +45,20 @@ function glowClass(buy: number, sell: number, loading: boolean): string {
 
 function CongressHeader() {
   return (
-    <span className="material-symbols-outlined text-[15px]" style={{ color: "#b45309" }}>
-      gavel
+    <span className="flex items-center gap-1">
+      <span className="material-symbols-outlined text-[15px]" style={{ color: "#b45309" }}>
+        gavel
+      </span>
+      <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#b45309" }}>
+        Congress
+      </span>
     </span>
   );
 }
 
-export default function PositionCard({ position, stories, congressTrades = [], loading }: Props) {
+export default function PositionCard({ position, stories, congressTrades = [], loading, frosted }: Props) {
   const articleRef = useRef<HTMLDivElement>(null);
-  const rawId = useId();
-  const id = rawId.replace(/:/g, "");
   const [hovered, setHovered] = useState(false);
-  const [dims, setDims] = useState({ w: 0, h: 0 });
 
   const { ticker, description, marketValue, gainLoss, quantity, currentPrice, pricePaid, history } = position;
 
@@ -89,29 +92,9 @@ export default function PositionCard({ position, stories, congressTrades = [], l
 
   const hasContent = stories.length > 0 || congressTrades.length > 0;
 
-  // SVG border measurement
-  useEffect(() => {
-    const el = articleRef.current;
-    if (!el) return;
-    const measure = () => {
-      const rect = el.getBoundingClientRect();
-      setDims({ w: rect.width, h: rect.height });
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
 
-  const { w, h } = dims;
-  const midX = w / 2;
   const color = verdictScore > 0.5 ? "#00FF88" : verdictScore < 0.5 ? "#FF4444" : "#64748b";
   const highlight = verdictScore > 0.5 ? "#ccffeb" : verdictScore < 0.5 ? "#ffd6cc" : "#cbd5e1";
-
-  const capPaths = w > 0 ? {
-    topLeft: `M 1.5 20 L 1.5 ${POSITION_R} Q 1.5 1.5 ${POSITION_R} 1.5 L ${midX} 1.5`,
-    topRight: `M ${w - 1.5} 20 L ${w - 1.5} ${POSITION_R} Q ${w - 1.5} 1.5 ${w - POSITION_R} 1.5 L ${midX} 1.5`,
-  } : null;
 
   return (
     <GlassView
@@ -119,7 +102,15 @@ export default function PositionCard({ position, stories, congressTrades = [], l
       layoutId={ticker}
       cornerRadius={POSITION_R}
       className="relative flex flex-col group shadow-2xl transition-all duration-300"
-      style={{ backgroundColor: "rgba(0, 0, 0, 0.6)", overflow: "hidden" }}
+      style={{
+        backgroundColor: frosted ? "rgba(8, 13, 9, 0.92)" : "rgba(0, 0, 0, 0.6)",
+        backdropFilter: frosted ? "blur(48px) saturate(130%) brightness(1.06) contrast(0.92)" : undefined,
+        WebkitBackdropFilter: frosted ? "blur(48px) saturate(130%) brightness(1.06) contrast(0.92)" : undefined,
+        // Override glass-material border: neutral sides, let ticker-header-glow provide the top accent
+        border: frosted ? "1px solid rgba(255,255,255,0.07)" : undefined,
+        borderTop: frosted ? "1.5px solid rgba(255,255,255,0.1)" : undefined,
+        overflow: "hidden",
+      }}
     >
       <div
         ref={articleRef}
@@ -139,74 +130,33 @@ export default function PositionCard({ position, stories, congressTrades = [], l
           transition={{ duration: 1.5, ease: "easeInOut", delay: 0.2 }}
         />
 
-        {/* Animated border SVG */}
-        {w > 0 && (
-          <svg
-            className="absolute inset-0 pointer-events-none overflow-visible"
-            width={w}
-            height={h}
-            style={{
-              zIndex: 30,
-              filter: hovered
-                ? `drop-shadow(0 0 4px ${color}) drop-shadow(0 0 8px ${color})`
-                : "none",
-              transition: "filter 0.4s ease",
-            }}
-          >
-            <defs>
-              <linearGradient id={`fadeGradient-${id}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="white" stopOpacity="1" />
-                <stop offset="40%" stopColor="white" stopOpacity="1" />
-                <stop offset="100%" stopColor="white" stopOpacity="0" />
-              </linearGradient>
-              <mask id={`topMask-${id}`}>
-                <rect x="-10" y="0" width={w + 20} height={40} fill={`url(#fadeGradient-${id})`} />
-              </mask>
-            </defs>
-            {capPaths && (
-              <g stroke={color} strokeWidth={1.5} fill="none" strokeLinecap="round">
-                <g mask={`url(#topMask-${id})`}>
-                  <motion.path
-                    d={capPaths.topLeft}
-                    initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: hovered ? 1 : 0, opacity: hovered ? 1 : 0 }}
-                    transition={{ duration: 0.6, ease: REVEAL_EASE }}
-                  />
-                  <motion.path
-                    d={capPaths.topRight}
-                    initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: hovered ? 1 : 0, opacity: hovered ? 1 : 0 }}
-                    transition={{ duration: 0.6, ease: REVEAL_EASE, delay: 0.05 }}
-                  />
-                </g>
-              </g>
-            )}
-          </svg>
-        )}
 
         {/* Card header with glow */}
         <div className={`ticker-header-glow ${glowClass(buy, sell, loading)}`}>
 
           {/* CardHeader */}
           <div className="p-4 pb-2">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex flex-col gap-0.5 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h1 className="font-mono text-2xl font-black text-white tracking-tighter leading-none">{ticker}</h1>
-                  {isHot && (
-                    <span className="bg-negative text-white text-[8px] font-black px-1 rounded-sm animate-pulse">HOT</span>
-                  )}
+            <div className="flex items-start gap-3">
+              <CompanyLogo ticker={ticker} size={38} radius={9} />
+              <div className="flex-1 min-w-0 flex items-start justify-between gap-2">
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h1 className="font-mono text-2xl font-black text-white tracking-tighter leading-none">{ticker}</h1>
+                    {isHot && (
+                      <span className="bg-negative text-white text-[8px] font-black px-1 rounded-sm animate-pulse">HOT</span>
+                    )}
+                  </div>
+                  <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest opacity-80 max-w-[65%] wrap-break-words" title={description}>
+                    {description}
+                  </p>
+                  <h2 className="font-mono text-xl font-bold text-white leading-none tracking-tight mt-1">{mvStr}</h2>
+                  <span className="font-mono text-[9px] font-medium text-slate-400">
+                    {priceStr} <span className="opacity-50 text-[8px]">/ SH</span>
+                  </span>
                 </div>
-                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest opacity-80 max-w-[65%] wrap-break-words" title={description}>
-                  {description}
-                </p>
-                <h2 className="font-mono text-xl font-bold text-white leading-none tracking-tight mt-1">{mvStr}</h2>
-                <span className="font-mono text-[9px] font-medium text-slate-400">
-                  {priceStr} <span className="opacity-50 text-[8px]">/ SH</span>
-                </span>
-              </div>
-              <div className="shrink-0">
-                <Sparkline data={history || []} width={150} height={60} />
+                <div className="shrink-0">
+                  <Sparkline data={history || []} width={130} height={56} />
+                </div>
               </div>
             </div>
           </div>

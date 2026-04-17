@@ -32,8 +32,12 @@ export default function NewsCard({ story }: { story: ClassifiedStory }) {
   const verdictBg = VERDICT_BG[story.verdict] ?? "rgba(100,116,139,0.08)";
   const confidence = Math.round((story.confidence ?? 0) * 100);
 
+  // Auto-detect if timestamp is in seconds (10 digits) or ms (13 digits) to prevent wildly futuristic dates
+  const isSeconds = story.datetime && story.datetime < 10000000000;
+  const timestampMs = isSeconds ? story.datetime * 1000 : story.datetime;
+
   const timeAgo = story.datetime
-    ? formatDistanceToNow(new Date(story.datetime * 1000), { addSuffix: true })
+    ? formatDistanceToNow(new Date(timestampMs), { addSuffix: true })
     : "";
 
   return (

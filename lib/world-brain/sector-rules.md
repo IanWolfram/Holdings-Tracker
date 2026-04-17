@@ -4,9 +4,9 @@
 
 | When news mentions... | Consider sector: |
 |---|---|
-| semiconductors, chips, fab, wafer, lithography, node, foundry, TSMC, ASML | Technology > Semiconductors |
-| AI, machine learning, neural network, GPU, LLM, inference, training, data center GPU | Technology > AI Infrastructure |
-| cloud, hyperscaler, AWS, Azure, GCP, data center capacity, CDN | Technology > Cloud |
+| semiconductors, chips, fab, wafer, lithography, node, foundry, TSMC, ASML | Tech > Semiconductors |
+| AI, machine learning, neural network, GPU, LLM, inference, training, data center GPU | Tech > AI Infrastructure |
+| cloud, hyperscaler, AWS, Azure, GCP, data center capacity, CDN | Tech > Cloud |
 | EV, electric vehicle, battery, charging, lithium, cathode, BEV | Consumer Discretionary > EV |
 | pharma, drug, FDA, clinical trial, biologics, biosimilar, approval | Healthcare > Pharma |
 | biotech, CRISPR, gene therapy, genomics | Healthcare > Biotech |

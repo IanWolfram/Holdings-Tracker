@@ -1,13 +1,19 @@
 ---
 date: "2026-04-13"
-ticker: "BR"
-verdict: "BUY"
+ticker: BR
+sector: Financial Services
+verdict: BUY
 confidence: 0.89
 relevance: 0.89
-country: "unknown"
-source: "twitter"
+country: unknown
+source: twitter
 url: "#"
-tags: [news, br, buy, world-brain]
+tags:
+  - news
+  - br
+  - buy
+  - world-brain
+  - financial-services
 ---
 
 # BR stock upgrades from two analysts following strong wealth management platform adoption numbers.

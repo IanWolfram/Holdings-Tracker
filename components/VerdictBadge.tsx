@@ -15,12 +15,12 @@ export default function VerdictBadge({ verdict, confidence }: Props) {
   const pct = Math.round(confidence * 100);
   const s = styles[verdict];
   return (
-    <div className="flex justify-between items-start mb-1.5">
-      <span className={`${s.badge} text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider`}>
+    <div className="flex items-center gap-1.5">
+      <span className={`${s.badge} text-[9px] px-1.5 py-[3px] rounded font-bold uppercase tracking-wider leading-none`}>
         {verdict}
       </span>
       {confidence > 0 && (
-        <span className={`${s.conf} font-mono text-[10px]`}>{pct}% CONF</span>
+        <span className={`${s.conf} font-mono text-[10px] leading-none tracking-wide`}>{pct}% CONF</span>
       )}
     </div>
   );

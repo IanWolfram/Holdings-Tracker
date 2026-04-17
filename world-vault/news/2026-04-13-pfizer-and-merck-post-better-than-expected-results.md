@@ -1,13 +1,19 @@
 ---
 date: "2026-04-13"
-ticker: "RXD"
-verdict: "BUY"
+ticker: RXD
+sector: Financial
+verdict: BUY
 confidence: 0.60
 relevance: 0.60
-country: "unknown"
-source: "finnhub"
+country: unknown
+source: finnhub
 url: "#"
-tags: [news, rxd, buy, world-brain]
+tags:
+  - news
+  - rxd
+  - buy
+  - world-brain
+  - financial
 ---
 
 # Pfizer and Merck post better-than-expected results, healthcare index rebounds 1.8%

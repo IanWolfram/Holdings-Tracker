@@ -1,13 +1,19 @@
 ---
 date: "2026-04-12"
-ticker: "GLD"
-verdict: "BUY"
+ticker: GLD
+sector: Financial
+verdict: BUY
 confidence: 0.90
 relevance: 0.90
-country: "unknown"
-source: "finnhub"
+country: unknown
+source: finnhub
 url: "#"
-tags: [news, gld, buy, world-brain]
+tags:
+  - news
+  - gld
+  - buy
+  - world-brain
+  - financial
 ---
 
 # GLD ETF sees record weekly inflows of $1.2B from institutional investors

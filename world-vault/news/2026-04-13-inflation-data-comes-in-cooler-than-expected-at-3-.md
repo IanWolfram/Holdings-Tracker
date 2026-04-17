@@ -1,13 +1,19 @@
 ---
 date: "2026-04-13"
-ticker: "RPI"
-verdict: "BUY"
+ticker: RPI
+sector: Healthcare
+verdict: BUY
 confidence: 0.90
 relevance: 0.90
-country: "unknown"
-source: "finnhub"
+country: unknown
+source: finnhub
 url: "#"
-tags: [news, rpi, buy, world-brain]
+tags:
+  - news
+  - rpi
+  - buy
+  - world-brain
+  - healthcare
 ---
 
 # Inflation data comes in cooler than expected at 3.1%, boosting inflation-linked assets

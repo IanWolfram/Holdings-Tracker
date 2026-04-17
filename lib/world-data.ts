@@ -17,7 +17,7 @@ let enrichmentRunning = false;
 // ---------------------------------------------------------------------------
 // FAST PATH: Build WorldData using only already-classified stories
 // No new Ollama calls. Stories from getNewsForTicker() already have
-// BUY/SELL/HOLD verdicts from the stock-analyzer. We map them to the
+// BUY/SELL/HOLD verdicts from the Economic Brain. We map them to the
 // company's HQ country as the default geo-origin.
 // World-brain enrichment (geo-origin inference) runs async in background.
 // ---------------------------------------------------------------------------
@@ -43,13 +43,14 @@ export async function getWorldData(positions: Position[]): Promise<WorldData> {
 
   // ── 2. Collect already-classified stories (no new Ollama calls) ───────────
   // getNewsForTicker() uses its own 5-min cache and already ran the
-  // stock-analyzer classifier. We reuse those results directly.
+  // Economic Brain classifier. We reuse those results directly.
   const allGeoStories: GeoStory[] = [];
 
   const newsResults = await Promise.all(
     positions.map(async (p) => {
       try {
-        return await getNewsForTicker(p.ticker);
+        const sector = profiles[p.ticker]?.sector;
+        return await getNewsForTicker(p.ticker, sector);
       } catch {
         return [];
       }
@@ -87,9 +88,10 @@ export async function getWorldData(positions: Position[]): Promise<WorldData> {
   if (WORLD_VAULT_PATH && allGeoStories.length > 0) {
     const today = new Date().toISOString().split("T")[0];
     for (const story of allGeoStories) {
-      writeStoryNote(story, WORLD_VAULT_PATH);
+      const sector = profiles[story.ticker]?.sector;
+      writeStoryNote(story, WORLD_VAULT_PATH, sector);
     }
-    writeDailySummary(today, allGeoStories, WORLD_VAULT_PATH);
+    writeDailySummary(today, allGeoStories, WORLD_VAULT_PATH, data);
   }
 
   // ── 4. Build country states ───────────────────────────────────────────────
@@ -194,7 +196,8 @@ async function runBackgroundEnrichment(
       let stories: import("@/types/news.types").ClassifiedStory[] = [];
       try {
         const { getNewsForTicker } = await import("./news");
-        stories = await getNewsForTicker(position.ticker);
+        const sector = profiles[position.ticker]?.sector;
+        stories = await getNewsForTicker(position.ticker, sector);
       } catch {
         continue;
       }

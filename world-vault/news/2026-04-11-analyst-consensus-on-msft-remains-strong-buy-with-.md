@@ -1,13 +1,18 @@
 ---
-date: "2026-04-11"
-ticker: "MSFT"
-verdict: "BUY"
+date: 2026-04-11
+ticker: MSFT
+sector: Tech
+verdict: BUY
 confidence: 0.88
 relevance: 0.88
-country: "unknown"
-source: "twitter"
+country: unknown
+source: twitter
 url: "#"
-tags: [news, msft, buy, world-brain]
+tags:
+  - news
+  - msft
+  - buy
+  - world-brain
 ---
 
 # Analyst consensus on MSFT remains Strong Buy with average PT of $520.

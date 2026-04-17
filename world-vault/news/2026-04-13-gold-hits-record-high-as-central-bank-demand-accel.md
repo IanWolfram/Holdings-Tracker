@@ -1,13 +1,19 @@
 ---
 date: "2026-04-13"
-ticker: "GLD"
-verdict: "BUY"
+ticker: GLD
+sector: Financial
+verdict: BUY
 confidence: 0.90
 relevance: 0.90
-country: "unknown"
-source: "newsapi"
+country: unknown
+source: newsapi
 url: "#"
-tags: [news, gld, buy, world-brain]
+tags:
+  - news
+  - gld
+  - buy
+  - world-brain
+  - financial
 ---
 
 # Gold Hits Record High as Central Bank Demand Accelerates Into 2026

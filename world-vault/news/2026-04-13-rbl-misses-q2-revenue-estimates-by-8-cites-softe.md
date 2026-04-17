@@ -1,13 +1,19 @@
 ---
 date: "2026-04-13"
-ticker: "RBL"
-verdict: "SELL"
+ticker: RBL
+sector: Tech
+verdict: SELL
 confidence: 0.88
 relevance: 0.88
-country: "unknown"
-source: "twitter"
+country: unknown
+source: twitter
 url: "#"
-tags: [news, rbl, sell, world-brain]
+tags:
+  - news
+  - rbl
+  - sell
+  - world-brain
+  - tech
 ---
 
 # RBL misses Q2 revenue estimates by 8%, cites softer-than-expected ad market.

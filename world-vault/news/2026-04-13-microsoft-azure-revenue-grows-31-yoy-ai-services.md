@@ -1,13 +1,19 @@
 ---
 date: "2026-04-13"
-ticker: "MSFT"
-verdict: "BUY"
+ticker: MSFT
+sector: Tech
+verdict: BUY
 confidence: 0.90
 relevance: 0.90
-country: "unknown"
-source: "finnhub"
+country: unknown
+source: finnhub
 url: "#"
-tags: [news, msft, buy, world-brain]
+tags:
+  - news
+  - msft
+  - buy
+  - world-brain
+  - tech
 ---
 
 # Microsoft Azure revenue grows 31% YoY, AI services cited as primary growth driver

@@ -1,13 +1,19 @@
 ---
 date: "2026-04-13"
-ticker: "RBL"
-verdict: "BUY"
+ticker: RBL
+sector: Tech
+verdict: BUY
 confidence: 0.75
 relevance: 0.75
-country: "unknown"
-source: "finnhub"
+country: unknown
+source: finnhub
 url: "#"
-tags: [news, rbl, buy, world-brain]
+tags:
+  - news
+  - rbl
+  - buy
+  - world-brain
+  - tech
 ---
 
 # Rebel Wilson's production company files for expansion, analysts see media deal potential

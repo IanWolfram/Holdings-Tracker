@@ -167,46 +167,53 @@ function StoryRow({ story }: { story: GeoStory }) {
   };
   const color = verdictColors[story.verdict] ?? "#64748b";
 
+  const confidence = Math.round(story.confidence * 100);
+
   return (
     <div
       style={{
         borderLeft: `2px solid ${color}`,
         paddingLeft: 10,
+        paddingBottom: 2,
       }}
+      className="flex flex-col gap-1.5"
     >
-      <div className="flex items-center gap-2 mb-1">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: 10,
+              fontWeight: 700,
+              color,
+              letterSpacing: "0.05em",
+            }}
+          >
+            {story.verdict}
+          </span>
+          <span
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: 10,
+              color: "#475569",
+            }}
+          >
+            {story.ticker}
+          </span>
+          {story.relevanceScore >= 0.7 && (
+            <span style={{ fontSize: 9, color: "#00FF88" }}>● HI-REL</span>
+          )}
+        </div>
         <span
           style={{
             fontFamily: "'JetBrains Mono', monospace",
             fontSize: 10,
-            fontWeight: 700,
             color,
-            letterSpacing: "0.05em",
+            opacity: 0.9,
           }}
         >
-          {story.verdict}
+          {confidence}%
         </span>
-        <span
-          style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 10,
-            color: "#475569",
-          }}
-        >
-          {story.ticker}
-        </span>
-        <span
-          style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 10,
-            color: "#475569",
-          }}
-        >
-          {Math.round(story.confidence * 100)}%
-        </span>
-        {story.relevanceScore >= 0.7 && (
-          <span style={{ fontSize: 9, color: "#00FF88" }}>● HI-REL</span>
-        )}
       </div>
       <p
         style={{
@@ -223,6 +230,14 @@ function StoryRow({ story }: { story: GeoStory }) {
       >
         {story.headline}
       </p>
+
+      {/* Thin Confidence Bar */}
+      <div className="h-0.5 w-full bg-white/5 rounded-full overflow-hidden mt-0.5">
+        <div 
+          className="h-full rounded-full transition-all duration-700 ease-out" 
+          style={{ width: `${confidence}%`, background: color }} 
+        />
+      </div>
     </div>
   );
 }

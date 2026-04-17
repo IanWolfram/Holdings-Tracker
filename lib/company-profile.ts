@@ -65,12 +65,13 @@ export async function fetchCompanyProfile(
     return null;
   }
 
+  const sectorRaw = raw.gsector ?? raw.finnhubIndustry ?? "Unknown";
   const profile: CompanyProfile = {
     ticker,
     name: raw.name ?? ticker,
     country: raw.country,
     countryCode: coords.code,
-    sector: raw.gsector ?? raw.finnhubIndustry ?? "Unknown",
+    sector: sectorRaw.replace("Technology", "Tech"),
     industry: raw.gind ?? raw.ggroup ?? raw.finnhubIndustry ?? "Unknown",
     lat: coords.lat,
     lon: coords.lon,

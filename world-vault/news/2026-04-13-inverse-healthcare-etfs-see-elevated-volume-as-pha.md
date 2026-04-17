@@ -1,13 +1,19 @@
 ---
 date: "2026-04-13"
-ticker: "RXD"
-verdict: "SELL"
+ticker: RXD
+sector: Financial
+verdict: SELL
 confidence: 0.60
 relevance: 0.60
-country: "unknown"
-source: "twitter"
+country: unknown
+source: twitter
 url: "#"
-tags: [news, rxd, sell, world-brain]
+tags:
+  - news
+  - rxd
+  - sell
+  - world-brain
+  - financial
 ---
 
 # Inverse healthcare ETFs see elevated volume as pharma names sell off on Medicare news.

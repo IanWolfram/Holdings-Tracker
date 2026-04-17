@@ -1,13 +1,19 @@
 ---
 date: "2026-04-11"
-ticker: "GLD"
-verdict: "BUY"
+ticker: GLD
+sector: Financial
+verdict: BUY
 confidence: 0.90
 relevance: 0.90
-country: "unknown"
-source: "twitter"
+country: unknown
+source: twitter
 url: "#"
-tags: [news, gld, buy, world-brain]
+tags:
+  - news
+  - gld
+  - buy
+  - world-brain
+  - financial
 ---
 
 # Geopolitical tensions in Middle East driving safe-haven flows into gold and treasuries.

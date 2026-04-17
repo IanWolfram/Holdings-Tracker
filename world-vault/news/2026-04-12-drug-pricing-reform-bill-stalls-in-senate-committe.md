@@ -1,13 +1,19 @@
 ---
 date: "2026-04-12"
-ticker: "RXD"
-verdict: "HOLD"
+ticker: RXD
+sector: Financial
+verdict: HOLD
 confidence: 0.50
 relevance: 0.50
-country: "unknown"
-source: "finnhub"
+country: unknown
+source: finnhub
 url: "#"
-tags: [news, rxd, hold, world-brain]
+tags:
+  - news
+  - rxd
+  - hold
+  - world-brain
+  - financial
 ---
 
 # Drug pricing reform bill stalls in Senate committee, reducing near-term regulatory risk for pharma

@@ -1,13 +1,19 @@
 ---
 date: "2026-04-13"
-ticker: "MSFT"
-verdict: "BUY"
+ticker: MSFT
+sector: Tech
+verdict: BUY
 confidence: 0.90
 relevance: 0.90
-country: "unknown"
-source: "newsapi"
+country: unknown
+source: newsapi
 url: "#"
-tags: [news, msft, buy, world-brain]
+tags:
+  - news
+  - msft
+  - buy
+  - world-brain
+  - tech
 ---
 
 # Microsoft Unveils Next-Generation Copilot Features at Build 2026

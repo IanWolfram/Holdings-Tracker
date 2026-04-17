@@ -1,13 +1,19 @@
 ---
 date: "2026-04-13"
-ticker: "MSFT"
-verdict: "SELL"
+ticker: MSFT
+sector: Tech
+verdict: SELL
 confidence: 0.80
 relevance: 0.80
-country: "unknown"
-source: "finnhub"
+country: unknown
+source: finnhub
 url: "#"
-tags: [news, msft, sell, world-brain]
+tags:
+  - news
+  - msft
+  - sell
+  - world-brain
+  - tech
 ---
 
 # EU regulators open investigation into Microsoft's bundling of Teams with Office 365

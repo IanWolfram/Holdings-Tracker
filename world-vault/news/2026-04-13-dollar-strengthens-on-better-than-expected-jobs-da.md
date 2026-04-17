@@ -1,13 +1,19 @@
 ---
 date: "2026-04-13"
-ticker: "GLD"
-verdict: "SELL"
+ticker: GLD
+sector: Financial
+verdict: SELL
 confidence: 0.92
 relevance: 0.92
-country: "unknown"
-source: "finnhub"
+country: unknown
+source: finnhub
 url: "#"
-tags: [news, gld, sell, world-brain]
+tags:
+  - news
+  - gld
+  - sell
+  - world-brain
+  - financial
 ---
 
 # Dollar strengthens on better-than-expected jobs data, pressuring commodity prices

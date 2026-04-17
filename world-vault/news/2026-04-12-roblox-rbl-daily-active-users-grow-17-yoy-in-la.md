@@ -1,13 +1,19 @@
 ---
 date: "2026-04-12"
-ticker: "RBL"
-verdict: "BUY"
+ticker: RBL
+sector: Tech
+verdict: BUY
 confidence: 0.90
 relevance: 0.90
-country: "unknown"
-source: "finnhub"
+country: unknown
+source: finnhub
 url: "#"
-tags: [news, rbl, buy, world-brain]
+tags:
+  - news
+  - rbl
+  - buy
+  - world-brain
+  - tech
 ---
 
 # Roblox (RBL) daily active users grow 17% YoY in latest platform metrics report

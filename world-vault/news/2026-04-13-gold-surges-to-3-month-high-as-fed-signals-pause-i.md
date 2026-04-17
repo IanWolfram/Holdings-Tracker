@@ -1,13 +1,19 @@
 ---
 date: "2026-04-13"
-ticker: "GLD"
-verdict: "HOLD"
+ticker: GLD
+sector: Financial
+verdict: HOLD
 confidence: 0.50
 relevance: 0.50
-country: "unknown"
-source: "finnhub"
+country: unknown
+source: finnhub
 url: "#"
-tags: [news, gld, hold, world-brain]
+tags:
+  - news
+  - gld
+  - hold
+  - world-brain
+  - financial
 ---
 
 # Gold surges to 3-month high as Fed signals pause in rate hike cycle

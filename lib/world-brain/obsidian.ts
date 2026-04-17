@@ -1,12 +1,12 @@
 import fs from "fs";
 import path from "path";
-import type { GeoStory } from "@/types/geo.types";
+import type { GeoStory, WorldData } from "@/types/geo.types";
 
 // ---------------------------------------------------------------------------
 // Individual story note
 // ---------------------------------------------------------------------------
 
-export function writeStoryNote(story: GeoStory, vaultPath: string): void {
+export function writeStoryNote(story: GeoStory, vaultPath: string, sector?: string): void {
   try {
     const date = new Date(story.datetime * 1000);
     const dateStr = date.toISOString().split("T")[0]; // YYYY-MM-DD
@@ -19,17 +19,27 @@ export function writeStoryNote(story: GeoStory, vaultPath: string): void {
 
     fs.mkdirSync(path.dirname(notePath), { recursive: true });
 
+    const tagList = [
+      "news",
+      story.ticker.toLowerCase(),
+      story.verdict.toLowerCase(),
+      "world-brain",
+      ...(sector ? [sector.toLowerCase().replace(/\s+/g, "-")] : []),
+    ];
+
     const content = [
       "---",
       `date: "${dateStr}"`,
-      `ticker: "${story.ticker}"`,
-      `verdict: "${story.verdict}"`,
+      `ticker: ${story.ticker}`,
+      ...(sector ? [`sector: ${sector}`] : []),
+      `verdict: ${story.verdict}`,
       `confidence: ${story.confidence.toFixed(2)}`,
       `relevance: ${story.relevanceScore.toFixed(2)}`,
-      `country: "${story.originCountryCode ?? "unknown"}"`,
-      `source: "${story.source}"`,
+      `country: ${story.originCountryCode ?? "unknown"}`,
+      `source: ${story.source}`,
       `url: "${story.url}"`,
-      `tags: [news, ${story.ticker.toLowerCase()}, ${story.verdict.toLowerCase()}, world-brain]`,
+      "tags:",
+      ...tagList.map((t) => `  - ${t}`),
       "---",
       "",
       `# ${story.headline}`,
@@ -64,44 +74,60 @@ export function writeStoryNote(story: GeoStory, vaultPath: string): void {
 export function writeDailySummary(
   date: string,
   stories: GeoStory[],
-  vaultPath: string
+  vaultPath: string,
+  baseData: WorldData
 ): void {
   try {
     const notePath = path.join(vaultPath, "daily", `${date}.md`);
     fs.mkdirSync(path.dirname(notePath), { recursive: true });
 
-    // Group by ticker
-    const byTicker = stories.reduce<Record<string, GeoStory[]>>((acc, s) => {
-      (acc[s.ticker] ??= []).push(s);
-      return acc;
-    }, {});
+    // Group by sector, then by ticker
+    const bySector: Record<string, Record<string, GeoStory[]>> = {};
+    for (const story of stories) {
+      const profile = (baseData as any)?.profiles?.[story.ticker];
+      const sector = profile?.sector ?? "Mixed / Uncategorized";
+      bySector[sector] ??= {};
+      bySector[sector][story.ticker] ??= [];
+      bySector[sector][story.ticker].push(story);
+    }
 
-    const tickerList = Object.keys(byTicker);
+    const sectors = Object.keys(bySector).sort();
 
     const content = [
       "---",
       `date: "${date}"`,
       "type: daily-summary",
-      `tickers: [${tickerList.join(", ")}]`,
-      "tags: [daily, summary, world-brain]",
+      "tags:",
+      "  - daily",
+      "  - summary",
+      "  - world-brain",
       "---",
       "",
       `# Daily World Summary — ${date}`,
       "",
-      `> Covering **${stories.length} stories** across **${tickerList.length} holdings**`,
+      `> Covering **${stories.length} stories** across **${Object.keys(bySector).length} sectors**`,
       "",
-      ...tickerList.flatMap((ticker) => {
-        const ss = byTicker[ticker];
-        const buys = ss.filter((s) => s.verdict === "BUY").length;
-        const sells = ss.filter((s) => s.verdict === "SELL").length;
+      ...sectors.flatMap((sector) => {
+        const tickersInSector = bySector[sector];
+        const tickerNames = Object.keys(tickersInSector).sort();
+        
         return [
-          `## [[${ticker}]] — ${ss.length} stories (${buys} BUY / ${sells} SELL)`,
+          `## 📁 ${sector.toUpperCase()}`,
           "",
-          ...ss.map(
-            (s) =>
-              `- **${s.verdict}** (${Math.round(s.confidence * 100)}%) — [${s.headline.slice(0, 80)}](${s.url})`
-          ),
-          "",
+          ...tickerNames.flatMap((ticker) => {
+            const ss = tickersInSector[ticker];
+            const buys = ss.filter((s) => s.verdict === "BUY").length;
+            const sells = ss.filter((s) => s.verdict === "SELL").length;
+            return [
+              `### [[${ticker}]] — ${ss.length} stories (${buys} BUY / ${sells} SELL)`,
+              "",
+              ...ss.map(
+                (s) =>
+                  `- **${s.verdict}** (${Math.round(s.confidence * 100)}%) — [${s.headline}](${s.url})`
+              ),
+              "",
+            ];
+          })
         ];
       }),
     ].join("\n");
