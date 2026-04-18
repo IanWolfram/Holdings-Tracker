@@ -14,8 +14,8 @@ export interface ETradeConfig {
 }
 
 export class ETradeProvider implements IBrokerProvider {
-  private cachedAccountIdKey: string | null = null;
-  private accountIdKeyExpiresAt = 0;
+  private cachedAccountIdKeys: string[] = [];
+  private accountIdKeysExpiresAt = 0;
 
   constructor(private readonly cfg: ETradeConfig) {}
 
@@ -42,10 +42,10 @@ export class ETradeProvider implements IBrokerProvider {
 
   private static readonly ACCOUNT_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
-  private async fetchAccountIdKey(): Promise<string> {
+  private async fetchAccountIdKeys(): Promise<string[]> {
     const now = Date.now();
-    if (this.cachedAccountIdKey && now < this.accountIdKeyExpiresAt) {
-      return this.cachedAccountIdKey;
+    if (this.cachedAccountIdKeys.length > 0 && now < this.accountIdKeysExpiresAt) {
+      return this.cachedAccountIdKeys;
     }
 
     const oauth = this.buildOAuth();
@@ -62,36 +62,52 @@ export class ETradeProvider implements IBrokerProvider {
     const accounts = json?.AccountListResponse?.Accounts?.Account ?? [];
     if (accounts.length === 0) throw new Error("No E*Trade accounts found");
 
-    this.cachedAccountIdKey = accounts[0].accountIdKey as string;
-    this.accountIdKeyExpiresAt = now + ETradeProvider.ACCOUNT_CACHE_TTL_MS;
-    return this.cachedAccountIdKey;
+    this.cachedAccountIdKeys = accounts.map((a: any) => a.accountIdKey as string);
+    this.accountIdKeysExpiresAt = now + ETradeProvider.ACCOUNT_CACHE_TTL_MS;
+    return this.cachedAccountIdKeys;
   }
 
   async getPositions(): Promise<Position[]> {
-    const accountIdKey = await this.fetchAccountIdKey();
+    const accountIdKeys = await this.fetchAccountIdKeys();
     const oauth = this.buildOAuth();
-    const url = `${this.cfg.baseUrl}/v1/accounts/${accountIdKey}/portfolio.json`;
-    const headers = this.toHeader(oauth, oauth.authorize({ url, method: "GET" }, this.accessToken()));
 
-    const res = await fetch(url, { headers: { ...headers, Accept: "application/json" } });
-    if (!res.ok) {
-      const body = await res.text();
-      throw new Error(`Portfolio fetch failed ${res.status}: ${body}`);
-    }
+    const allRawPositions: Position[] = [];
 
-    const json = await res.json();
-    const accountPortfolios = json?.PortfolioResponse?.AccountPortfolio ?? [];
+    // Fetch from all accounts in parallel
+    const results = await Promise.allSettled(
+      accountIdKeys.map(async (key) => {
+        const url = `${this.cfg.baseUrl}/v1/accounts/${key}/portfolio.json`;
+        const headers = this.toHeader(oauth, oauth.authorize({ url, method: "GET" }, this.accessToken()));
 
-    const raw: Position[] = [];
-    for (const ap of accountPortfolios) {
-      for (const pos of ap?.Position ?? []) {
-        raw.push(mapRawPosition(pos));
+        const res = await fetch(url, { headers: { ...headers, Accept: "application/json" } });
+        if (!res.ok) {
+          const body = await res.text();
+          console.warn(`[ETradeProvider] Portfolio fetch failed for account ${key}: ${res.status} ${body}`);
+          return [];
+        }
+
+        const json = await res.json();
+        const accountPortfolios = json?.PortfolioResponse?.AccountPortfolio ?? [];
+        const positions: Position[] = [];
+
+        for (const ap of accountPortfolios) {
+          for (const pos of ap?.Position ?? []) {
+            positions.push(mapRawPosition(pos));
+          }
+        }
+        return positions;
+      })
+    );
+
+    for (const result of results) {
+      if (result.status === "fulfilled") {
+        allRawPositions.push(...result.value);
       }
     }
 
-    // Deduplicate by ticker — sandbox sometimes returns the same symbol multiple times
+    // Deduplicate by ticker — sandbox sometimes returns the same symbol across accounts
     const seen = new Set<string>();
-    return raw.filter((p) => {
+    return allRawPositions.filter((p) => {
       if (seen.has(p.ticker)) return false;
       seen.add(p.ticker);
       return true;

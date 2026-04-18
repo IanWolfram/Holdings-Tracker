@@ -39,7 +39,7 @@ if (!CONSUMER_KEY || !CONSUMER_SECRET) {
 
 const AUTH_BASE_URL = IS_SANDBOX
   ? "https://apisb.etrade.com"
-  : "https://etws.etrade.com";
+  : "https://api.etrade.com";
 
 // Minimal OAuth 1.0a implementation (no npm package needed in this script)
 function percentEncode(str) {

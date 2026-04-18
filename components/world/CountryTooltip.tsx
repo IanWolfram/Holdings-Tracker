@@ -36,6 +36,62 @@ function formatMoney(value: number): string {
 }
 
 // ---------------------------------------------------------------------------
+// Story row
+// ---------------------------------------------------------------------------
+
+function StoryRow({ story }: { story: GeoStory }) {
+  const verdictColors: Record<string, string> = {
+    BUY: "#00FF88",
+    SELL: "#FF4444",
+    HOLD: "#64748b",
+  };
+  const color = verdictColors[story.verdict] ?? "#64748b";
+  const confidence = Math.round(story.confidence * 100);
+
+  return (
+    <div
+      style={{ borderLeft: `2px solid ${color}`, paddingLeft: 10, paddingBottom: 2 }}
+      className="flex flex-col gap-1.5"
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, fontWeight: 700, color, letterSpacing: "0.05em" }}>
+            {story.verdict}
+          </span>
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "#475569" }}>
+            {story.ticker}
+          </span>
+          {story.relevanceScore >= 0.7 && (
+            <span style={{ fontSize: 9, color: "#00FF88" }}>● HI-REL</span>
+          )}
+        </div>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color, opacity: 0.9 }}>
+          {confidence}%
+        </span>
+      </div>
+      <p
+        style={{
+          fontFamily: "'Inter', sans-serif",
+          fontSize: 12,
+          color: "#94a3b8",
+          margin: 0,
+          lineHeight: 1.4,
+          overflow: "hidden",
+          display: "-webkit-box",
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical",
+        }}
+      >
+        {story.headline}
+      </p>
+      <div className="h-0.5 w-full bg-white/5 rounded-full overflow-hidden mt-0.5">
+        <div className="h-full rounded-full transition-all duration-700 ease-out" style={{ width: `${confidence}%`, background: color }} />
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
 
@@ -150,93 +206,6 @@ export default function CountryTooltip({ state, mouseX, mouseY }: CountryTooltip
             HQ location — no news stories yet
           </p>
         )}
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Story row
-// ---------------------------------------------------------------------------
-
-function StoryRow({ story }: { story: GeoStory }) {
-  const verdictColors: Record<string, string> = {
-    BUY: "#00FF88",
-    SELL: "#FF4444",
-    HOLD: "#64748b",
-  };
-  const color = verdictColors[story.verdict] ?? "#64748b";
-
-  const confidence = Math.round(story.confidence * 100);
-
-  return (
-    <div
-      style={{
-        borderLeft: `2px solid ${color}`,
-        paddingLeft: 10,
-        paddingBottom: 2,
-      }}
-      className="flex flex-col gap-1.5"
-    >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span
-            style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 10,
-              fontWeight: 700,
-              color,
-              letterSpacing: "0.05em",
-            }}
-          >
-            {story.verdict}
-          </span>
-          <span
-            style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 10,
-              color: "#475569",
-            }}
-          >
-            {story.ticker}
-          </span>
-          {story.relevanceScore >= 0.7 && (
-            <span style={{ fontSize: 9, color: "#00FF88" }}>● HI-REL</span>
-          )}
-        </div>
-        <span
-          style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 10,
-            color,
-            opacity: 0.9,
-          }}
-        >
-          {confidence}%
-        </span>
-      </div>
-      <p
-        style={{
-          fontFamily: "'Inter', sans-serif",
-          fontSize: 12,
-          color: "#94a3b8",
-          margin: 0,
-          lineHeight: 1.4,
-          overflow: "hidden",
-          display: "-webkit-box",
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: "vertical",
-        }}
-      >
-        {story.headline}
-      </p>
-
-      {/* Thin Confidence Bar */}
-      <div className="h-0.5 w-full bg-white/5 rounded-full overflow-hidden mt-0.5">
-        <div 
-          className="h-full rounded-full transition-all duration-700 ease-out" 
-          style={{ width: `${confidence}%`, background: color }} 
-        />
       </div>
     </div>
   );

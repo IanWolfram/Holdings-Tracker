@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useEffect, useId } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, useMotionValue } from "framer-motion";
 import { clsx } from "clsx";
@@ -32,7 +32,6 @@ export default function GlassView({
   style,
 }: GlassViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const internalId = useId();
   const context = useLiquidGlass();
   const [mounted, setMounted] = useState(false);
 
@@ -75,7 +74,7 @@ export default function GlassView({
       window.removeEventListener("resize", measure);
       window.removeEventListener("scroll", measure, { capture: true });
     };
-  }, []);
+  }, [maskH, maskW, maskX, maskY]);
 
   const hasContext = !!context;
 

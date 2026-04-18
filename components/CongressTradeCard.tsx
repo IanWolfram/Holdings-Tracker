@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import GlassView from "./ui/LiquidGlass/GlassView";
 import type { CongressTrade } from "@/types/news.types";

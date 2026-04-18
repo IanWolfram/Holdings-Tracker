@@ -1,0 +1,25 @@
+import type { Position } from "@/types/position.types";
+
+export const MOCK_POSITIONS: Position[] = [
+  { ticker: "BR",     description: "Broadridge Financial Solutions", quantity: 15,  marketValue: 3105.00,  gainLoss:  450.00, pricePaid: 177.00, currentPrice: 207.00 },
+  { ticker: "MSFT",   description: "Microsoft Corporation",          quantity: 5,   marketValue: 2103.25,  gainLoss:  153.15, pricePaid: 390.00, currentPrice: 420.65 },
+  { ticker: "AAPL",   description: "Apple Inc.",                     quantity: 10,  marketValue: 1956.00,  gainLoss:  256.00, pricePaid: 170.00, currentPrice: 195.60 },
+  { ticker: "NVDA",   description: "NVIDIA Corporation",             quantity: 4,   marketValue: 3492.00,  gainLoss: 1092.00, pricePaid: 600.00, currentPrice: 873.00 },
+  { ticker: "JPM",    description: "JPMorgan Chase & Co.",           quantity: 12,  marketValue: 2527.20,  gainLoss:  367.20, pricePaid: 180.00, currentPrice: 210.60 },
+  { ticker: "RBL",    description: "Roblox Corporation",             quantity: 50,  marketValue: 1850.00,  gainLoss: -150.00, pricePaid:  40.00, currentPrice:  37.00 },
+  { ticker: "TM",     description: "Toyota Motor Corporation",       quantity: 8,   marketValue: 1496.00,  gainLoss: -104.00, pricePaid: 200.00, currentPrice: 187.00 },
+  { ticker: "INFY",   description: "Infosys Limited",                quantity: 60,  marketValue: 1122.00,  gainLoss:  162.00, pricePaid:  16.00, currentPrice:  18.70 },
+  { ticker: "005930", description: "Samsung Electronics Co. Ltd",    quantity: 10,  marketValue:  620.00,  gainLoss:   20.00, pricePaid:  60.00, currentPrice:  62.00 },
+];
+
+export const WORLD_PROFILES: Record<string, { name: string; ticker: string; countryCode: string; lat: number; lon: number }> = {
+  "BR":     { name: "Broadridge Financial Solutions", ticker: "BR",     countryCode: "US", lat: 40.71,  lon: -74.00  },
+  "MSFT":   { name: "Microsoft Corporation",          ticker: "MSFT",   countryCode: "US", lat: 47.60,  lon: -122.33 },
+  "AAPL":   { name: "Apple Inc.",                     ticker: "AAPL",   countryCode: "US", lat: 37.33,  lon: -122.03 },
+  "NVDA":   { name: "NVIDIA Corporation",             ticker: "NVDA",   countryCode: "US", lat: 37.36,  lon: -121.97 },
+  "JPM":    { name: "JPMorgan Chase & Co.",           ticker: "JPM",    countryCode: "US", lat: 40.75,  lon: -73.98  },
+  "RBL":    { name: "Roblox Corporation",             ticker: "RBL",    countryCode: "JP", lat: 35.67,  lon: 139.65  },
+  "TM":     { name: "Toyota Motor Corporation",       ticker: "TM",     countryCode: "JP", lat: 35.08,  lon: 137.15  },
+  "INFY":   { name: "Infosys Limited",                ticker: "INFY",   countryCode: "IN", lat: 12.97,  lon:  77.59  },
+  "005930": { name: "Samsung Electronics Co. Ltd",    ticker: "005930", countryCode: "KR", lat: 37.56,  lon: 126.97  },
+};

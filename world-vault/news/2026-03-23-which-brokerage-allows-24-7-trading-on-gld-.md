@@ -1,26 +1,26 @@
 ---
 date: "2026-03-23"
-ticker: GLD
-sector: Financial
+ticker: JPM
+sector: Unknown
 verdict: HOLD
 confidence: 0.50
 relevance: 0.50
-country: unknown
+country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1s14ko2/which_brokerage_allows_247_trading_on_gld/"
 tags:
   - news
-  - gld
+  - jpm
   - hold
   - world-brain
-  - financial
+  - unknown
 ---
 
 # Which brokerage allows 24/7 trading on GLD?
 
 **Verdict**: HOLD (50% confidence)  
-**Relevance to [[GLD]]**: 50%  
-**Geographic origin**: Unknown  
+**Relevance to [[JPM]]**: 50%  
+**Geographic origin**: US  
 
 ## Summary
 Which brokerage allows 24/7 trading on GLD?
@@ -34,4 +34,5 @@ _No analysis available._
 
 ## Links
 - [Source Article](https://www.reddit.com/r/stocks/comments/1s14ko2/which_brokerage_allows_247_trading_on_gld/)
-- [[GLD]]
+- [[JPM]]
+- [[US-news]]

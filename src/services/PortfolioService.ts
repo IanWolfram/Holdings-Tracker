@@ -29,8 +29,17 @@ export class PortfolioService {
     return withHistory;
   }
 
+  /** Clears the local positions cache. */
+  clearCache(): void {
+    this.cache.delete("positions");
+  }
+
   /** Returns positions with 5-min caching and automatic mock fallback. */
-  async getPositionsSafe(): Promise<Position[]> {
+  async getPositionsSafe(forceRefresh = false): Promise<Position[]> {
+    if (forceRefresh) {
+      this.clearCache();
+    }
+
     if (this.cfg.etradeEnv === "mock") {
       return withSyntheticHistory(MOCK_POSITIONS);
     }

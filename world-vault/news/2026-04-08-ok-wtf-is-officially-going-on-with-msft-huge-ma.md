@@ -1,11 +1,11 @@
 ---
 date: "2026-04-08"
 ticker: MSFT
-sector: Tech
+sector: Unknown
 verdict: SELL
 confidence: 0.60
 relevance: 0.60
-country: unknown
+country: US
 source: reddit
 url: "https://www.reddit.com/r/investing/comments/1sg22d4/okwtf_is_officially_going_on_with_msft_huge/"
 tags:
@@ -13,14 +13,14 @@ tags:
   - msft
   - sell
   - world-brain
-  - tech
+  - unknown
 ---
 
 # Ok...WTF is officially going on with MSFT? Huge market up day and it crashes back down flat.
 
 **Verdict**: SELL (60% confidence)  
 **Relevance to [[MSFT]]**: 60%  
-**Geographic origin**: Unknown  
+**Geographic origin**: US  
 
 ## Summary
 Ok...WTF is officially going on with MSFT? Huge market up day and it crashes back down flat.
@@ -37,3 +37,4 @@ _No analysis available._
 ## Links
 - [Source Article](https://www.reddit.com/r/investing/comments/1sg22d4/okwtf_is_officially_going_on_with_msft_huge/)
 - [[MSFT]]
+- [[US-news]]

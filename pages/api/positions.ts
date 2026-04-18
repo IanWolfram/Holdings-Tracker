@@ -55,7 +55,8 @@ export default async function handler(
 
   try {
     const { portfolioService } = getServices();
-    const positions = await portfolioService.getPositionsSafe();
+    const isRefresh = req.query.refresh === "true";
+    const positions = await portfolioService.getPositionsSafe(isRefresh);
     const isMock = process.env.ETRADE_ENV === "mock";
 
     if (isMock) {

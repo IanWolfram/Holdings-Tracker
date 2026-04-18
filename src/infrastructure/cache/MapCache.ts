@@ -16,4 +16,8 @@ export class MapCache implements ICache {
   set(key: string, value: unknown, ttlMs: number): void {
     this.store.set(key, { data: value, expiresAt: Date.now() + ttlMs });
   }
+
+  delete(key: string): void {
+    this.store.delete(key);
+  }
 }

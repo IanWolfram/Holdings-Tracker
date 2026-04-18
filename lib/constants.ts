@@ -28,4 +28,4 @@ export const ETRADE_BASE_URL =
 export const ETRADE_AUTH_BASE_URL =
   process.env.ETRADE_ENV === "sandbox"
     ? "https://apisb.etrade.com"
-    : "https://etws.etrade.com";
+    : "https://api.etrade.com";

@@ -6,12 +6,21 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "etrade:auth": "node scripts/etrade-auth.mjs"
+    "lint": "eslint . --max-warnings=50",
+    "etrade:auth": "node scripts/etrade-auth.mjs",
+    "eta": "npm run etrade:auth",
+    "world:refresh": "node scripts/world-refresh.mjs",
+    "agent": "npx tsx scripts/agent.ts",
+    "pm2:start": "pm2 start ecosystem.config.cjs",
+    "pm2:stop": "pm2 stop pulse",
+    "pm2:restart": "pm2 restart pulse",
+    "pm2:logs": "pm2 logs pulse",
+    "pm2:status": "pm2 status"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.2.2",
     "@types/node": "^25.6.0",
+    "@types/node-cron": "^3.0.11",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@types/three": "^0.183.1",
@@ -19,8 +28,10 @@
     "axios": "^1.15.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "finnhub": "^2.0.13",
     "framer-motion": "^12.38.0",
     "next": "^16.2.3",
+    "node-cron": "^4.2.1",
     "oauth-1.0a": "^2.2.6",
     "postcss": "^8.5.9",
     "react": "^19.2.5",
@@ -29,5 +40,12 @@
     "tailwindcss": "^4.2.2",
     "three": "^0.183.2",
     "typescript": "^6.0.2"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.5",
+    "@typescript-eslint/eslint-plugin": "^8.58.2",
+    "@typescript-eslint/parser": "^8.58.2",
+    "eslint-plugin-react-hooks": "^7.1.0",
+    "typescript-eslint": "^8.58.2"
   }
 }

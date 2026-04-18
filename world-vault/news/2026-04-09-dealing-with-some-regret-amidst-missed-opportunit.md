@@ -1,26 +1,26 @@
 ---
 date: "2026-04-09"
-ticker: MSFT
-sector: Tech
+ticker: JPM
+sector: Unknown
 verdict: HOLD
 confidence: 0.50
 relevance: 0.50
-country: unknown
+country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1sh5xmh/dealing_with_some_regret_amidst_missed/"
 tags:
   - news
-  - msft
+  - jpm
   - hold
   - world-brain
-  - tech
+  - unknown
 ---
 
 # Dealing with some regret amidst "missed opportunity" to have invested more a month ago and in the past few weeks. Any co
 
 **Verdict**: HOLD (50% confidence)  
-**Relevance to [[MSFT]]**: 50%  
-**Geographic origin**: Unknown  
+**Relevance to [[JPM]]**: 50%  
+**Geographic origin**: US  
 
 ## Summary
 Dealing with some regret amidst "missed opportunity" to have invested more a month ago and in the past few weeks. Any constructive thoughts?
@@ -38,4 +38,5 @@ _No analysis available._
 
 ## Links
 - [Source Article](https://www.reddit.com/r/stocks/comments/1sh5xmh/dealing_with_some_regret_amidst_missed/)
-- [[MSFT]]
+- [[JPM]]
+- [[US-news]]

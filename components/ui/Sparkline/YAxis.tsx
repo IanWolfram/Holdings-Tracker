@@ -1,5 +1,5 @@
 import React from "react";
-import { YAxisProps } from "./types";
+import type { YAxisProps } from "./types";
 
 /**
  * YAxis component - Renders the vertical axis and price labels

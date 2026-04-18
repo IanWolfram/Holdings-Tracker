@@ -508,3 +508,39 @@ export const MOCK_NEWS: Record<string, ClassifiedStory[]> = {
     },
   ],
 };
+
+// Stories fetched but not yet run through Ollama — rendered with PendingNewsCard
+export const MOCK_PENDING: Record<string, ClassifiedStory[]> = {
+  JPM: [
+    {
+      ticker: "JPM", source: "finnhub", datetime: h(1),
+      headline: "JPMorgan signals willingness to acquire regional banks as FDIC resolution process accelerates",
+      summary: "", url: "#",
+      verdict: "HOLD", confidence: 0, classifiedAt: "",
+    },
+    {
+      ticker: "JPM", source: "twitter", datetime: h(2), author: "FT_Markets",
+      headline: "Fed minutes show renewed debate over rate path — bank stocks slide pre-market.",
+      summary: "", url: "#",
+      verdict: "HOLD", confidence: 0, classifiedAt: "",
+    },
+    {
+      ticker: "JPM", source: "newsapi", datetime: h(4),
+      headline: "JPMorgan's private credit arm closes $8.5B direct lending fund, largest in firm history",
+      summary: "", url: "#",
+      verdict: "HOLD", confidence: 0, classifiedAt: "",
+    },
+    {
+      ticker: "JPM", source: "finnhub", datetime: h(7),
+      headline: "Basel III endgame capital rules revised downward — JPMorgan CET1 headroom widens to 320bps",
+      summary: "", url: "#",
+      verdict: "HOLD", confidence: 0, classifiedAt: "",
+    },
+    {
+      ticker: "JPM", source: "twitter", datetime: h(11), author: "BloombergTV",
+      headline: "Jamie Dimon sells $150M in JPM shares — largest insider sale in a decade.",
+      summary: "", url: "#",
+      verdict: "HOLD", confidence: 0, classifiedAt: "",
+    },
+  ],
+};

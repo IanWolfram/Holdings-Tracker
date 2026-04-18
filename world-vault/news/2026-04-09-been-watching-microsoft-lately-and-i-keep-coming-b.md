@@ -1,11 +1,11 @@
 ---
 date: "2026-04-09"
 ticker: MSFT
-sector: Tech
+sector: Unknown
 verdict: BUY
 confidence: 0.70
 relevance: 0.70
-country: unknown
+country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1sh4gcx/been_watching_microsoft_lately_and_i_keep_coming/"
 tags:
@@ -13,14 +13,14 @@ tags:
   - msft
   - buy
   - world-brain
-  - tech
+  - unknown
 ---
 
 # Been watching Microsoft lately and I keep coming back to the same thought… this feels like one of those moments people l
 
 **Verdict**: BUY (70% confidence)  
 **Relevance to [[MSFT]]**: 70%  
-**Geographic origin**: Unknown  
+**Geographic origin**: US  
 
 ## Summary
 Been watching Microsoft lately and I keep coming back to the same thought… this feels like one of those moments people look back on later.
@@ -53,3 +53,4 @@ _No analysis available._
 ## Links
 - [Source Article](https://www.reddit.com/r/stocks/comments/1sh4gcx/been_watching_microsoft_lately_and_i_keep_coming/)
 - [[MSFT]]
+- [[US-news]]

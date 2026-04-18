@@ -1,7 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getPositionsSafe } from "@/lib/etrade";
 import { getNewsForTicker, type ClassifiedStory } from "@/lib/news";
-import { sendTelegramMessage, buildDigestMessage, TickerDigest } from "@/lib/telegram";
+import type { TickerDigest } from "@/lib/telegram";
+import { sendTelegramMessage, buildDigestMessage } from "@/lib/telegram";
 
 export default async function handler(
   req: NextApiRequest,
@@ -11,18 +12,7 @@ export default async function handler(
     return res.status(405).json({ success: false, error: "Method not allowed" });
   }
 
-  // Authenticate OpenClaw / scheduler
-  const secret = process.env.OPENCLAW_DIGEST_SECRET;
-  if (!secret && process.env.NODE_ENV === "production") {
-    return res.status(500).json({ success: false, error: "Server misconfigured" });
-  }
-  if (secret) {
-    const auth = req.headers.authorization ?? "";
-    if (auth !== `Bearer ${secret}`) {
-      return res.status(401).json({ success: false, error: "Unauthorized" });
-    }
-  }
-
+  // Trigger full portfolio digest
   try {
     const positions = await getPositionsSafe();
     const tickers = positions.map((p) => p.ticker);

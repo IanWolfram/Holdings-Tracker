@@ -1,11 +1,11 @@
 ---
 date: "2026-04-10"
 ticker: MSFT
-sector: Tech
+sector: Unknown
 verdict: SELL
 confidence: 0.60
 relevance: 0.60
-country: unknown
+country: US
 source: reddit
 url: "https://www.reddit.com/r/investing/comments/1she3e5/msft_mixed_feedback_feelings/"
 tags:
@@ -13,14 +13,14 @@ tags:
   - msft
   - sell
   - world-brain
-  - tech
+  - unknown
 ---
 
 # MSFT Mixed feedback / feelings
 
 **Verdict**: SELL (60% confidence)  
 **Relevance to [[MSFT]]**: 60%  
-**Geographic origin**: Unknown  
+**Geographic origin**: US  
 
 ## Summary
 MSFT Mixed feedback / feelings
@@ -35,3 +35,4 @@ _No analysis available._
 ## Links
 - [Source Article](https://www.reddit.com/r/investing/comments/1she3e5/msft_mixed_feedback_feelings/)
 - [[MSFT]]
+- [[US-news]]

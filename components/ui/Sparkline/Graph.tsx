@@ -1,5 +1,5 @@
 import React from "react";
-import { GraphProps } from "./types";
+import type { GraphProps } from "./types";
 import { SparklinePath } from "./SparklinePath";
 import { YAxis } from "./YAxis";
 import { XAxis } from "./XAxis";

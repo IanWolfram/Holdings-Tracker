@@ -1,11 +1,11 @@
 ---
 date: "2026-04-12"
 ticker: RBL
-sector: Tech
+sector: Unknown
 verdict: BUY
 confidence: 0.90
 relevance: 0.90
-country: unknown
+country: JP
 source: finnhub
 url: "#"
 tags:
@@ -13,14 +13,14 @@ tags:
   - rbl
   - buy
   - world-brain
-  - tech
+  - unknown
 ---
 
 # Roblox (RBL) daily active users grow 17% YoY in latest platform metrics report
 
 **Verdict**: BUY (90% confidence)  
 **Relevance to [[RBL]]**: 90%  
-**Geographic origin**: Unknown  
+**Geographic origin**: JP  
 
 ## Summary
 DAUs reached 88.9M with strong growth in the 17+ age demographic.
@@ -31,3 +31,4 @@ The 17% YoY surge in Daily Active Users confirms robust platform health and expa
 ## Links
 - [Source Article](#)
 - [[RBL]]
+- [[JP-news]]

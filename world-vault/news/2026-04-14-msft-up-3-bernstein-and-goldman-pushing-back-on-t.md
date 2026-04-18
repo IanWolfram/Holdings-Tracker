@@ -1,11 +1,11 @@
 ---
 date: "2026-04-14"
 ticker: MSFT
-sector: Tech
+sector: Unknown
 verdict: BUY
 confidence: 0.90
 relevance: 0.90
-country: unknown
+country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1sl0ls3/msft_up_3_bernstein_and_goldman_pushing_back_on/"
 tags:
@@ -13,14 +13,14 @@ tags:
   - msft
   - buy
   - world-brain
-  - tech
+  - unknown
 ---
 
 # MSFT up 3% Bernstein and Goldman pushing back on the AI spending concerns
 
 **Verdict**: BUY (90% confidence)  
 **Relevance to [[MSFT]]**: 90%  
-**Geographic origin**: Unknown  
+**Geographic origin**: US  
 
 ## Summary
 MSFT up 3% Bernstein and Goldman pushing back on the AI spending concerns
@@ -45,3 +45,4 @@ _No analysis available._
 ## Links
 - [Source Article](https://www.reddit.com/r/stocks/comments/1sl0ls3/msft_up_3_bernstein_and_goldman_pushing_back_on/)
 - [[MSFT]]
+- [[US-news]]

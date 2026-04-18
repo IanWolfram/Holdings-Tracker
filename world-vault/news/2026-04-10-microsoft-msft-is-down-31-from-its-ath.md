@@ -1,11 +1,11 @@
 ---
 date: "2026-04-10"
 ticker: MSFT
-sector: Tech
+sector: Unknown
 verdict: BUY
 confidence: 0.90
 relevance: 0.90
-country: unknown
+country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1shvm71/microsoft_msft_is_down_31_from_its_ath/"
 tags:
@@ -13,14 +13,14 @@ tags:
   - msft
   - buy
   - world-brain
-  - tech
+  - unknown
 ---
 
 # Microsoft ($MSFT) is down ~31% from its ATH
 
 **Verdict**: BUY (90% confidence)  
 **Relevance to [[MSFT]]**: 90%  
-**Geographic origin**: Unknown  
+**Geographic origin**: US  
 
 ## Summary
 Microsoft ($MSFT) is down ~31% from its ATH
@@ -61,3 +61,4 @@ _No analysis available._
 ## Links
 - [Source Article](https://www.reddit.com/r/stocks/comments/1shvm71/microsoft_msft_is_down_31_from_its_ath/)
 - [[MSFT]]
+- [[US-news]]

@@ -56,9 +56,24 @@ function CongressHeader() {
   );
 }
 
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-4">
+      {[0, 1].map((i) => (
+        <div key={i} className={`space-y-2 animate-pulse ${i === 1 ? "opacity-60" : ""}`}>
+          <div className="h-3 w-12 bg-slate-800 rounded-sm" />
+          <div className="h-4 w-full bg-slate-700 rounded-sm" />
+          <div className="h-4 w-3/4 bg-slate-700 rounded-sm" />
+          <div className="h-2 w-20 bg-slate-800 rounded-sm mt-4" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function PositionCard({ position, stories, congressTrades = [], loading, frosted }: Props) {
   const articleRef = useRef<HTMLDivElement>(null);
-  const [hovered, setHovered] = useState(false);
+  const [_hovered, setHovered] = useState(false);
 
   const { ticker, description, marketValue, gainLoss, quantity, currentPrice, pricePaid, history } = position;
 
@@ -73,7 +88,6 @@ export default function PositionCard({ position, stories, congressTrades = [], l
   const gainPctStr = formatPercent(gainPct);
   const mvStr = formatCurrency(marketValue);
   const priceStr = formatCurrency(currentPrice);
-  const isHot = gainPct > 10;
 
   // Group stories by source, each group sorted by recency (newest first)
   const storyGroups = useMemo(() => {
@@ -93,7 +107,6 @@ export default function PositionCard({ position, stories, congressTrades = [], l
   const hasContent = stories.length > 0 || congressTrades.length > 0;
 
 
-  const color = verdictScore > 0.5 ? "#00FF88" : verdictScore < 0.5 ? "#FF4444" : "#64748b";
   const highlight = verdictScore > 0.5 ? "#ccffeb" : verdictScore < 0.5 ? "#ffd6cc" : "#cbd5e1";
 
   return (
@@ -137,14 +150,12 @@ export default function PositionCard({ position, stories, congressTrades = [], l
           {/* CardHeader */}
           <div className="p-4 pb-2">
             <div className="flex items-start gap-3">
-              <CompanyLogo ticker={ticker} size={38} radius={9} />
               <div className="flex-1 min-w-0 flex items-start justify-between gap-2">
                 <div className="flex flex-col gap-0.5 min-w-0">
                   <div className="flex items-center gap-2">
                     <h1 className="font-mono text-2xl font-black text-white tracking-tighter leading-none">{ticker}</h1>
-                    {isHot && (
-                      <span className="bg-negative text-white text-[8px] font-black px-1 rounded-sm animate-pulse">HOT</span>
-                    )}
+
+                    <CompanyLogo ticker={ticker} size={38} radius={9} />
                   </div>
                   <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest opacity-80 max-w-[65%] wrap-break-words" title={description}>
                     {description}
@@ -265,20 +276,5 @@ export default function PositionCard({ position, stories, congressTrades = [], l
         </GlassContainer>
       </div>
     </GlassView>
-  );
-}
-
-function LoadingSkeleton() {
-  return (
-    <div className="space-y-4">
-      {[0, 1].map((i) => (
-        <div key={i} className={`space-y-2 animate-pulse ${i === 1 ? "opacity-60" : ""}`}>
-          <div className="h-3 w-12 bg-slate-800 rounded-sm" />
-          <div className="h-4 w-full bg-slate-700 rounded-sm" />
-          <div className="h-4 w-3/4 bg-slate-700 rounded-sm" />
-          <div className="h-2 w-20 bg-slate-800 rounded-sm mt-4" />
-        </div>
-      ))}
-    </div>
   );
 }

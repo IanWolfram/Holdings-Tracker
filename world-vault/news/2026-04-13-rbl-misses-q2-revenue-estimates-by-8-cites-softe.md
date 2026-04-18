@@ -1,11 +1,11 @@
 ---
 date: "2026-04-13"
 ticker: RBL
-sector: Tech
+sector: Unknown
 verdict: SELL
 confidence: 0.88
 relevance: 0.88
-country: unknown
+country: JP
 source: twitter
 url: "#"
 tags:
@@ -13,14 +13,14 @@ tags:
   - rbl
   - sell
   - world-brain
-  - tech
+  - unknown
 ---
 
 # RBL misses Q2 revenue estimates by 8%, cites softer-than-expected ad market.
 
 **Verdict**: SELL (88% confidence)  
 **Relevance to [[RBL]]**: 88%  
-**Geographic origin**: Unknown  
+**Geographic origin**: JP  
 
 ## Summary
 RBL misses Q2 revenue estimates by 8%, cites softer-than-expected ad market.
@@ -31,3 +31,4 @@ The 8% revenue miss confirms market weakness, justifying a sell signal despite g
 ## Links
 - [Source Article](#)
 - [[RBL]]
+- [[JP-news]]

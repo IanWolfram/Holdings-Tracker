@@ -58,7 +58,7 @@ export function buildConfig(): AppConfig {
     ollama: {
       enabled: process.env.OLLAMA_ENABLED === "true",
       baseUrl: process.env.OLLAMA_BASE_URL ?? "http://localhost:11434",
-      model: process.env.OLLAMA_MODEL ?? "gemma3:12b",
+      model: process.env.OLLAMA_MODEL ?? "gemma4-aggro",
     },
     cache: {
       newsTtlMs: NEWS_CACHE_TTL_MS,

@@ -1,35 +1,7 @@
-import fs from "fs";
-import path from "path";
 import type { Verdict, Classification } from "@/types/news.types";
 
 // ---------------------------------------------------------------------------
-// Agent context — loaded once from agents/stock-analyzer/*.md
-// ---------------------------------------------------------------------------
-
-function loadAgentContext(): string {
-  const agentDir = path.join(process.cwd(), "agents", "economic-brain");
-  const files = ["AGENT.md", "rules.md"];
-  return files
-    .map((f) => {
-      try {
-        return fs.readFileSync(path.join(agentDir, f), "utf-8");
-      } catch {
-        return "";
-      }
-    })
-    .filter(Boolean)
-    .join("\n\n---\n\n");
-}
-
-// Cache so we only read the files once per process lifetime
-let agentContext: string | null = null;
-function getAgentContext(): string {
-  if (!agentContext) agentContext = loadAgentContext();
-  return agentContext;
-}
-
-// ---------------------------------------------------------------------------
-// Keyword fallback — used when Ollama is unreachable
+// Keyword fallback — used when Ollama is disabled or unreachable
 // ---------------------------------------------------------------------------
 
 const BUY_KEYWORDS = [
@@ -77,7 +49,7 @@ export function withOllamaSemaphore<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 // ---------------------------------------------------------------------------
-// Main classifier
+// Main classifier — thin wrapper around the unified brain
 // ---------------------------------------------------------------------------
 
 export async function classifyNews(
@@ -90,44 +62,17 @@ export async function classifyNews(
     return keywordClassify(headline, summary);
   }
 
-  const baseUrl = process.env.OLLAMA_BASE_URL ?? "http://localhost:11434";
-  const model = process.env.OLLAMA_MODEL ?? "gemma3:12b";
-  const context = getAgentContext();
-
-  const prompt = `${context}
-
----
-
-Ticker: ${ticker}
-Headline: ${headline}
-Summary: ${summary || "(no summary)"}`;
-
   try {
-    const raw = await withOllamaSemaphore(async () => {
-      const res = await fetch(`${baseUrl}/api/generate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model, stream: false, prompt }),
-        signal: AbortSignal.timeout(180_000),
-      });
-
-      if (!res.ok) throw new Error(`Ollama HTTP ${res.status}`);
-      const json = await res.json();
-      return (json.response ?? "") as string;
-    });
-
-    const match = raw.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error("No JSON in response");
-    const parsed = JSON.parse(match[0]);
-
+    const { analyzeStory } = await import("../world-brain/brain");
+    const result = await analyzeStory(ticker, headline, summary);
     return {
-      verdict: parsed.verdict as Verdict,
-      confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0.5,
-      reason: parsed.reason,
+      verdict: result.verdict as Verdict,
+      confidence: result.confidence,
+      reason: result.reason || undefined,
       classifiedAt: new Date().toISOString(),
     };
   } catch (err) {
-    console.error(`[classifier] Ollama error for ${ticker}:`, err);
+    console.error(`[classifier] Brain error for ${ticker}:`, err);
     return keywordClassify(headline, summary);
   }
 }

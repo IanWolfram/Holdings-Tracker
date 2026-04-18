@@ -18,7 +18,7 @@ interface MobileDashboardProps {
 export default function MobileDashboard({
   positions,
   news,
-  loadingNews,
+  loadingNews: _loadingNews,
   refreshing,
   onRefresh,
 }: MobileDashboardProps) {

@@ -61,7 +61,9 @@ function mapTrade(item: QuiverTrade, index: number): CongressTrade | null {
   const tradeDate = dateToUnix(item.TransactionDate);
   const filedDate = dateToUnix(item.ReportDate ?? item.last_modified);
   const id = `${ticker}-${politician}-${tradeDate}-${index}`;
-  const url = `https://www.insiderfinance.io/congress-trades`;
+  const url = item.BioGuideID 
+    ? `https://www.capitoltrades.com/politicians/${item.BioGuideID}`
+    : `https://www.quiverquant.com/congresstrading/politician/${encodeURIComponent(politician)}`;
 
   return { id, politician, party, chamber, ticker, companyName: ticker, tradeType, assetType, amount, tradeDate, filedDate, url };
 }
@@ -95,17 +97,20 @@ export async function getCongressTrades(): Promise<CongressTrade[]> {
       return cache?.data ?? [];
     }
 
-    const cutoff = Math.floor(Date.now() / 1000) - 30 * 24 * 60 * 60;
+    const cutoff = Math.floor(Date.now() / 1000) - 90 * 24 * 60 * 60;
 
     const trades = json
       .map((item, i) => mapTrade(item, i))
       .filter((t): t is CongressTrade => t !== null && t.tradeDate >= cutoff);
 
-    // Sort newest trade date first
+    // Sort newest trade date first to ensure monotonic time-ago display
     trades.sort((a, b) => b.tradeDate - a.tradeDate);
 
-    cache = { data: trades, expiresAt: Date.now() + CONGRESS_CACHE_TTL_MS };
-    return trades;
+    // Limit to top 100 for global feed performance
+    const finalTrades = trades.slice(0, 100);
+
+    cache = { data: finalTrades, expiresAt: Date.now() + CONGRESS_CACHE_TTL_MS };
+    return finalTrades;
   } catch (err) {
     console.error("[congress] fetch error:", err);
     return cache?.data ?? [];

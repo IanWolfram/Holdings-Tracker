@@ -1,5 +1,5 @@
 import React from "react";
-import { SparklinePathProps } from "./types";
+import type { SparklinePathProps } from "./types";
 
 /**
  * SparklinePath component - Renders the actual data line and highlight

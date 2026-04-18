@@ -1,11 +1,11 @@
 ---
 date: "2026-04-10"
 ticker: MSFT
-sector: Tech
+sector: Unknown
 verdict: HOLD
 confidence: 0.50
 relevance: 0.50
-country: unknown
+country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1shnjnt/your_next_move_after_cpi_day_gains_mostly_in_big/"
 tags:
@@ -13,14 +13,14 @@ tags:
   - msft
   - hold
   - world-brain
-  - tech
+  - unknown
 ---
 
 # Your next move after CPI Day - gains mostly in Big Tech and Industrial/Utility
 
 **Verdict**: HOLD (50% confidence)  
 **Relevance to [[MSFT]]**: 50%  
-**Geographic origin**: Unknown  
+**Geographic origin**: US  
 
 ## Summary
 Your next move after CPI Day - gains mostly in Big Tech and Industrial/Utility
@@ -45,3 +45,4 @@ _No analysis available._
 ## Links
 - [Source Article](https://www.reddit.com/r/stocks/comments/1shnjnt/your_next_move_after_cpi_day_gains_mostly_in_big/)
 - [[MSFT]]
+- [[US-news]]

@@ -7,6 +7,7 @@ const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 interface Props {
   badge: React.ReactNode;
+  icon?: React.ReactNode;
   count: number;
   defaultExpanded?: boolean;
   fullyCollapsible?: boolean;
@@ -15,6 +16,7 @@ interface Props {
 
 export default function NewsCollapsible({
   badge,
+  icon,
   count,
   defaultExpanded = false,
   fullyCollapsible = false,
@@ -37,6 +39,7 @@ export default function NewsCollapsible({
         <div className="flex items-center gap-1.5 flex-1 min-w-0">
           {badge}
         </div>
+        {icon && <span className="shrink-0 text-slate-500">{icon}</span>}
         <span className="text-[9px] font-black px-1.5 py-0.5 rounded-sm bg-white/[0.06] text-slate-500 tabular-nums shrink-0">
           {count}
         </span>

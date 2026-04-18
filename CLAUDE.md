@@ -9,10 +9,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev          # Start Next.js dev server (localhost:3000)
-npm run build        # Production build
-npm run lint         # ESLint via Next.js
-npm run etrade:auth  # Interactive OAuth flow for E*TRADE tokens
+npm run dev           # Start Next.js dev server (localhost:3000)
+npm run build         # Production build
+npm run lint          # ESLint via Next.js
+npm run etrade:auth   # Interactive OAuth flow for E*TRADE tokens
+npm run agent         # CLI: Full portfolio intelligence analysis
+npm run world:refresh # CLI: Force a 3D globe intelligence update
 ```
 
 No test framework is configured. There are no test commands.
@@ -36,16 +38,19 @@ E*TRADE API ──→ lib/etrade.ts ──→ /api/positions ──→ Dashboard
 Finnhub API ──→ lib/finnhub.ts ─┐
                                  ├→ lib/news.ts ──→ /api/news?ticker=X ──→ PositionCard → NewsCard
 Twitter/X API ─→ lib/twitter.ts ┘        │
-                                          └→ lib/classifier.ts (Ollama) ──→ VerdictBadge
+                                          └→ lib/classifier.ts → lib/world-brain/brain.ts (Ollama) ──→ VerdictBadge
 ```
 
 - **`app/page.tsx`** — Client component (Dashboard) that polls `/api/positions`, then fetches news per ticker via `/api/news`. Uses `useCallback`/`useEffect` with `setInterval` for auto-refresh.
 - **`pages/api/`** — Next.js API routes (Pages Router). These coexist with the App Router.
 - **`lib/etrade.ts`** — E*TRADE OAuth 1.0a client with in-memory 5-min cache. `getPositionsSafe()` is the main entry point with fallback logic.
 - **`lib/news.ts`** — Orchestrates news fetching + classification per ticker with its own 5-min cache.
-- **`lib/classifier.ts`** — Calls local Ollama (`gemma3:12b` by default) to classify headlines as BUY/SELL/HOLD with confidence scores.
+- **`lib/classifier.ts`** — Thin wrapper that delegates to the unified brain in `lib/world-brain/brain.ts`. Also owns the global Ollama semaphore (`withOllamaSemaphore`) that serializes all LLM calls.
+- **`lib/world-brain/brain.ts`** — The single Ollama inference entry point (`gemma4-aggro` by default). One call per story produces both a trading verdict (BUY/SELL/HOLD + confidence + reason) and geographic/sector context (origin country, relevance score, sector tags). Prompt is loaded from `lib/world-brain/AGENT.md` and `sector-rules.md`.
 - **`lib/telegram.ts`** — Builds and sends Markdown-formatted digest messages via Telegram Bot API.
 - **`lib/mock-news.ts`** — Hardcoded news stories keyed by ticker, matching the mock positions.
+- **`instrumentation.ts`** — Root bootstrapper for the Next.js runtime. Schedules the hourly `node-cron` job for the world-view refresh using a global singleton guard to prevent duplicate jobs during HMR.
+- **`scripts/agent.ts`** — CLI tool that runs the unified brain analysis across the entire portfolio, passing full holdings context for cross-ticker impact reasoning.
 
 ### UI Components
 
@@ -63,5 +68,4 @@ Twitter/X API ─→ lib/twitter.ts ┘        │
 
 ## External Dependencies
 
-- **Ollama** must be running locally at `OLLAMA_BASE_URL` (default `http://localhost:11434`) with the `OLLAMA_MODEL` (default `gemma3:12b`) available.
-- **OpenClaw** scheduler is configured in `openclaw/stock-digest.skill.json` to POST to `/api/digest` weekday mornings at 9am ET, authenticated via `OPENCLAW_DIGEST_SECRET` Bearer token.
+- **Ollama** must be running locally at `OLLAMA_BASE_URL` (default `http://localhost:11434`) with the `OLLAMA_MODEL` (default `gemma4-aggro`) pulled and available. Set `OLLAMA_ENABLED=true` in `.env.local` to activate LLM inference; omit it to fall back to keyword classification.

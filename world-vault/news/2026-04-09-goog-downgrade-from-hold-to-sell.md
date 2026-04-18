@@ -1,11 +1,11 @@
 ---
 date: "2026-04-09"
 ticker: MSFT
-sector: Tech
+sector: Unknown
 verdict: SELL
 confidence: 0.90
 relevance: 0.90
-country: unknown
+country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1sgzcj2/goog_downgrade_from_hold_to_sell/"
 tags:
@@ -13,14 +13,14 @@ tags:
   - msft
   - sell
   - world-brain
-  - tech
+  - unknown
 ---
 
 # GOOG- Downgrade from HOLD to SELL
 
 **Verdict**: SELL (90% confidence)  
 **Relevance to [[MSFT]]**: 90%  
-**Geographic origin**: Unknown  
+**Geographic origin**: US  
 
 ## Summary
 GOOG- Downgrade from HOLD to SELL
@@ -53,3 +53,4 @@ _No analysis available._
 ## Links
 - [Source Article](https://www.reddit.com/r/stocks/comments/1sgzcj2/goog_downgrade_from_hold_to_sell/)
 - [[MSFT]]
+- [[US-news]]

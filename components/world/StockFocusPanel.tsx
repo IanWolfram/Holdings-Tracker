@@ -99,7 +99,7 @@ interface Props {
 // Component
 // ---------------------------------------------------------------------------
 
-export default function StockFocusPanel({ profile, stories, position, onClose, stockIndex, stockCount, isHoverPreview }: Props) {
+export default function StockFocusPanel({ profile, stories, position, onClose: _onClose, stockIndex, stockCount, isHoverPreview }: Props) {
   const sorted = [...stories].sort((a, b) => (b.relevanceScore ?? 0) - (a.relevanceScore ?? 0));
   const { verdict, score } = netVerdictFromStories(stories);
   const countryName = COUNTRY_NAMES[profile.countryCode] ?? profile.country;

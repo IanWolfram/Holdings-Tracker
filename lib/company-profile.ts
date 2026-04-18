@@ -1,4 +1,5 @@
-import { lookupCountry } from "./country-coords";
+import { lookupCountry, lookupCountryByCode } from "./country-coords";
+import { WORLD_PROFILES } from "@/lib/position-list";
 import type { CompanyProfile } from "@/types/geo.types";
 
 // ---------------------------------------------------------------------------
@@ -33,8 +34,8 @@ export async function fetchCompanyProfile(
 
   const key = process.env.FINNHUB_API_KEY;
   if (!key) {
-    console.error("[company-profile] FINNHUB_API_KEY not set — skipping profile fetch");
-    return null;
+    console.warn("[company-profile] FINNHUB_API_KEY not set — using static fallback for", ticker);
+    return fallbackProfile(ticker);
   }
 
   const url = `https://finnhub.io/api/v1/stock/profile2?symbol=${encodeURIComponent(ticker)}&token=${key}`;
@@ -45,31 +46,42 @@ export async function fetchCompanyProfile(
       signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) {
-      console.error(`[company-profile] Finnhub error ${res.status} for ${ticker}`);
-      return null;
+      console.warn(`[company-profile] Finnhub error ${res.status} for ${ticker} — using static fallback`);
+      return fallbackProfile(ticker);
     }
     raw = (await res.json()) as FinnhubProfile;
   } catch (err) {
-    console.error(`[company-profile] Fetch failed for ${ticker}:`, err);
-    return null;
+    console.warn(`[company-profile] Fetch failed for ${ticker} — using static fallback:`, err);
+    return fallbackProfile(ticker);
   }
 
   if (!raw.country) {
-    console.error(`[company-profile] No country returned for ${ticker}`);
-    return null;
+    console.warn(`[company-profile] No country from Finnhub for ${ticker} — using static fallback`);
+    return fallbackProfile(ticker);
   }
 
-  const coords = lookupCountry(raw.country);
+  // Finnhub sometimes returns an ISO alpha-2 code ("US") instead of the
+  // full country name ("United States"). Try name first, then code fallback.
+  let coords = lookupCountry(raw.country);
+  let resolvedCountry = raw.country;
   if (!coords) {
-    console.error(`[company-profile] No coords for country "${raw.country}" (${ticker}) — add to country-coords.ts`);
-    return null;
+    const fullName = lookupCountryByCode(raw.country);
+    if (fullName) {
+      coords = lookupCountry(fullName);
+      resolvedCountry = fullName;
+    }
+  }
+
+  if (!coords) {
+    console.warn(`[company-profile] No coords for country "${raw.country}" (${ticker}) — using static fallback`);
+    return fallbackProfile(ticker);
   }
 
   const sectorRaw = raw.gsector ?? raw.finnhubIndustry ?? "Unknown";
   const profile: CompanyProfile = {
     ticker,
     name: raw.name ?? ticker,
-    country: raw.country,
+    country: resolvedCountry,
     countryCode: coords.code,
     sector: sectorRaw.replace("Technology", "Tech"),
     industry: raw.gind ?? raw.ggroup ?? raw.finnhubIndustry ?? "Unknown",
@@ -79,4 +91,19 @@ export async function fetchCompanyProfile(
 
   profileCache.set(ticker, { data: profile, expiresAt: Date.now() + PROFILE_TTL_MS });
   return profile;
+}
+
+function fallbackProfile(ticker: string): CompanyProfile | null {
+  const wp = WORLD_PROFILES[ticker];
+  if (!wp) return null;
+  return {
+    ticker,
+    name: wp.name,
+    country: lookupCountryByCode(wp.countryCode) ?? wp.countryCode,
+    countryCode: wp.countryCode,
+    sector: "Unknown",
+    industry: "Unknown",
+    lat: wp.lat,
+    lon: wp.lon,
+  };
 }

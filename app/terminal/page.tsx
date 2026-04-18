@@ -24,14 +24,17 @@ export default function Dashboard() {
     setLoadingNews(Object.fromEntries(tickers.map((t) => [t, true])));
     await Promise.all(
       tickers.map(async (ticker) => {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 50_000);
         try {
-          const res = await fetch(`/api/news?ticker=${ticker}`);
+          const res = await fetch(`/api/news?ticker=${ticker}`, { signal: controller.signal });
           if (!res.ok) return;
           const data: ClassifiedStory[] = await res.json();
           setNews((prev) => ({ ...prev, [ticker]: data }));
         } catch {
-          // silently ignore per-ticker failures
+          // includes AbortError — silently ignore per-ticker failures
         } finally {
+          clearTimeout(timer);
           setLoadingNews((prev) => ({ ...prev, [ticker]: false }));
         }
       })

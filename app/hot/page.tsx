@@ -173,15 +173,18 @@ export default function HotPage() {
 
     if (!tickerNews[ticker] && !loadingNews[ticker]) {
       setLoadingNews((prev) => ({ ...prev, [ticker]: true }));
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 50_000);
       try {
-        const res = await fetch(`/api/news?ticker=${ticker}`);
+        const res = await fetch(`/api/news?ticker=${ticker}`, { signal: controller.signal });
         if (res.ok) {
           const data: ClassifiedStory[] = await res.json();
           setTickerNews((prev) => ({ ...prev, [ticker]: data }));
         }
       } catch {
-        // ignore
+        // includes AbortError
       } finally {
+        clearTimeout(timer);
         setLoadingNews((prev) => ({ ...prev, [ticker]: false }));
       }
     }
@@ -234,7 +237,7 @@ export default function HotPage() {
           <div className="flex items-center gap-3 mb-4">
             <span className="material-symbols-outlined text-[22px]" style={{ color: "#b45309" }}>gavel</span>
             <h2 className="font-['Space_Grotesk'] text-[18px] font-black text-white tracking-tight">
-              Congress Trades
+              Global Congress Feed
             </h2>
             {newCongressCount > 0 && (
               <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 uppercase tracking-wider animate-pulse">

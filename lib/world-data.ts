@@ -1,9 +1,10 @@
 import { getNewsForTicker } from "./news";
 import { fetchCompanyProfile } from "./company-profile";
-import { writeStoryNote, writeDailySummary } from "./world-brain/obsidian";
+import { writeStoryNote, writeDailySummary } from "../world-brain/obsidian";
 import { WORLD_CACHE_TTL_MS, WORLD_VAULT_PATH } from "./constants";
 import type { WorldData, GeoStory, CountryState, CompanyProfile } from "@/types/geo.types";
 import type { Position } from "@/types/position.types";
+import type { ClassifiedStory } from "@/types/news.types";
 
 // ---------------------------------------------------------------------------
 // 15-minute module-level cache
@@ -11,8 +12,8 @@ import type { Position } from "@/types/position.types";
 
 let worldCache: { data: WorldData; expiresAt: number } | null = null;
 
-// Background enrichment lock — prevents concurrent world-brain runs
-let enrichmentRunning = false;
+// Background enrichment lock — Promise-based to prevent TOCTOU race
+let enrichmentLock: Promise<void> | null = null;
 
 // ---------------------------------------------------------------------------
 // FAST PATH: Build WorldData using only already-classified stories
@@ -163,10 +164,10 @@ export async function getWorldData(positions: Position[]): Promise<WorldData> {
   // ── 6. Kick off background world-brain enrichment (non-blocking) ──────────
   // This runs AFTER we've returned the fast response. It will refine
   // geo-origin inference via Ollama and update the cache for next poll.
-  if (!enrichmentRunning) {
-    runBackgroundEnrichment(data, positions, profiles).catch((err) =>
-      console.error("[world-data] Background enrichment error:", err)
-    );
+  if (!enrichmentLock) {
+    enrichmentLock = runBackgroundEnrichment(data, positions, profiles)
+      .catch((err) => console.error("[world-data] Background enrichment error:", err))
+      .finally(() => { enrichmentLock = null; });
   }
 
   return data;
@@ -182,11 +183,10 @@ async function runBackgroundEnrichment(
   positions: Position[],
   profiles: Record<string, CompanyProfile>
 ): Promise<void> {
-  enrichmentRunning = true;
-  console.log("[world-data] Starting background world-brain enrichment…");
+  console.info("[world-data] Starting background world-brain enrichment…");
 
   try {
-    const { analyzeStory } = await import("./world-brain/brain");
+    const { analyzeStory } = await import("../world-brain/brain");
 
     const holdingTickers = positions.map((p) => p.ticker);
     const holdingSectors = [
@@ -197,7 +197,7 @@ async function runBackgroundEnrichment(
     const allEnriched: GeoStory[] = [];
 
     for (const position of positions) {
-      let stories: import("@/types/news.types").ClassifiedStory[] = [];
+      let stories: ClassifiedStory[] = [];
       try {
         const { getNewsForTicker } = await import("./news");
         const sector = profiles[position.ticker]?.sector;
@@ -232,19 +232,14 @@ async function runBackgroundEnrichment(
         let analysis;
         try {
           analysis = await analyzeStory(
+            story.ticker,
             story.headline,
             story.summary ?? "",
             holdingTickers,
             holdingSectors
           );
         } catch {
-          analysis = {
-            originCountryCode: hqCode ?? null,
-            relevanceScore: story.confidence,
-            sectorTags: [],
-            affectedTickers: [],
-            geoSummary: "",
-          };
+          analysis = null;
         }
 
         allEnriched.push({
@@ -253,12 +248,12 @@ async function runBackgroundEnrichment(
           summary: story.summary ?? "",
           url: story.url,
           datetime: story.datetime,
-          verdict: story.verdict,
-          confidence: story.confidence,
-          reason: story.reason,
+          verdict: analysis?.verdict ?? story.verdict,
+          confidence: analysis?.confidence ?? story.confidence,
+          reason: analysis?.reason || story.reason,
           source: story.source,
-          originCountryCode: analysis.originCountryCode ?? hqCode,
-          relevanceScore: analysis.relevanceScore,
+          originCountryCode: analysis?.originCountryCode ?? hqCode,
+          relevanceScore: analysis?.relevanceScore ?? 0,
         });
       }
     }
@@ -309,9 +304,7 @@ async function runBackgroundEnrichment(
       fetchedAt: Date.now(),
     };
     worldCache = { data: enriched, expiresAt: Date.now() + WORLD_CACHE_TTL_MS };
-    console.log("[world-data] Background enrichment complete.");
-  } finally {
-    enrichmentRunning = false;
+    console.info("[world-data] Background enrichment complete.");
   }
 }
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { XAxisProps } from "./types";
+import type { XAxisProps } from "./types";
 
 const MONTH_ABBR = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
 

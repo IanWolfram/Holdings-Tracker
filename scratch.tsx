@@ -9,8 +9,8 @@ export function hatchPolygon(ring: number[][], density: number = 1.0): number[][
     if (lat < minLat) minLat = lat;
     if (lat > maxLat) maxLat = lat;
   }
-  let minC = minLat - maxLon;
-  let maxC = maxLat - minLon;
+  const minC = minLat - maxLon;
+  const maxC = maxLat - minLon;
   // increase density by lowering step
   for (let c = minC - 1; c <= maxC + 1; c += density) {
     const intersections: number[] = [];

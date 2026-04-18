@@ -1,26 +1,26 @@
 ---
 date: "2026-04-08"
-ticker: MSFT
-sector: Tech
+ticker: JPM
+sector: Unknown
 verdict: HOLD
 confidence: 0.50
 relevance: 0.50
-country: unknown
+country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1sfwnbg/looking_to_expand_my_stock_picksare_amzn_pep_and/"
 tags:
   - news
-  - msft
+  - jpm
   - hold
   - world-brain
-  - tech
+  - unknown
 ---
 
 # Looking to expand my stock picks...are AMZN, PEP and MCD good picks?
 
 **Verdict**: HOLD (50% confidence)  
-**Relevance to [[MSFT]]**: 50%  
-**Geographic origin**: Unknown  
+**Relevance to [[JPM]]**: 50%  
+**Geographic origin**: US  
 
 ## Summary
 Looking to expand my stock picks...are AMZN, PEP and MCD good picks?
@@ -40,4 +40,5 @@ _No analysis available._
 
 ## Links
 - [Source Article](https://www.reddit.com/r/stocks/comments/1sfwnbg/looking_to_expand_my_stock_picksare_amzn_pep_and/)
-- [[MSFT]]
+- [[JPM]]
+- [[US-news]]

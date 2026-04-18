@@ -4,11 +4,11 @@
     "type": "split",
     "children": [
       {
-        "id": "43fef612750964ec",
+        "id": "0f7f42165961ee38",
         "type": "tabs",
         "children": [
           {
-            "id": "1d5247e891dcfa37",
+            "id": "2849d4dc2d0891f3",
             "type": "leaf",
             "state": {
               "type": "graph",
@@ -179,8 +179,9 @@
       "bases:Create new base": false
     }
   },
-  "active": "1d5247e891dcfa37",
+  "active": "2849d4dc2d0891f3",
   "lastOpenFiles": [
+    "US-news.md",
     "Untitled.canvas",
     "news/2026-04-10-microsoft-msft-is-down-31-from-its-ath.md",
     "Untitled 4.canvas",
