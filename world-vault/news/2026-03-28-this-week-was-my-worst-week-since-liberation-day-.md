@@ -1,10 +1,11 @@
 ---
 date: "2026-03-28"
 ticker: HOOD
+sector: Financial Services
 verdict: HOLD
 confidence: 0.50
 relevance: 0.50
-country: unknown
+country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1s5xb4t/this_week_was_my_worst_week_since_liberation_day/"
 tags:
@@ -12,13 +13,14 @@ tags:
   - hood
   - hold
   - world-brain
+  - financial-services
 ---
 
 # This week was my worst week since liberation day. Not sure how to deal with it
 
 **Verdict**: HOLD (50% confidence)  
 **Relevance to [[HOOD]]**: 50%  
-**Geographic origin**: Unknown  
+**Geographic origin**: US  
 
 ## Summary
 This week was my worst week since liberation day. Not sure how to deal with it
@@ -35,3 +37,4 @@ _No analysis available._
 ## Links
 - [Source Article](https://www.reddit.com/r/stocks/comments/1s5xb4t/this_week_was_my_worst_week_since_liberation_day/)
 - [[HOOD]]
+- [[US-news]]

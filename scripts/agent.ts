@@ -106,20 +106,26 @@ async function main() {
   const { fetchCompanyProfile } = await import("../lib/company-profile");
   const { analyzeStory }        = await import("../world-brain/brain");
 
-  const model = process.env.OLLAMA_MODEL ?? "gemma4-aggro";
+  const engine = process.env.AI_ENGINE ?? "ollama";
   const ollamaEnabled = process.env.OLLAMA_ENABLED === "true";
+  const activeEngine = (engine === "mlx" || (engine === "ollama" && ollamaEnabled)) ? engine : "none";
+
+  const model = engine === "mlx"
+    ? (process.env.MLX_MODEL ?? "mlx-community/DeepSeek-R1-Distill-Qwen-14B-4bit")
+    : (process.env.OLLAMA_MODEL ?? "gemma4-aggro");
 
   console.log(`\n${B}${C}Pulse — Portfolio Intelligence Agent${R}`);
   console.log(hr("═"));
 
-  if (!ollamaEnabled) {
+  if (activeEngine === "none") {
     console.warn(
-      `\n${Y}${B}⚠  OLLAMA_ENABLED is not set to "true" in .env.local.${R}\n` +
+      `\n${Y}${B}⚠  No AI Engine enabled in .env.local.${R}\n` +
       `   Results will use keyword fallback — not the AI brain.\n` +
-      `   Set OLLAMA_ENABLED=true and ensure ${model} is running.\n`
+      `   Set AI_ENGINE=mlx or AI_ENGINE=ollama (with OLLAMA_ENABLED=true).\n`
     );
   } else {
-    console.log(`${D}Model: ${B}${model}${R}  ${D}│  Ollama: ${G}enabled${R}`);
+    const engineLabel = activeEngine === "mlx" ? "MLX (Native M5)" : "Ollama (Local LLM)";
+    console.log(`${D}Engine: ${B}${engineLabel}${R}  ${D}│  Model: ${B}${model}${R}`);
   }
 
   // ── 1. Fetch live positions ─────────────────────────────────────────────

@@ -1,10 +1,11 @@
 ---
 date: "2026-04-10"
 ticker: PLTR
+sector: Tech
 verdict: HOLD
 confidence: 0.50
 relevance: 0.50
-country: unknown
+country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1shyly5/name_softwares_companies_are_likely_to_be_near/"
 tags:
@@ -12,13 +13,14 @@ tags:
   - pltr
   - hold
   - world-brain
+  - tech
 ---
 
 # Name softwares companies are likely to be near short term bottom and sharing oberservations
 
 **Verdict**: HOLD (50% confidence)  
 **Relevance to [[PLTR]]**: 50%  
-**Geographic origin**: Unknown  
+**Geographic origin**: US  
 
 ## Summary
 Name softwares companies are likely to be near short term bottom and sharing oberservations
@@ -50,3 +52,4 @@ _No analysis available._
 ## Links
 - [Source Article](https://www.reddit.com/r/stocks/comments/1shyly5/name_softwares_companies_are_likely_to_be_near/)
 - [[PLTR]]
+- [[US-news]]

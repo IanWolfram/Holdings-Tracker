@@ -70,7 +70,7 @@ function verdictColor(verdict: "BUY" | "SELL" | "HOLD" | null): [number, number,
 // ---------------------------------------------------------------------------
 
 self.onmessage = (e) => {
-  const { geoJSON, worldData, relevanceThreshold, focusedCountryCode } = e.data;
+  const { geoJSON, stateGeoJSON, worldData, relevanceThreshold, focusedCountryCode } = e.data;
 
   const linePositions: number[] = [];
   const lineColors: number[] = [];
@@ -131,12 +131,46 @@ self.onmessage = (e) => {
     }
   }
 
+  // ── State lines ────────────────────────────────────────────────────────────
+  const stateLinePositions: number[] = [];
+  const stateLineColors: number[] = [];
+
+  if (stateGeoJSON) {
+    const hex = 0x22442a;
+    const opacity = 0.28;
+    const sr = srgbToLinear((hex >> 16 & 255) / 255) * opacity;
+    const sg = srgbToLinear((hex >> 8  & 255) / 255) * opacity;
+    const sb = srgbToLinear((hex       & 255) / 255) * opacity;
+    const stateRadius = 1.0005;
+
+    const processStateRing = (ring: number[][]) => {
+      const pts = ring.map(([lon, lat]) => latLonToVector3(lat, lon, stateRadius));
+      if (pts.length < 2) return;
+      for (let i = 0; i < pts.length - 1; i++) {
+        stateLinePositions.push(...pts[i], ...pts[i + 1]);
+        stateLineColors.push(sr, sg, sb, sr, sg, sb);
+      }
+    };
+
+    for (const feature of stateGeoJSON.features) {
+      if (feature.geometry.type === "Polygon") {
+        (feature.geometry.coordinates as number[][][]).forEach(processStateRing);
+      } else if (feature.geometry.type === "MultiPolygon") {
+        (feature.geometry.coordinates as number[][][][]).forEach(
+          (poly: number[][][]) => poly.forEach(processStateRing)
+        );
+      }
+    }
+  }
+
   const res = {
     linePositions: new Float32Array(linePositions),
     lineColors: new Float32Array(lineColors),
     dotPositions: new Float32Array(dotPositions),
     dotColors: new Float32Array(dotColors),
     segmentToCountry,
+    stateLinePositions: new Float32Array(stateLinePositions),
+    stateLineColors: new Float32Array(stateLineColors),
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -145,5 +179,7 @@ self.onmessage = (e) => {
     res.lineColors.buffer,
     res.dotPositions.buffer,
     res.dotColors.buffer,
+    res.stateLinePositions.buffer,
+    res.stateLineColors.buffer,
   ]);
 };

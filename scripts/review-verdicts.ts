@@ -31,8 +31,13 @@ function bar(confidence: number, width = 20): string {
 }
 
 async function main() {
-  console.log(`\n${BOLD}Stock Analyzer — Verdict Review${RESET}`);
-  console.log(`Model: ${process.env.OLLAMA_MODEL ?? "gemma4-aggro"}\n`);
+  const engine = process.env.AI_ENGINE ?? "mlx";
+  const model = engine === "mlx" 
+    ? (process.env.MLX_MODEL ?? "mlx-community/DeepSeek-R1-Distill-Qwen-14B-4bit")
+    : (process.env.OLLAMA_MODEL ?? "gemma4-aggro");
+
+  console.log(`\n${BOLD}Portfolio Intelligence — Verdict Review${RESET}`);
+  console.log(`${DIM}Engine: ${BOLD}${engine.toUpperCase()}${RESET}  ${DIM}Model: ${BOLD}${model}${RESET}\n`);
 
   const output: Record<string, ClassifiedStory[]> = {};
 

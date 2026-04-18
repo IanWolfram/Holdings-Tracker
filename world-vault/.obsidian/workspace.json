@@ -4,11 +4,11 @@
     "type": "split",
     "children": [
       {
-        "id": "0f7f42165961ee38",
+        "id": "d208f8a6a51560ef",
         "type": "tabs",
         "children": [
           {
-            "id": "2849d4dc2d0891f3",
+            "id": "2d5579a4fb0089d6",
             "type": "leaf",
             "state": {
               "type": "graph",
@@ -179,8 +179,27 @@
       "bases:Create new base": false
     }
   },
-  "active": "2849d4dc2d0891f3",
+  "active": "2d5579a4fb0089d6",
   "lastOpenFiles": [
+    "README.md",
+    "RXD.md",
+    "HOOD.md",
+    "2026-04-15.md",
+    "news/2026-03-30-rebalancing-for-current-market.md",
+    "news/2026-04-18-palantir-stock-has-made-its-early-investors-rich-.md",
+    "news/2026-04-18-palantir-technologies-inc-pltr-and-stellantis-e.md",
+    "news/2026-04-18-wedbush-remains-bullish-on-palantir-technologies-.md",
+    "news/2026-04-18-soundhound-soun-vs-palantir-pltr-which-ai-st.md",
+    "news/2026-04-18-a-look-at-palantir-technologies-pltr-valuation-a.md",
+    "news/2026-04-18-jim-cramer-on-lumen-technologies-lumn-i-ve-alw.md",
+    "news/2026-04-17-democratic-congresswoman-slams-prediction-markets-.md",
+    "news/2026-04-17-markets-shatter-records-as-iran-opens-strait-of-ho.md",
+    "news/2026-04-18-what-moved-markets-this-week.md",
+    "news/2026-04-18-benzinga-bulls-and-bears-oracle-oklo-gevo-and.md",
+    "news/2026-04-18-nasdaq-rebound-buy-2-monster-growth-stocks-up-20-.md",
+    "news/2026-04-18-cathie-wood-sells-fresh-wave-of-crypto-stocks-wort.md",
+    "news/2026-04-18-whale-s-insight-the-rebound-is-spreading-across-b.md",
+    "news/2026-04-18-1-russell-2000-stock-with-competitive-advantages-a.md",
     "US-news.md",
     "Untitled.canvas",
     "news/2026-04-10-microsoft-msft-is-down-31-from-its-ath.md",
@@ -190,28 +209,9 @@
     "daily/2026-04-14.md",
     "news/2026-04-09-i-legitimately-think-anthropic-is-worth-at-least-.md",
     "news/2026-04-13-microsoft-s-ai-push-is-unlike-anything-i-ve-seen-.md",
-    "RXD.md",
     "Untitled.base",
-    "2026-04-15.md",
-    "news/2026-04-13-copilot-for-microsoft-365-reaches-1-million-paid-s.md",
     "Untitled 3.canvas",
-    "news/2026-04-10-msft-mixed-feedback-feelings.md",
-    "news/2026-04-09-okay-one-more-microsoft-post-.md",
-    "news/2026-04-13-br-stock-upgrades-from-two-analysts-following-stro.md",
-    "news/2026-03-27-gold-etf-momentum-analysis.md",
-    "news/2026-04-13-healthcare-sector-underperforms-broad-market-for-t.md",
     "Untitled 2.canvas",
-    "Untitled 1.canvas",
-    "news/2026-04-15-raspberry-pi-stock-longterm-hold-or-just-lucky-spe.md",
-    "news/2026-03-20-retail-leads-institutions-reduce-exposure.md",
-    "news/2026-04-13-broadridge-expands-partnership-with-major-european.md",
-    "news/2026-04-13-central-banks-globally-added-290-tonnes-of-gold-in.md",
-    "README.md",
-    "news/2026-04-12-microsoft-raises-quarterly-dividend-10-announces.md",
-    "news/2026-04-13-pfizer-and-merck-post-better-than-expected-results.md",
-    "news/2026-04-12-drug-pricing-reform-bill-stalls-in-senate-committe.md",
-    "news/2026-04-13-inverse-healthcare-etfs-see-elevated-volume-as-pha.md",
-    "news/2026-04-12-fed-holds-rates-steady-signals-two-cuts-in-2025-.md",
-    "news/2026-04-13-real-returns-on-inflation-protected-instruments-tu.md"
+    "Untitled 1.canvas"
   ]
 }

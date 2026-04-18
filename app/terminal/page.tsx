@@ -16,6 +16,8 @@ export default function Dashboard() {
   const [loadingNews, setLoadingNews] = useState<Record<string, boolean>>({});
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [cashBalance, setCashBalance] = useState<number | undefined>(undefined);
+  const [totalGainLoss, setTotalGainLoss] = useState<number | undefined>(undefined);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const congressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const heldTickersRef = useRef<string[]>([]);
@@ -64,12 +66,24 @@ export default function Dashboard() {
   const refresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      const res = await fetch("/api/positions");
-      if (!res.ok) throw new Error(`Positions fetch failed: ${res.status}`);
-      const data: Position[] = await res.json();
+      const [posRes, balRes, pnlRes] = await Promise.all([
+        fetch("/api/positions"),
+        fetch("/api/balance"),
+        fetch("/api/pnl"),
+      ]);
+      if (!posRes.ok) throw new Error(`Positions fetch failed: ${posRes.status}`);
+      const data: Position[] = await posRes.json();
       const sortedData = [...data].sort((a, b) => b.marketValue - a.marketValue);
       setPositions(sortedData);
       setLastUpdated(new Date());
+      if (balRes.ok) {
+        const { cashBalance: cash } = await balRes.json();
+        setCashBalance(cash);
+      }
+      if (pnlRes.ok) {
+        const { totalPnL } = await pnlRes.json();
+        setTotalGainLoss(totalPnL);
+      }
       const tickers = data.map((p) => p.ticker);
       heldTickersRef.current = tickers;
       await Promise.all([fetchNews(tickers), fetchCongress(tickers)]);
@@ -109,6 +123,9 @@ export default function Dashboard() {
           refreshing={refreshing}
           lastUpdated={lastUpdated}
           onRefresh={refresh}
+          totalValue={positions.length > 0 ? positions.reduce((sum, p) => sum + p.marketValue, 0) : undefined}
+          totalGainLoss={totalGainLoss}
+          cashBalance={cashBalance}
         />
       </div>
       <div className="block md:hidden">

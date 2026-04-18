@@ -1,24 +1,26 @@
 ---
 date: "2026-04-16"
 ticker: HOOD
-verdict: BUY
-confidence: 0.90
-relevance: 0.90
-country: unknown
+sector: Financial Services
+verdict: HOLD
+confidence: 0.50
+relevance: 0.50
+country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1smusir/some_of_my_current_bullish_positions_lets_see_how/"
 tags:
   - news
   - hood
-  - buy
+  - hold
   - world-brain
+  - financial-services
 ---
 
 # some of my current bullish positions. lets see how it plays out.
 
-**Verdict**: BUY (90% confidence)  
-**Relevance to [[HOOD]]**: 90%  
-**Geographic origin**: Unknown  
+**Verdict**: HOLD (50% confidence)  
+**Relevance to [[HOOD]]**: 50%  
+**Geographic origin**: US  
 
 ## Summary
 some of my current bullish positions. lets see how it plays out.
@@ -65,3 +67,4 @@ _No analysis available._
 ## Links
 - [Source Article](https://www.reddit.com/r/stocks/comments/1smusir/some_of_my_current_bullish_positions_lets_see_how/)
 - [[HOOD]]
+- [[US-news]]

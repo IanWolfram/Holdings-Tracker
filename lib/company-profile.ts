@@ -1,5 +1,7 @@
 import { lookupCountry, lookupCountryByCode } from "./country-coords";
 import { WORLD_PROFILES } from "@/lib/position-list";
+import { TICKER_COORDS } from "./ticker-coords";
+import { resolveCoordinates } from "./geo-lookup";
 import type { CompanyProfile } from "@/types/geo.types";
 
 // ---------------------------------------------------------------------------
@@ -21,6 +23,34 @@ interface FinnhubProfile {
   gind?: string;
   ggroup?: string;
 }
+
+interface PolygonTickerDetails {
+  results?: {
+    ticker: string;
+    name: string;
+    description?: string;
+    address?: {
+      address1?: string;
+      city?: string;
+      state?: string;
+      postal_code?: string;
+    };
+    branding?: {
+      logo_url?: string;
+      icon_url?: string;
+    };
+    sic_description?: string;
+  };
+  status: string;
+}
+
+// ---------------------------------------------------------------------------
+// Automated Cache — stores the results of Polygon + GeoLookup to prevent
+// redundant API calls. Persists for 7 days.
+// ---------------------------------------------------------------------------
+
+const automatedProfileCache = new Map<string, { data: CompanyProfile; expiresAt: number }>();
+const AUTOMATED_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -77,6 +107,38 @@ export async function fetchCompanyProfile(
     return fallbackProfile(ticker);
   }
 
+  // --- Precision HQ Discovery ---
+  // Use company-specific HQ coords when available (more precise than country centroid)
+  let hqCoords = TICKER_COORDS[ticker];
+
+  // If missing from TickerCoords, try automated lookup via Polygon.io + Local Geo DB
+  if (!hqCoords) {
+    const polyKey = process.env.POLYGON_API_KEY;
+    const cachedAuto = automatedProfileCache.get(ticker);
+    
+    if (cachedAuto && Date.now() < cachedAuto.expiresAt) {
+      hqCoords = { lat: cachedAuto.data.lat, lon: cachedAuto.data.lon };
+    } else if (polyKey) {
+      try {
+        const polyUrl = `https://api.polygon.io/v3/reference/tickers/${ticker}?apiKey=${polyKey}`;
+        const polyRes = await fetch(polyUrl, { signal: AbortSignal.timeout(10_000) });
+        if (polyRes.ok) {
+          const polyData = (await polyRes.json()) as PolygonTickerDetails;
+          const address = polyData.results?.address;
+          if (address?.city) {
+            const resolved = resolveCoordinates(address.city, address.state, resolvedCountry);
+            if (resolved) {
+              hqCoords = resolved;
+              // We'll update the main profile with these coords below
+            }
+          }
+        }
+      } catch (err) {
+        console.warn(`[company-profile] Polygon automated lookup failed for ${ticker}:`, err);
+      }
+    }
+  }
+
   const sectorRaw = raw.gsector ?? raw.finnhubIndustry ?? "Unknown";
   const profile: CompanyProfile = {
     ticker,
@@ -85,25 +147,50 @@ export async function fetchCompanyProfile(
     countryCode: coords.code,
     sector: sectorRaw.replace("Technology", "Tech"),
     industry: raw.gind ?? raw.ggroup ?? raw.finnhubIndustry ?? "Unknown",
-    lat: coords.lat,
-    lon: coords.lon,
+    lat: hqCoords?.lat ?? coords.lat,
+    lon: hqCoords?.lon ?? coords.lon,
   };
 
   profileCache.set(ticker, { data: profile, expiresAt: Date.now() + PROFILE_TTL_MS });
+  
+  // If we found new precision coords via Polygon, cache them in the automated bucket
+  if (hqCoords && !TICKER_COORDS[ticker]) {
+    automatedProfileCache.set(ticker, { data: profile, expiresAt: Date.now() + AUTOMATED_TTL_MS });
+  }
+
   return profile;
 }
 
 function fallbackProfile(ticker: string): CompanyProfile | null {
   const wp = WORLD_PROFILES[ticker];
-  if (!wp) return null;
-  return {
-    ticker,
-    name: wp.name,
-    country: lookupCountryByCode(wp.countryCode) ?? wp.countryCode,
-    countryCode: wp.countryCode,
-    sector: "Unknown",
-    industry: "Unknown",
-    lat: wp.lat,
-    lon: wp.lon,
-  };
+  const tc = TICKER_COORDS[ticker];
+
+  if (wp) {
+    return {
+      ticker,
+      name: wp.name,
+      country: lookupCountryByCode(wp.countryCode) ?? wp.countryCode,
+      countryCode: wp.countryCode,
+      sector: "Unknown",
+      industry: "Unknown",
+      lat: tc?.lat ?? wp.lat,
+      lon: tc?.lon ?? wp.lon,
+    };
+  }
+
+  if (tc) {
+    // Ticker has known HQ coords but no WORLD_PROFILES entry — assume US
+    return {
+      ticker,
+      name: ticker,
+      country: "United States",
+      countryCode: "US",
+      sector: "Unknown",
+      industry: "Unknown",
+      lat: tc.lat,
+      lon: tc.lon,
+    };
+  }
+
+  return null;
 }

@@ -21,6 +21,7 @@ export interface GeoStory {
   source: string;
   originCountryCode?: string;  // ISO alpha-2 of news geo-origin
   relevanceScore: number;      // 0-1, world-brain confidence
+  isAnalyzed?: boolean;        // Hardware-native M5 verified status
 }
 
 export interface CountryState {

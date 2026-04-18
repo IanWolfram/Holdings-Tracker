@@ -7,6 +7,8 @@ import MobilePositionCard from "./MobilePositionCard";
 import type { Position } from "@/types/position.types";
 import type { ClassifiedStory } from "@/types/news.types";
 
+import EmptyState from "@/components/EmptyState";
+
 interface MobileDashboardProps {
   positions: Position[];
   news: Record<string, ClassifiedStory[]>;
@@ -43,10 +45,13 @@ export default function MobileDashboard({
 
         <div className="space-y-6">
           {positions.length === 0 && !refreshing && (
-            <div className="flex flex-col items-center justify-center py-20 gap-3 text-center opacity-50">
-              <span className="material-symbols-outlined text-4xl">inventory_2</span>
-              <p className="text-[10px] uppercase font-bold tracking-widest">No positions detected</p>
-            </div>
+            <EmptyState
+              icon="inventory_2"
+              headline="No positions detected"
+              sub="Sync with broker to view fleet"
+              variant="neutral"
+              className="py-12"
+            />
           )}
 
           {positions.map((pos) => (

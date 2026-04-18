@@ -38,67 +38,61 @@
 - Brazil drought → "origin_country_code": "BR", high relevance for agriculture/equipment holdings
 - News origin unclear → "origin_country_code": null
 
-## Verdict Rules
+## Sector-Specific V2 Nuance
 
-### BUY signals
-- Earnings beat with raised guidance (both required for high confidence)
-- Earnings beat alone (moderate confidence — guidance matters more)
-- Analyst upgrade with a specific price target increase
-- New major contract or partnership with disclosed revenue impact
-- Product launch that expands total addressable market
-- Share buyback above 5% of float
-- M&A where the company is the acquirer at a reasonable multiple
-- Supply chain event that uniquely benefits the focal ticker (e.g. competitor fab fire)
+### Tech & Fintech (Brokerages)
+- **HOOD, SCHW, IBKR**: Note that broad market volatility and "Risk-On" sentiment (even if speculative) usually drive **higher transaction volume**. Only classify volatility as "SELL" if it leads to systemic platform risk (e.g. liquidity crunch). Otherwise, treat crypto-rally or Nasdaq-swing news as **BUY** due to revenue tailwinds.
+
+### Semiconductors
+- **NVDA, PLTR, AMD**: AI infra partnerships with hyperscalers (Stellantis, Microsoft, Google) are high-conviction catalysts. Weight "Industrialization of AI" news heavier than "Retail AI" hype.
+
+## Verdict Rules (V2 Weights)
+
+### BUY signals (High Conviction)
+- **Zacks Rank #1 (Strong Buy)**: Automatic high-confidence BUY if fundamentals are mentioned.
+- **Analyst Upgrade + >20% Price Target Increase**: High confidence, especially from Tier-1 firms (Goldman, MS, JPM, Wedbush).
+- **Earnings Beat + GUIDANCE RAISE**: The gold standard. 0.90+ confidence.
+- **Share Buyback > $1Bn**: Major institutional conviction signal.
+- **Strategic Partnership (Fortune 500)**: Direct path to revenue.
+
+### BUY signals (Moderate Conviction)
+- Insider buying (weighted by dollar amount).
+- Sector-wide tailwind (e.g., Bitcoin rally for HOOD).
+- Post-drop "Value" call if fundamentals remain intact.
 
 ### SELL signals
-- Earnings miss with lowered guidance (both required for high confidence)
-- Earnings miss alone (moderate confidence)
-- Analyst downgrade with specific concerns cited
-- CEO or CFO departure (weigh heavier than other C-suite)
-- Regulatory investigation or lawsuit with material financial exposure
-- Guidance cut without a miss (pre-announcement of weakness)
-- Data breach, recall, or scandal with reputational damage
-- Supply chain disruption directly impacting the focal ticker's production
+- Guidance cut (even if earnings beat).
+- Regulatory crackdown directly targeting the business model (e.g., SEC vs. Payment for Order Flow).
+- Executive departure under pressure.
+- Disastrous data breach or security failure (especially for PLTR/CHKP).
 
-### HOLD signals
-- Sector-wide news not specific to this company
-- Earnings in-line with expectations, guidance unchanged
-- Speculative rumor without confirmed sources
-- Macro commentary (Fed, rates, inflation) unless company has direct exposure
-- Analyst note reiterating existing rating
-- Ambiguous headline with insufficient detail in the summary
+## Confidence calibration
+- **0.90+**: Hard data (Earnings, Ranks, Formal Guidance).
+- **0.75-0.89**: Strong analyst support or major strategic wins.
+- **0.60-0.74**: Sentiment-driven or indirect sector tailwinds.
 
-### Confidence calibration
-- 0.85–0.95: Direct, company-specific, hard data (earnings numbers, concrete guidance)
-- 0.65–0.84: Credible signal but softer evidence (analyst opinion, partnership without financials)
-- 0.50–0.64: Weak signal, mostly HOLD territory, limited info
-- Below 0.50: Don't use — return HOLD at 0.50 instead
+## Examples (V2 Logic)
 
-## Examples
-
-### Example 1
-Headline: "US imposes new export restrictions on advanced semiconductors to China"
-→ verdict: "SELL", confidence: 0.78
-→ reason: "Export controls directly cap NVDA's China data center revenue."
-→ sector_tags: ["semiconductors", "export controls"]
-→ affected_tickers: [any chip stocks in holdings]
+### Example 1 — Contradiction Handling
+Headline: "Cathie Wood Sells $2M in Crypto Stocks but adds $12M to Robinhood Position"
+→ verdict: "BUY", confidence: 0.88
+→ reason: "Net positioning shows a massive $10M institutional inflow into HOOD, confirming strong conviction despite broader crypto rebalancing."
+→ sector_tags: ["fintech", "institutional activity"]
 → origin_country_code: "US"
-→ relevance_score: 0.88
+→ relevance_score: 0.95
 
-### Example 2
-Headline: "TSMC reports record quarterly revenue on AI chip demand"
-→ verdict: "BUY", confidence: 0.82
-→ reason: "TSMC's record revenue signals strong downstream demand benefiting NVDA's supply chain."
-→ sector_tags: ["semiconductors", "AI"]
-→ affected_tickers: [NVDA, AMD, INTC if in holdings]
-→ origin_country_code: "TW"
-→ relevance_score: 0.92 if TSMC is a holding, 0.72 if only indirect chip holdings
-
-### Example 3
-Headline: "Federal Reserve hints at rate cuts in Q4"
-→ verdict: "HOLD", confidence: 0.55
-→ reason: "Rate cut expectations provide modest tailwind but insufficient to move the needle alone."
-→ sector_tags: ["macroeconomics", "interest rates"]
-→ affected_tickers: [all growth/tech stocks broadly]
+### Example 2 — Brokerage Volatility
+Headline: "Market volatility spikes as Nasdaq swings 3% on rate fears"
+→ verdict: "BUY", confidence: 0.75
+→ reason: "Intraday volatility serves as a revenue catalyst for HOOD by driving increased retail trading volume and spread capture."
+→ sector_tags: ["financial services", "volatility"]
 → origin_country_code: "US"
-→ relevance_score: 0.25
+→ relevance_score: 0.85
+
+### Example 3 — Fundamental Catalyst
+Headline: "MMS joins Zacks Rank #1 (Strong Buy) List"
+→ verdict: "BUY", confidence: 0.92
+→ reason: "Inclusion in Zacks Rank #1 confirms superior earnings estimate revisions and high fundamental strength."
+→ sector_tags: ["Professional Services", "Value"]
+→ origin_country_code: "US"
+→ relevance_score: 0.98

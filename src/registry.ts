@@ -29,7 +29,7 @@ function wire() {
     accountTtlMs: cfg.cache.accountTtlMs,
   });
 
-  const classifier = new ClassifierService(cfg.ollama);
+  const classifier = new ClassifierService(cfg.ai);
 
   const newsProviders: { reddit: INewsProvider; finnhub?: INewsProvider; twitter?: INewsProvider; newsapi?: INewsProvider } = {
     reddit: new RedditProvider(),

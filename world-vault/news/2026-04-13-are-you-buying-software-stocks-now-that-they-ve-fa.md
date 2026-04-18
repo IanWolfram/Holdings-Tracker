@@ -1,24 +1,26 @@
 ---
 date: "2026-04-13"
 ticker: PLTR
-verdict: BUY
-confidence: 0.60
-relevance: 0.60
-country: unknown
+sector: Tech
+verdict: HOLD
+confidence: 0.50
+relevance: 0.50
+country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1sjzxgc/are_you_buying_software_stocks_now_that_theyve/"
 tags:
   - news
   - pltr
-  - buy
+  - hold
   - world-brain
+  - tech
 ---
 
 # Are you buying software stocks now that they've fallen so much?
 
-**Verdict**: BUY (60% confidence)  
-**Relevance to [[PLTR]]**: 60%  
-**Geographic origin**: Unknown  
+**Verdict**: HOLD (50% confidence)  
+**Relevance to [[PLTR]]**: 50%  
+**Geographic origin**: US  
 
 ## Summary
 Are you buying software stocks now that they've fallen so much?
@@ -36,3 +38,4 @@ _No analysis available._
 ## Links
 - [Source Article](https://www.reddit.com/r/stocks/comments/1sjzxgc/are_you_buying_software_stocks_now_that_theyve/)
 - [[PLTR]]
+- [[US-news]]

@@ -1,24 +1,26 @@
 ---
 date: "2026-04-13"
 ticker: PLTR
-verdict: SELL
-confidence: 0.70
-relevance: 0.70
-country: unknown
+sector: Tech
+verdict: HOLD
+confidence: 0.50
+relevance: 0.50
+country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1skjzub/palantir_80usd/"
 tags:
   - news
   - pltr
-  - sell
+  - hold
   - world-brain
+  - tech
 ---
 
 # palantir: 80usd
 
-**Verdict**: SELL (70% confidence)  
-**Relevance to [[PLTR]]**: 70%  
-**Geographic origin**: Unknown  
+**Verdict**: HOLD (50% confidence)  
+**Relevance to [[PLTR]]**: 50%  
+**Geographic origin**: US  
 
 ## Summary
 palantir: 80usd
@@ -37,3 +39,4 @@ _No analysis available._
 ## Links
 - [Source Article](https://www.reddit.com/r/stocks/comments/1skjzub/palantir_80usd/)
 - [[PLTR]]
+- [[US-news]]

@@ -1,24 +1,26 @@
 ---
 date: "2026-03-25"
 ticker: HOOD
-verdict: BUY
-confidence: 0.90
-relevance: 0.90
-country: unknown
+sector: Financial Services
+verdict: HOLD
+confidence: 0.50
+relevance: 0.50
+country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1s3fv0y/hood_announces_15bn_share_buyback/"
 tags:
   - news
   - hood
-  - buy
+  - hold
   - world-brain
+  - financial-services
 ---
 
 # HOOD announces $1.5Bn Share Buyback
 
-**Verdict**: BUY (90% confidence)  
-**Relevance to [[HOOD]]**: 90%  
-**Geographic origin**: Unknown  
+**Verdict**: HOLD (50% confidence)  
+**Relevance to [[HOOD]]**: 50%  
+**Geographic origin**: US  
 
 ## Summary
 HOOD announces $1.5Bn Share Buyback
@@ -63,3 +65,4 @@ _No analysis available._
 ## Links
 - [Source Article](https://www.reddit.com/r/stocks/comments/1s3fv0y/hood_announces_15bn_share_buyback/)
 - [[HOOD]]
+- [[US-news]]

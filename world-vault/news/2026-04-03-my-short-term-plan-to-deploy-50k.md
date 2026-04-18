@@ -1,24 +1,26 @@
 ---
 date: "2026-04-03"
 ticker: HOOD
-verdict: BUY
-confidence: 0.70
-relevance: 0.70
-country: unknown
+sector: Financial Services
+verdict: HOLD
+confidence: 0.50
+relevance: 0.50
+country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1sbhcyq/my_short_term_plan_to_deploy_50k/"
 tags:
   - news
   - hood
-  - buy
+  - hold
   - world-brain
+  - financial-services
 ---
 
 # My short term plan to deploy 50k
 
-**Verdict**: BUY (70% confidence)  
-**Relevance to [[HOOD]]**: 70%  
-**Geographic origin**: Unknown  
+**Verdict**: HOLD (50% confidence)  
+**Relevance to [[HOOD]]**: 50%  
+**Geographic origin**: US  
 
 ## Summary
 My short term plan to deploy 50k
@@ -49,3 +51,4 @@ _No analysis available._
 ## Links
 - [Source Article](https://www.reddit.com/r/stocks/comments/1sbhcyq/my_short_term_plan_to_deploy_50k/)
 - [[HOOD]]
+- [[US-news]]

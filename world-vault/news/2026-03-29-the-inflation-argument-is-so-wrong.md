@@ -1,10 +1,11 @@
 ---
 date: "2026-03-29"
 ticker: PLTR
+sector: Tech
 verdict: HOLD
 confidence: 0.50
 relevance: 0.50
-country: unknown
+country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1s6kxyy/the_inflation_argument_is_so_wrong/"
 tags:
@@ -12,13 +13,14 @@ tags:
   - pltr
   - hold
   - world-brain
+  - tech
 ---
 
 # The "inflation" argument is so wrong
 
 **Verdict**: HOLD (50% confidence)  
 **Relevance to [[PLTR]]**: 50%  
-**Geographic origin**: Unknown  
+**Geographic origin**: US  
 
 ## Summary
 The "inflation" argument is so wrong
@@ -37,3 +39,4 @@ _No analysis available._
 ## Links
 - [Source Article](https://www.reddit.com/r/stocks/comments/1s6kxyy/the_inflation_argument_is_so_wrong/)
 - [[PLTR]]
+- [[US-news]]

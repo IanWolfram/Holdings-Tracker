@@ -1,10 +1,11 @@
 ---
 date: "2026-04-13"
 ticker: HOOD
+sector: Financial Services
 verdict: HOLD
 confidence: 0.50
 relevance: 0.50
-country: unknown
+country: US
 source: reddit
 url: "https://www.reddit.com/r/investing/comments/1skjie2/first_time_investor_need_advice/"
 tags:
@@ -12,13 +13,14 @@ tags:
   - hood
   - hold
   - world-brain
+  - financial-services
 ---
 
 # First time investor need advice
 
 **Verdict**: HOLD (50% confidence)  
 **Relevance to [[HOOD]]**: 50%  
-**Geographic origin**: Unknown  
+**Geographic origin**: US  
 
 ## Summary
 First time investor need advice
@@ -37,3 +39,4 @@ _No analysis available._
 ## Links
 - [Source Article](https://www.reddit.com/r/investing/comments/1skjie2/first_time_investor_need_advice/)
 - [[HOOD]]
+- [[US-news]]

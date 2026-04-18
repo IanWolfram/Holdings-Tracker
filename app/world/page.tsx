@@ -187,6 +187,14 @@ export default function WorldPage() {
 
   const isFocused = focusTarget !== null;
 
+  const handleCountryHover = useCallback((code: string | null) => {
+    if (!isFocused) setHoveredCountry(code);
+  }, [isFocused]);
+
+  const handleStockHover = useCallback((ticker: string | null) => {
+    setHoveredTicker(ticker);
+  }, []);
+
   const hoveredState: CountryState | null =
     hoveredCountry && worldData
       ? (worldData.countries[hoveredCountry] ?? null)
@@ -304,8 +312,8 @@ export default function WorldPage() {
           <GlobeCanvas
             worldData={worldData}
             relevanceThreshold={relevanceThreshold}
-            onCountryHover={(code) => { if (!isFocused) setHoveredCountry(code); }}
-            onStockHover={(ticker) => { setHoveredTicker(ticker); }}
+            onCountryHover={handleCountryHover}
+            onStockHover={handleStockHover}
             onFocusClick={handleFocusClick}
             isFocused={isFocused}
             focusedTicker={focusTarget?.type === "stock" ? focusTarget.ticker : null}

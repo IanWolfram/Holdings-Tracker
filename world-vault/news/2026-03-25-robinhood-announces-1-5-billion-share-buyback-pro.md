@@ -1,24 +1,26 @@
 ---
 date: "2026-03-25"
 ticker: HOOD
-verdict: BUY
-confidence: 0.70
-relevance: 0.70
-country: unknown
+sector: Financial Services
+verdict: HOLD
+confidence: 0.50
+relevance: 0.50
+country: US
 source: reddit
 url: "https://www.reddit.com/r/investing/comments/1s372d0/robinhood_announces_15_billion_share_buyback/"
 tags:
   - news
   - hood
-  - buy
+  - hold
   - world-brain
+  - financial-services
 ---
 
 # Robinhood Announces $1.5 Billion Share Buyback Program as Stock Slides 39%
 
-**Verdict**: BUY (70% confidence)  
-**Relevance to [[HOOD]]**: 70%  
-**Geographic origin**: Unknown  
+**Verdict**: HOLD (50% confidence)  
+**Relevance to [[HOOD]]**: 50%  
+**Geographic origin**: US  
 
 ## Summary
 Robinhood Announces $1.5 Billion Share Buyback Program as Stock Slides 39%
@@ -39,3 +41,4 @@ _No analysis available._
 ## Links
 - [Source Article](https://www.reddit.com/r/investing/comments/1s372d0/robinhood_announces_15_billion_share_buyback/)
 - [[HOOD]]
+- [[US-news]]

@@ -23,10 +23,30 @@ const VERDICT_BG: Record<string, string> = {
   HOLD: "rgba(100,116,139,0.08)",
 };
 
-export default function NewsCard({ story }: { story: ClassifiedStory }) {
+export default function NewsCard({ 
+  story, 
+  isAnalyzed = false,
+  onAnalyze
+}: { 
+  story: ClassifiedStory;
+  isAnalyzed?: boolean;
+  onAnalyze?: (ticker: string, headline: string, summary: string) => void;
+}) {
   const rawId = useId();
   const id = rawId.replace(/:/g, "");
   const [hovered, setHovered] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+
+  const handleAnalyze = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isAnalyzed || analyzing || !onAnalyze) return;
+    setAnalyzing(true);
+    try {
+      await onAnalyze(story.ticker, story.headline, story.summary ?? "");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   const color = VERDICT_COLOR[story.verdict] ?? "#64748b";
   const verdictBg = VERDICT_BG[story.verdict] ?? "rgba(100,116,139,0.08)";
@@ -139,9 +159,16 @@ export default function NewsCard({ story }: { story: ClassifiedStory }) {
                 >
                   {/* Header row */}
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">
-                      AI Analysis
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">
+                        AI Analysis
+                      </span>
+                      {isAnalyzed && (
+                        <span className="text-[8px] font-black bg-white/10 text-white px-1 rounded-[2px] tracking-tighter">
+                          M5 VERIFIED
+                        </span>
+                      )}
+                    </div>
                     <span
                       className="text-[9px] font-mono px-1.5 py-0.5 rounded"
                       style={{ background: verdictBg, color }}
@@ -150,23 +177,40 @@ export default function NewsCard({ story }: { story: ClassifiedStory }) {
                     </span>
                   </div>
 
-                  {/* Confidence bar */}
-                  <div className="mb-1.5">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-[9px] text-slate-500">Confidence</span>
-                      <span className="font-mono text-[9px]" style={{ color }}>
-                        {confidence}%
-                      </span>
+                  {/* Confidence bar + Analyze Action */}
+                  <div className="mb-1.5 flex items-center gap-3">
+                    <div className="flex-1">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-[9px] text-slate-500">Confidence</span>
+                        <span className="font-mono text-[9px]" style={{ color }}>
+                          {confidence}%
+                        </span>
+                      </div>
+                      <div className="h-0.5 w-full rounded-full bg-white/5">
+                        <motion.div
+                          className="h-full rounded-full"
+                          style={{ background: color }}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${confidence}%` }}
+                          transition={{ duration: 0.35, ease: "easeOut" }}
+                        />
+                      </div>
                     </div>
-                    <div className="h-0.5 w-full rounded-full bg-white/5">
-                      <motion.div
-                        className="h-full rounded-full"
-                        style={{ background: color }}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${confidence}%` }}
-                        transition={{ duration: 0.35, ease: "easeOut" }}
-                      />
-                    </div>
+
+                    {!isAnalyzed ? (
+                      <button
+                        onClick={handleAnalyze}
+                        disabled={analyzing}
+                        className="shrink-0 text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded bg-white text-black hover:bg-white/90 disabled:opacity-50 transition-colors"
+                      >
+                        {analyzing ? "Thinking..." : "Deep Analysis"}
+                      </button>
+                    ) : (
+                      <div className="shrink-0 flex items-center gap-1 text-[8px] font-bold text-slate-500 uppercase tracking-widest border border-slate-700 px-1.5 py-0.5 rounded">
+                        <span className="material-symbols-outlined text-[10px]">check_circle</span>
+                        Final
+                      </div>
+                    )}
                   </div>
 
                   {/* Reasoning */}

@@ -17,6 +17,7 @@ export interface ClassifiedStory extends Classification {
   source: "finnhub" | "twitter" | "reddit" | "newsapi";
   relevanceScore?: number;  // 0-1 world-brain sector relevance score
   originCountry?: string;   // ISO alpha-2 code of the news geo-origin
+  isAnalyzed?: boolean;     // True if hardware-native DeepSeek analysis was performed
 }
 
 export interface CongressTrade {

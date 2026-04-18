@@ -5,6 +5,8 @@ import PositionCard from "@/components/PositionCard";
 import type { Position } from "@/types/position.types";
 import type { ClassifiedStory, CongressTrade } from "@/types/news.types";
 
+import EmptyState from "@/components/EmptyState";
+
 interface DesktopDashboardProps {
   positions: Position[];
   news: Record<string, ClassifiedStory[]>;
@@ -13,6 +15,9 @@ interface DesktopDashboardProps {
   refreshing: boolean;
   lastUpdated: Date | null;
   onRefresh: () => void;
+  totalValue?: number;
+  totalGainLoss?: number;
+  cashBalance?: number;
 }
 
 export default function DesktopDashboard({
@@ -23,22 +28,26 @@ export default function DesktopDashboard({
   refreshing,
   lastUpdated,
   onRefresh,
+  totalValue,
+  totalGainLoss,
+  cashBalance,
 }: DesktopDashboardProps) {
   return (
     <div className="min-h-screen flex flex-col bg-surface">
-      <TopBar lastUpdated={lastUpdated} refreshing={refreshing} onRefresh={onRefresh} />
+      <TopBar lastUpdated={lastUpdated} refreshing={refreshing} onRefresh={onRefresh} totalValue={totalValue} totalGainLoss={totalGainLoss} cashBalance={cashBalance} />
       <main className="p-6 space-y-8">
         {positions.length === 0 && !refreshing && (
-          <div className="flex flex-col items-center justify-center h-64 gap-3 text-center">
-            <span className="material-symbols-outlined text-5xl text-slate-700">candlestick_chart</span>
-            <p className="text-sm text-slate-500">No positions loaded.</p>
-            <button
-              onClick={onRefresh}
-              className="text-[10px] uppercase tracking-widest text-slate-400 border border-white/10 px-3 py-1 rounded-sm hover:bg-white/5 transition-colors"
-            >
-              Retry
-            </button>
-          </div>
+          <EmptyState
+            icon="candlestick_chart"
+            headline="No positions loaded"
+            sub="Check your E*TRADE connection or retry below"
+            variant="neutral"
+            className="h-64"
+            cta={{
+              label: "Retry",
+              onClick: onRefresh
+            }}
+          />
         )}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {positions.map((pos) => (

@@ -1,24 +1,26 @@
 ---
 date: "2026-04-09"
 ticker: PLTR
-verdict: BUY
-confidence: 0.60
-relevance: 0.60
-country: unknown
+sector: Tech
+verdict: HOLD
+confidence: 0.50
+relevance: 0.50
+country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1sgrbia/unwinding_the_trump_bump_reasonable_to_expect/"
 tags:
   - news
   - pltr
-  - buy
+  - hold
   - world-brain
+  - tech
 ---
 
 # Unwinding the Trump Bump? Reasonable to expect stocks outperforming on his election and forward will drop when he's out?
 
-**Verdict**: BUY (60% confidence)  
-**Relevance to [[PLTR]]**: 60%  
-**Geographic origin**: Unknown  
+**Verdict**: HOLD (50% confidence)  
+**Relevance to [[PLTR]]**: 50%  
+**Geographic origin**: US  
 
 ## Summary
 Unwinding the Trump Bump? Reasonable to expect stocks outperforming on his election and forward will drop when he's out?
@@ -35,3 +37,4 @@ _No analysis available._
 ## Links
 - [Source Article](https://www.reddit.com/r/stocks/comments/1sgrbia/unwinding_the_trump_bump_reasonable_to_expect/)
 - [[PLTR]]
+- [[US-news]]

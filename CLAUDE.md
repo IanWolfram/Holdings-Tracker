@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Pulse** (Holdings Tracker) — a real-time financial portfolio dashboard that aggregates E*TRADE positions, fetches news from Finnhub and Twitter/X, and classifies sentiment using a local Ollama LLM. Built with Next.js 16 App Router, React 19, Tailwind CSS 4, SWR, and Framer Motion.
+**Pulse** (Holdings Tracker) — a real-time financial portfolio dashboard that aggregates E*TRADE positions, fetches news from Finnhub and Twitter/X, and classifies sentiment using a hardware-native Apple MLX AI engine. Built with Next.js 16 App Router, React 19, Tailwind CSS 4, SWR, and Framer Motion.
 
 ## Commands
 
@@ -38,15 +38,15 @@ E*TRADE API ──→ lib/etrade.ts ──→ /api/positions ──→ Dashboard
 Finnhub API ──→ lib/finnhub.ts ─┐
                                  ├→ lib/news.ts ──→ /api/news?ticker=X ──→ PositionCard → NewsCard
 Twitter/X API ─→ lib/twitter.ts ┘        │
-                                          └→ lib/classifier.ts → lib/world-brain/brain.ts (Ollama) ──→ VerdictBadge
+                                          └→ lib/classifier.ts → lib/world-brain/brain.ts (MLX Native) ──→ VerdictBadge
 ```
 
 - **`app/page.tsx`** — Client component (Dashboard) that polls `/api/positions`, then fetches news per ticker via `/api/news`. Uses `useCallback`/`useEffect` with `setInterval` for auto-refresh.
 - **`pages/api/`** — Next.js API routes (Pages Router). These coexist with the App Router.
 - **`lib/etrade.ts`** — E*TRADE OAuth 1.0a client with in-memory 5-min cache. `getPositionsSafe()` is the main entry point with fallback logic.
 - **`lib/news.ts`** — Orchestrates news fetching + classification per ticker with its own 5-min cache.
-- **`lib/classifier.ts`** — Thin wrapper that delegates to the unified brain in `lib/world-brain/brain.ts`. Also owns the global Ollama semaphore (`withOllamaSemaphore`) that serializes all LLM calls.
-- **`lib/world-brain/brain.ts`** — The single Ollama inference entry point (`gemma4-aggro` by default). One call per story produces both a trading verdict (BUY/SELL/HOLD + confidence + reason) and geographic/sector context (origin country, relevance score, sector tags). Prompt is loaded from `lib/world-brain/AGENT.md` and `sector-rules.md`.
+- **`lib/classifier.ts`** — Thin wrapper that delegates to the unified brain in `lib/world-brain/brain.ts`. Also owns the global inference semaphore (`withInferenceSemaphore`) that serializes all local GPU calls.
+- **`lib/world-brain/brain.ts`** — The hardware-native MLX inference entry point (`DeepSeek-R1-Distill-Qwen` by default). One call per story produces both a trading verdict (BUY/SELL/HOLD + confidence + reason) and geographic/sector context (origin country, relevance score, sector tags). Prompt is loaded from `world-brain/AGENT.md` and `sector-rules.md`.
 - **`lib/telegram.ts`** — Builds and sends Markdown-formatted digest messages via Telegram Bot API.
 - **`lib/mock-news.ts`** — Hardcoded news stories keyed by ticker, matching the mock positions.
 - **`instrumentation.ts`** — Root bootstrapper for the Next.js runtime. Schedules the hourly `node-cron` job for the world-view refresh using a global singleton guard to prevent duplicate jobs during HMR.
@@ -68,4 +68,4 @@ Twitter/X API ─→ lib/twitter.ts ┘        │
 
 ## External Dependencies
 
-- **Ollama** must be running locally at `OLLAMA_BASE_URL` (default `http://localhost:11434`) with the `OLLAMA_MODEL` (default `gemma4-aggro`) pulled and available. Set `OLLAMA_ENABLED=true` in `.env.local` to activate LLM inference; omit it to fall back to keyword classification.
+- **Apple MLX** must be serving via the local API server (started via `./scripts/mlx-server.sh`) at `MLX_BASE_URL` (default `http://localhost:8080/v1`) with the `MLX_MODEL` pulled and available. Set `AI_ENGINE=mlx` in `.env.local` to activate hardware-native inference.

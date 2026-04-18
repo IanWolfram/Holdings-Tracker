@@ -4,7 +4,7 @@ import type { INewsProvider } from "@/src/domain/interfaces/INewsProvider";
 import type { IClassifier } from "@/src/domain/interfaces/IClassifier";
 import type { ICache } from "@/src/domain/interfaces/ICache";
 import type { ClassifiedStory } from "@/types/news.types";
-import { MOCK_NEWS } from "@/lib/mock-news";
+import { MOCK_NEWS, MOCK_PENDING } from "@/lib/mock-news";
 import { getCompanyName } from "@/lib/company-names";
 import { NEWS_CACHE_TTL_MS } from "@/lib/constants";
 
@@ -87,9 +87,11 @@ export class NewsService {
         const cls = await this.classifier.classify(s.ticker, s.headline, s.summary ?? "");
         classified.push({ ...s, verdict: cls.verdict, confidence: cls.confidence, reason: cls.reason, classifiedAt: cls.classifiedAt });
       }
+      const pending = MOCK_PENDING[ticker] || [];
       const filtered = withinThirtyDays(classified);
-      this.cache.set(ticker, filtered, NEWS_CACHE_TTL_MS);
-      return filtered;
+      const allResult = [...pending, ...filtered];
+      this.cache.set(ticker, allResult, NEWS_CACHE_TTL_MS);
+      return allResult;
     }
 
     const cutoff = Math.floor(Date.now() / 1000) - THIRTY_DAYS_S;
@@ -106,8 +108,11 @@ export class NewsService {
       classified.push({ ...s, ...cls });
     }
 
+    const pending = MOCK_PENDING[ticker] || [];
     const recent = withinThirtyDays(classified).sort((a, b) => b.datetime - a.datetime);
-    this.cache.set(ticker, recent, NEWS_CACHE_TTL_MS);
-    return recent;
+    const allRecent = [...pending, ...recent];
+    
+    this.cache.set(ticker, allRecent, NEWS_CACHE_TTL_MS);
+    return allRecent;
   }
 }

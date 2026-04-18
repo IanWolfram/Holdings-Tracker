@@ -12,7 +12,7 @@ import type { ClassifiedStory } from "@/types/news.types";
 export type { ClassifiedStory } from "@/types/news.types";
 
 // Pre-classified verdicts from scripts/review-verdicts.ts --save
-// If absent, falls back to classifying mock stories through Ollama
+// If absent, falls back to classifying mock stories through the AI Brain
 function loadMockVerdicts(): Record<string, ClassifiedStory[]> | null {
   try {
     const p = path.join(process.cwd(), "lib", "mock-verdicts.json");
@@ -71,7 +71,7 @@ export async function getNewsForTicker(
   ]);
 
   // If all real sources came back empty, classify and cache mock news so
-  // tooltips still show Ollama reasoning instead of being empty
+  // tooltips still show AI reasoning instead of being empty
   const totalRealStories =
     finnhubArticles.length + tweets.length + redditPosts.length + newsAPIArticles.length;
   if (totalRealStories === 0) {
@@ -81,7 +81,7 @@ export async function getNewsForTicker(
       cache.set(ticker, { data, expiresAt: Date.now() + NEWS_CACHE_TTL_MS });
       return data;
     }
-    // Fall back to classifying mock stories sequentially through Ollama
+    // Fall back to classifying mock stories sequentially through the AI Brain
     const mockStories = MOCK_NEWS[ticker] ?? [];
     const classified: ClassifiedStory[] = [];
     for (const s of mockStories) {
@@ -133,7 +133,7 @@ export async function getNewsForTicker(
     })),
   ].filter((s) => s.datetime >= cutoff);
 
-  // Classify stories sequentially to avoid overwhelming Ollama
+  // Classify stories sequentially to avoid overwhelming the local GPU
   const classified: ClassifiedStory[] = [];
   for (const s of stories) {
     const cls = await classifyNews(s.ticker, s.headline, s.summary ?? "");

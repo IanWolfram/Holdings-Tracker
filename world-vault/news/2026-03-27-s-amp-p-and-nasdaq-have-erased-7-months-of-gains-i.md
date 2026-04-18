@@ -1,24 +1,26 @@
 ---
 date: "2026-03-27"
 ticker: PLTR
-verdict: BUY
-confidence: 0.70
-relevance: 0.70
-country: unknown
+sector: Tech
+verdict: HOLD
+confidence: 0.50
+relevance: 0.50
+country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1s5cjf5/sp_and_nasdaq_have_erased_7_months_of_gains_in_3/"
 tags:
   - news
   - pltr
-  - buy
+  - hold
   - world-brain
+  - tech
 ---
 
 # S&amp;P and NASDAQ have erased 7 months of gains in 3 weeks.. so why buy and hold?
 
-**Verdict**: BUY (70% confidence)  
-**Relevance to [[PLTR]]**: 70%  
-**Geographic origin**: Unknown  
+**Verdict**: HOLD (50% confidence)  
+**Relevance to [[PLTR]]**: 50%  
+**Geographic origin**: US  
 
 ## Summary
 S&amp;P and NASDAQ have erased 7 months of gains in 3 weeks.. so why buy and hold?
@@ -38,3 +40,4 @@ _No analysis available._
 ## Links
 - [Source Article](https://www.reddit.com/r/stocks/comments/1s5cjf5/sp_and_nasdaq_have_erased_7_months_of_gains_in_3/)
 - [[PLTR]]
+- [[US-news]]

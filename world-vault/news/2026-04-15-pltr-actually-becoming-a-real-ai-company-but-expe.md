@@ -1,24 +1,26 @@
 ---
 date: "2026-04-15"
 ticker: PLTR
-verdict: BUY
-confidence: 0.90
-relevance: 0.90
-country: unknown
+sector: Tech
+verdict: HOLD
+confidence: 0.50
+relevance: 0.50
+country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1slslq0/pltr_actually_becoming_a_real_ai_company_but/"
 tags:
   - news
   - pltr
-  - buy
+  - hold
   - world-brain
+  - tech
 ---
 
 # PLTR actually becoming a real AI company… but expectations already kinda crazy
 
-**Verdict**: BUY (90% confidence)  
-**Relevance to [[PLTR]]**: 90%  
-**Geographic origin**: Unknown  
+**Verdict**: HOLD (50% confidence)  
+**Relevance to [[PLTR]]**: 50%  
+**Geographic origin**: US  
 
 ## Summary
 PLTR actually becoming a real AI company… but expectations already kinda crazy
@@ -36,3 +38,4 @@ _No analysis available._
 ## Links
 - [Source Article](https://www.reddit.com/r/stocks/comments/1slslq0/pltr_actually_becoming_a_real_ai_company_but/)
 - [[PLTR]]
+- [[US-news]]

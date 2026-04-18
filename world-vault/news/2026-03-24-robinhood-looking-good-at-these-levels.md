@@ -1,24 +1,26 @@
 ---
 date: "2026-03-24"
 ticker: HOOD
-verdict: SELL
-confidence: 0.60
-relevance: 0.60
-country: unknown
+sector: Financial Services
+verdict: HOLD
+confidence: 0.50
+relevance: 0.50
+country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1s2gmcl/robinhood_looking_good_at_these_levels/"
 tags:
   - news
   - hood
-  - sell
+  - hold
   - world-brain
+  - financial-services
 ---
 
 # Robinhood looking good at these levels
 
-**Verdict**: SELL (60% confidence)  
-**Relevance to [[HOOD]]**: 60%  
-**Geographic origin**: Unknown  
+**Verdict**: HOLD (50% confidence)  
+**Relevance to [[HOOD]]**: 50%  
+**Geographic origin**: US  
 
 ## Summary
 Robinhood looking good at these levels
@@ -35,3 +37,4 @@ _No analysis available._
 ## Links
 - [Source Article](https://www.reddit.com/r/stocks/comments/1s2gmcl/robinhood_looking_good_at_these_levels/)
 - [[HOOD]]
+- [[US-news]]

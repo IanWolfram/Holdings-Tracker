@@ -514,6 +514,13 @@ export const MOCK_PENDING: Record<string, ClassifiedStory[]> = {
   JPM: [
     {
       ticker: "JPM", source: "finnhub", datetime: h(1),
+      headline: "JPMorgan Chase Exploring Strategic Expansion into Tokenized Treasury Markets",
+      summary: "", url: "#",
+      verdict: "HOLD", confidence: 0, classifiedAt: "",
+      isAnalyzed: false,
+    },
+    {
+      ticker: "JPM", source: "finnhub", datetime: h(1),
       headline: "JPMorgan signals willingness to acquire regional banks as FDIC resolution process accelerates",
       summary: "", url: "#",
       verdict: "HOLD", confidence: 0, classifiedAt: "",

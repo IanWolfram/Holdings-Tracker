@@ -3,6 +3,7 @@ import type { Verdict } from "@/types/news.types";
 interface Props {
   verdict: Verdict;
   confidence: number;
+  count?: number;
 }
 
 const styles: Record<Verdict, { badge: string; conf: string }> = {
@@ -11,13 +12,13 @@ const styles: Record<Verdict, { badge: string; conf: string }> = {
   HOLD: { badge: "bg-slate-600/10 text-slate-400",  conf: "text-slate-500" },
 };
 
-export default function VerdictBadge({ verdict, confidence }: Props) {
+export default function VerdictBadge({ verdict, confidence, count }: Props) {
   const pct = Math.round(confidence * 100);
   const s = styles[verdict];
   return (
     <div className="flex items-center gap-1.5">
       <span className={`${s.badge} text-[9px] px-1.5 py-[3px] rounded font-bold uppercase tracking-wider leading-none`}>
-        {verdict}
+        {count !== undefined ? `${count} ${verdict}` : verdict}
       </span>
       {confidence > 0 && (
         <span className={`${s.conf} font-mono text-[10px] leading-none tracking-wide`}>{pct}% CONF</span>

@@ -15,3 +15,8 @@ dist/
 # OS
 .DS_Store
 .pm2/
+
+# Python
+.mlx_venv/
+__pycache__/
+*.pyc

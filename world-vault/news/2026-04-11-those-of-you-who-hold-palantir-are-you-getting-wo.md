@@ -1,24 +1,26 @@
 ---
 date: "2026-04-11"
 ticker: PLTR
-verdict: SELL
-confidence: 0.60
-relevance: 0.60
-country: unknown
+sector: Tech
+verdict: HOLD
+confidence: 0.50
+relevance: 0.50
+country: US
 source: reddit
 url: "https://www.reddit.com/r/investing/comments/1si4zyk/those_of_you_who_hold_palantir_are_you_getting/"
 tags:
   - news
   - pltr
-  - sell
+  - hold
   - world-brain
+  - tech
 ---
 
 # Those of you who hold Palantir, are you getting worried about the drop?
 
-**Verdict**: SELL (60% confidence)  
-**Relevance to [[PLTR]]**: 60%  
-**Geographic origin**: Unknown  
+**Verdict**: HOLD (50% confidence)  
+**Relevance to [[PLTR]]**: 50%  
+**Geographic origin**: US  
 
 ## Summary
 Those of you who hold Palantir, are you getting worried about the drop?
@@ -31,3 +33,4 @@ _No analysis available._
 ## Links
 - [Source Article](https://www.reddit.com/r/investing/comments/1si4zyk/those_of_you_who_hold_palantir_are_you_getting/)
 - [[PLTR]]
+- [[US-news]]

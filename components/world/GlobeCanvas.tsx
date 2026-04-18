@@ -67,6 +67,7 @@ interface HQMarkerState {
   clusterPeers: string[];
   separationT: number;
   visible: boolean;
+  renderedVisible: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -157,6 +158,34 @@ function applyCountryBuffers(
   }
 }
 
+function applyStateBuffers(
+  stateLinePositions: Float32Array,
+  stateLineColors: Float32Array,
+  globeGroup: THREE.Group,
+  stateLinesRef: React.MutableRefObject<THREE.Object3D[]>
+) {
+  stateLinesRef.current.forEach((obj) => {
+    globeGroup.remove(obj);
+    const mesh = obj as THREE.Mesh;
+    if (mesh.geometry) mesh.geometry.dispose();
+    const mat = mesh.material;
+    if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
+    else if (mat) (mat as THREE.Material).dispose();
+  });
+  stateLinesRef.current = [];
+
+  if (stateLinePositions.length > 0) {
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute("position", new THREE.BufferAttribute(stateLinePositions, 3));
+    geom.setAttribute("color", new THREE.BufferAttribute(stateLineColors, 3));
+    const mat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 1.0, linewidth: 1 });
+    const lines = new THREE.LineSegments(geom, mat);
+    lines.userData = { isStateBorder: true };
+    globeGroup.add(lines);
+    stateLinesRef.current.push(lines);
+  }
+}
+
 function rebuildHQMarkers(
   globeGroup: THREE.Group,
   worldData: WorldData,
@@ -222,6 +251,7 @@ function rebuildHQMarkers(
       clusterPeers: [],
       separationT: 0,
       visible: true,
+      renderedVisible: true,
     });
   });
 
@@ -273,6 +303,18 @@ const UP = new THREE.Vector3(0, 1, 0);
 const _mat = new THREE.Matrix4();
 const _quat = new THREE.Quaternion();
 const _scale = new THREE.Vector3();
+const _tmpPos = new THREE.Vector3();
+const _tmpDiamondPos = new THREE.Vector3();
+const _n = new THREE.Vector3();
+const _d = new THREE.Vector3();
+const _globeSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 1.001);
+const _localRay = new THREE.Ray();
+const _invMat = new THREE.Matrix4();
+const _sphereHit = new THREE.Vector3();
+let _svgMountRect: DOMRect | null = null;
+let _svgMountRectTs = 0;
+let _svgAnchorRect: DOMRect | null = null;
+let _svgAnchorRectTs = 0;
 
 interface RenderState {
   isDragging: boolean;
@@ -331,7 +373,10 @@ function animateGlobe(
   }
 
   if (markerInstances) {
+    let markerDirty = false;
     for (const ms of hqMarkers) {
+      const prevHoverT = ms.hoverT;
+      const prevSepT = ms.separationT;
       ms.hoverT += ((ms.ticker === hoveredMarkerTicker ? 1 : 0) - ms.hoverT) * 0.14;
 
       if (ms.eastDir !== null && ms.clusterPeers.length > 1) {
@@ -339,46 +384,60 @@ function animateGlobe(
         ms.separationT += ((anyPeerActive ? 1 : 0) - ms.separationT) * 0.10;
       }
 
+      if (
+        Math.abs(ms.hoverT - prevHoverT) > 1e-4 ||
+        Math.abs(ms.separationT - prevSepT) > 1e-4 ||
+        ms.renderedVisible !== ms.visible
+      ) markerDirty = true;
+      ms.renderedVisible = ms.visible;
+
       const sepDist = CLUSTER_REST_SEP + (CLUSTER_HOVER_SEP - CLUSTER_REST_SEP) * ms.separationT;
-      const currentPos = ms.eastDir
-        ? ms.basePos.clone().addScaledVector(ms.eastDir, ms.sepIndex * sepDist)
-        : ms.basePos;
+      if (ms.eastDir) {
+        _tmpPos.copy(ms.basePos).addScaledVector(ms.eastDir, ms.sepIndex * sepDist);
+      } else {
+        _tmpPos.copy(ms.basePos);
+      }
       const vis = ms.visible ? 1 : 0;
 
       _scale.setScalar(ms.dotRadius * (1 - ms.hoverT * 0.5) * vis);
-      _mat.compose(currentPos, _quat.set(0, 0, 0, 1), _scale);
+      _mat.compose(_tmpPos, _quat.set(0, 0, 0, 1), _scale);
       markerInstances.spheres.setMatrixAt(ms.instanceId, _mat);
 
       _scale.setScalar(ms.dotRadius * 4 * vis);
-      _mat.compose(currentPos, _quat.set(0, 0, 0, 1), _scale);
+      _mat.compose(_tmpPos, _quat.set(0, 0, 0, 1), _scale);
       markerInstances.hitSpheres.setMatrixAt(ms.instanceId, _mat);
 
       _quat.setFromUnitVectors(UP, ms.outward);
       _scale.setScalar((ms.dHalfH / 2.4) * ms.hoverT * vis);
-      _mat.compose(currentPos.clone().addScaledVector(ms.outward, ms.dHalfH), _quat, _scale);
+      _tmpDiamondPos.copy(_tmpPos).addScaledVector(ms.outward, ms.dHalfH);
+      _mat.compose(_tmpDiamondPos, _quat, _scale);
       markerInstances.diamonds.setMatrixAt(ms.instanceId, _mat);
     }
-    markerInstances.spheres.instanceMatrix.needsUpdate = true;
-    markerInstances.hitSpheres.instanceMatrix.needsUpdate = true;
-    markerInstances.diamonds.instanceMatrix.needsUpdate = true;
+    if (markerDirty) {
+      markerInstances.spheres.instanceMatrix.needsUpdate = true;
+      markerInstances.hitSpheres.instanceMatrix.needsUpdate = true;
+      markerInstances.diamonds.instanceMatrix.needsUpdate = true;
+    }
   }
 
   renderer.render(scene, camera);
 
-  // SVG connector throttled to ~60fps
+  // SVG connector throttled to ~30fps
   const now = performance.now();
-  if (isFocused && localHit && now - lastSVGTime > 16) {
+  if (isFocused && localHit && now - lastSVGTime > 33) {
     lastSVGTime = now;
     const worldPos = globeGroup.localToWorld(localHit.clone());
     const ndcPos = worldPos.project(camera);
-    const rect = mount.getBoundingClientRect();
+    if (now - _svgMountRectTs > 300) { _svgMountRect = mount.getBoundingClientRect(); _svgMountRectTs = now; }
+    const rect = _svgMountRect!;
     const sx = rect.left + (ndcPos.x + 1) / 2 * rect.width;
     const sy = rect.top + (-ndcPos.y + 1) / 2 * rect.height;
     if (isFinite(sx) && isFinite(sy)) {
       const pathEl = document.getElementById("focus-connector-path") as SVGPathElement | null;
       const anchorEl = document.getElementById("focus-panel-anchor");
       if (pathEl && anchorEl) {
-        const pr = anchorEl.getBoundingClientRect();
+        if (now - _svgAnchorRectTs > 300) { _svgAnchorRect = anchorEl.getBoundingClientRect(); _svgAnchorRectTs = now; }
+        const pr = _svgAnchorRect!;
         const absDy = Math.abs(sy - pr.top);
         const d = `M ${sx} ${sy} C ${sx} ${sy - absDy * 0.55} ${pr.left - Math.min(absDy * 0.15, 30)} ${pr.top + (sy > pr.top ? 1 : -1) * absDy * 0.08} ${pr.left} ${pr.top}`;
         pathEl.setAttribute("d", d);
@@ -409,6 +468,8 @@ export default function GlobeCanvas({
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const globeGroupRef = useRef<THREE.Group | null>(null);
   const countryLinesRef = useRef<THREE.Object3D[]>([]);
+  const stateLinesRef = useRef<THREE.Object3D[]>([]);
+  const stateGeoJSONCacheRef = useRef<GeoJSON | null>(null);
   const hqMarkersRef = useRef<HQMarkerState[]>([]);
   const markerInstancesRef = useRef<{
     spheres: THREE.InstancedMesh;
@@ -429,6 +490,7 @@ export default function GlobeCanvas({
   const localHitRef = useRef<THREE.Vector3 | null>(null);
   const onFocusClickRef = useRef(onFocusClick);
   const onStockHoverRef = useRef(onStockHover);
+  const onCountryHoverRef = useRef(onCountryHover);
   const prevHoveredTickerRef = useRef<string | null>(null);
   const segmentToCountryRef = useRef<string[]>([]);
   const geoJSONCacheRef = useRef<GeoJSON | null>(null);
@@ -437,6 +499,7 @@ export default function GlobeCanvas({
 
   useEffect(() => { onFocusClickRef.current = onFocusClick; }, [onFocusClick]);
   useEffect(() => { onStockHoverRef.current = onStockHover; }, [onStockHover]);
+  useEffect(() => { onCountryHoverRef.current = onCountryHover; }, [onCountryHover]);
 
   useEffect(() => {
     isFocusedRef.current = isFocused;
@@ -557,6 +620,7 @@ export default function GlobeCanvas({
     workerRef.current = new Worker(new URL("@/lib/world/geo.worker.ts", import.meta.url));
     workerRef.current.onmessage = (e) => {
       if (globeGroupRef.current) {
+        applyStateBuffers(e.data.stateLinePositions, e.data.stateLineColors, globeGroupRef.current, stateLinesRef);
         applyCountryBuffers(e.data, globeGroupRef.current, countryLinesRef, segmentToCountryRef);
       }
     };
@@ -634,7 +698,7 @@ export default function GlobeCanvas({
         ...(markerInstancesRef.current ? [markerInstancesRef.current.hitSpheres] : []),
       ];
       const hits = raycasterRef.current.intersectObjects(allTargets).filter(
-        (h) => h.point.clone().normalize().dot(camera.position.clone().sub(h.point).normalize()) > 0.1
+        (h) => { _n.copy(h.point).normalize(); _d.copy(camera.position).sub(h.point).normalize(); return _n.dot(_d) > 0.1; }
       );
 
       if (hits.length > 0) {
@@ -693,7 +757,7 @@ export default function GlobeCanvas({
 
       const hitTargets = markerInstancesRef.current ? [markerInstancesRef.current.hitSpheres] : [];
       const markerHits = raycasterRef.current.intersectObjects(hitTargets).filter(
-        (h) => h.point.clone().normalize().dot(camera.position.clone().sub(h.point).normalize()) > 0.1
+        (h) => { _n.copy(h.point).normalize(); _d.copy(camera.position).sub(h.point).normalize(); return _n.dot(_d) > 0.1; }
       );
       const ticker = markerHits.length > 0 && markerHits[0].instanceId !== undefined
         ? hqMarkersRef.current[markerHits[0].instanceId]?.ticker ?? null
@@ -706,31 +770,35 @@ export default function GlobeCanvas({
         if (ticker) {
           if (hoverClearTimerRef.current) clearTimeout(hoverClearTimerRef.current);
           hoveredRef.current = null;
-          onCountryHover(null);
+          onCountryHoverRef.current(null);
         }
       }
 
       if (!ticker) {
-        const countryHits = raycasterRef.current.intersectObjects(countryLinesRef.current).filter(
-          (h) => h.point.clone().normalize().dot(camera.position.clone().sub(h.point).normalize()) > 0.1
-        );
         let code: string | null = null;
-        if (countryHits.length > 0) {
-          const hit = countryHits[0];
-          const ud = hit.object.userData as { isMergedBorder?: boolean };
-          if (ud.isMergedBorder && hit.index !== undefined) {
-            code = segmentToCountryRef.current[Math.floor(hit.index / 2)] ?? null;
+        _invMat.copy(globeGroup.matrixWorld).invert();
+        _localRay.origin.copy(raycasterRef.current.ray.origin).applyMatrix4(_invMat);
+        _localRay.direction.copy(raycasterRef.current.ray.direction).transformDirection(_invMat);
+        if (_localRay.intersectSphere(_globeSphere, _sphereHit)) {
+          _sphereHit.normalize();
+          let bestDot = -1;
+          for (const [entryCode, geoData] of Object.entries(countryGeoDataRef.current)) {
+            const dot = geoData.centroid.dot(_sphereHit);
+            if (dot > Math.cos(geoData.angularRadius * 1.1) && dot > bestDot) {
+              bestDot = dot;
+              code = entryCode;
+            }
           }
         }
         if (code) {
           if (hoverClearTimerRef.current) { clearTimeout(hoverClearTimerRef.current); hoverClearTimerRef.current = null; }
-          if (code !== hoveredRef.current) { hoveredRef.current = code; onCountryHover(code); }
+          if (code !== hoveredRef.current) { hoveredRef.current = code; onCountryHoverRef.current(code); }
         } else if (hoveredRef.current) {
           if (!hoverClearTimerRef.current) {
             hoverClearTimerRef.current = setTimeout(() => {
               hoverClearTimerRef.current = null;
               hoveredRef.current = null;
-              onCountryHover(null);
+              onCountryHoverRef.current(null);
             }, 220);
           }
         }
@@ -743,7 +811,7 @@ export default function GlobeCanvas({
       hoveredRef.current = null;
       hoveredMarkerTickerRef.current = null;
       if (prevHoveredTickerRef.current) { prevHoveredTickerRef.current = null; onStockHoverRef.current?.(null); }
-      onCountryHover(null);
+      onCountryHoverRef.current(null);
     };
 
     mount.addEventListener("wheel", onWheel, { passive: false });
@@ -776,19 +844,21 @@ export default function GlobeCanvas({
 
     const cached = geoJSONCacheRef.current;
     if (cached) {
-      worker.postMessage({ geoJSON: cached, worldData, relevanceThreshold, focusedCountryCode });
+      worker.postMessage({ geoJSON: cached, stateGeoJSON: stateGeoJSONCacheRef.current, worldData, relevanceThreshold, focusedCountryCode });
       return;
     }
 
-    fetch("/countries.geojson")
-      .then((r) => r.json())
-      .then((geoJSON: GeoJSON) => {
+    Promise.all([
+      fetch("/countries.geojson").then((r) => r.json()),
+      fetch("/us-states.geojson").then((r) => r.json()).catch(() => null),
+    ]).then(([geoJSON, stateGeoJSON]: [GeoJSON, GeoJSON | null]) => {
         geoJSONCacheRef.current = geoJSON;
+        stateGeoJSONCacheRef.current = stateGeoJSON;
         for (const feature of geoJSON.features) {
           const code = feature.properties["ISO3166-1-Alpha-2"] ?? "";
           if (code) countryGeoDataRef.current[code] = computeCountryGeoData(feature);
         }
-        workerRef.current?.postMessage({ geoJSON, worldData, relevanceThreshold, focusedCountryCode });
+        workerRef.current?.postMessage({ geoJSON, stateGeoJSON, worldData, relevanceThreshold, focusedCountryCode });
       });
   }, [worldData, relevanceThreshold, focusedCountryCode]); // eslint-disable-line react-hooks/exhaustive-deps
 

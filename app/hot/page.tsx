@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import TopBar from "@/components/TopBar";
 import NewsCard from "@/components/NewsCard";
 import CongressTradeCard from "@/components/CongressTradeCard";
+import EmptyState from "@/components/EmptyState";
 import type { CongressTrade, ClassifiedStory } from "@/types/news.types";
 import type { HotTicker } from "@/types/market-data.types";
 
@@ -92,13 +93,21 @@ function TickerRow({ ticker, expanded, onClick, news, loadingNews }: TickerRowPr
           >
             <div className="px-4 pb-3 space-y-2 border-t border-white/5 pt-3">
               {loadingNews && (
-                <div className="flex items-center gap-2 py-4 justify-center opacity-40">
-                  <span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
-                  <span className="text-[11px] text-slate-500">Loading news…</span>
-                </div>
+                <EmptyState
+                  icon="progress_activity"
+                  headline="Loading news…"
+                  variant="loading"
+                  className="py-4"
+                />
               )}
               {!loadingNews && news.length === 0 && (
-                <p className="text-[11px] text-slate-600 text-center py-4">No recent news</p>
+                <EmptyState
+                  icon="candlestick_chart"
+                  headline="No recent news"
+                  sub="Refresh or check back later"
+                  variant="neutral"
+                  className="py-4"
+                />
               )}
               {news.slice(0, 5).map((story, i) => (
                 <NewsCard key={`${story.url}-${i}`} story={story} />
@@ -250,10 +259,13 @@ export default function HotPage() {
           </div>
 
           {congressTrades.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-12 gap-2 opacity-30">
-              <span className="material-symbols-outlined text-4xl">gavel</span>
-              <p className="text-[11px] text-slate-500 uppercase tracking-wider">No recent trades</p>
-            </div>
+            <EmptyState
+              icon="gavel"
+              headline="No recent trades"
+              sub="The halls of Congress are silent"
+              variant="congress"
+              className="py-12"
+            />
           )}
 
           <div className="space-y-2">

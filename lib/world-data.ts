@@ -79,6 +79,7 @@ export async function getWorldData(positions: Position[]): Promise<WorldData> {
         originCountryCode: story.originCountry ?? defaultCountryCode,
         // Use existing relevanceScore if set, otherwise use confidence
         relevanceScore: story.relevanceScore ?? story.confidence,
+        isAnalyzed: story.isAnalyzed,
       };
 
       allGeoStories.push(geoStory);
@@ -163,7 +164,7 @@ export async function getWorldData(positions: Position[]): Promise<WorldData> {
 
   // ── 6. Kick off background world-brain enrichment (non-blocking) ──────────
   // This runs AFTER we've returned the fast response. It will refine
-  // geo-origin inference via Ollama and update the cache for next poll.
+  // geo-origin inference via the AI Brain and update the cache for next poll.
   if (!enrichmentLock) {
     enrichmentLock = runBackgroundEnrichment(data, positions, profiles)
       .catch((err) => console.error("[world-data] Background enrichment error:", err))
@@ -175,7 +176,7 @@ export async function getWorldData(positions: Position[]): Promise<WorldData> {
 
 // ---------------------------------------------------------------------------
 // Background enrichment — runs async, updates cache when done
-// World-brain Ollama calls happen here, not on the critical path
+// World-brain AI calls happen here, not on the critical path
 // ---------------------------------------------------------------------------
 
 async function runBackgroundEnrichment(
@@ -305,6 +306,8 @@ async function runBackgroundEnrichment(
     };
     worldCache = { data: enriched, expiresAt: Date.now() + WORLD_CACHE_TTL_MS };
     console.info("[world-data] Background enrichment complete.");
+  } catch (err) {
+    console.error("[world-data] Enrichment failed:", err);
   }
 }
 

@@ -24,10 +24,17 @@ export interface AppConfig {
   newsapi: {
     apiKey: string | undefined;
   };
-  ollama: {
-    enabled: boolean;
-    baseUrl: string;
-    model: string;
+  ai: {
+    engine: string;
+    mlx: {
+      baseUrl: string;
+      model: string;
+    };
+    ollama: {
+      enabled: boolean;
+      baseUrl: string;
+      model: string;
+    };
   };
   cache: {
     newsTtlMs: number;
@@ -55,10 +62,17 @@ export function buildConfig(): AppConfig {
     newsapi: {
       apiKey: process.env.NEWSAPI_API_KEY,
     },
-    ollama: {
-      enabled: process.env.OLLAMA_ENABLED === "true",
-      baseUrl: process.env.OLLAMA_BASE_URL ?? "http://localhost:11434",
-      model: process.env.OLLAMA_MODEL ?? "gemma4-aggro",
+    ai: {
+      engine: process.env.AI_ENGINE ?? "ollama",
+      mlx: {
+        baseUrl: process.env.MLX_BASE_URL ?? "http://localhost:8080/v1",
+        model: process.env.MLX_MODEL ?? "mlx-community/DeepSeek-R1-Distill-Qwen-14B-4bit",
+      },
+      ollama: {
+        enabled: process.env.OLLAMA_ENABLED === "true",
+        baseUrl: process.env.OLLAMA_BASE_URL ?? "http://localhost:11434",
+        model: process.env.OLLAMA_MODEL ?? "gemma4-aggro",
+      },
     },
     cache: {
       newsTtlMs: NEWS_CACHE_TTL_MS,

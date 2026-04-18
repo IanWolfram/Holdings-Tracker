@@ -39,12 +39,12 @@ function keywordClassify(headline: string, summary: string): Classification {
 // Global Ollama semaphore — serialize all requests (Ollama is single-threaded)
 // ---------------------------------------------------------------------------
 
-let ollamaQueue: Promise<unknown> = Promise.resolve();
+let inferenceQueue: Promise<unknown> = Promise.resolve();
 
-export function withOllamaSemaphore<T>(fn: () => Promise<T>): Promise<T> {
-  const result: Promise<T> = ollamaQueue.then(() => fn(), () => fn());
+export function withInferenceSemaphore<T>(fn: () => Promise<T>): Promise<T> {
+  const result: Promise<T> = inferenceQueue.then(() => fn(), () => fn());
   // Advance the queue but ignore errors so future requests aren't blocked
-  ollamaQueue = result.then(() => undefined, () => undefined);
+  inferenceQueue = result.then(() => undefined, () => undefined);
   return result;
 }
 
@@ -57,7 +57,10 @@ export async function classifyNews(
   headline: string,
   summary: string
 ): Promise<Classification> {
-  const enabled = process.env.OLLAMA_ENABLED === "true";
+  const engine = process.env.AI_ENGINE ?? "ollama";
+  const ollamaEnabled = process.env.OLLAMA_ENABLED === "true";
+  const enabled = engine === "mlx" || (engine === "ollama" && ollamaEnabled);
+  
   if (!enabled) {
     return keywordClassify(headline, summary);
   }

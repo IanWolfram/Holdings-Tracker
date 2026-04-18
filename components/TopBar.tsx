@@ -3,8 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import type { CongressTrade } from "@/types/news.types";
+import {
+  getMarketStatus,
+  MARKET_STATE_LABEL,
+  MARKET_STATE_DOT,
+  type MarketStatus,
+} from "@/lib/marketHours";
 
-const CONGRESS_POLL_MS = 60_000; // 1 minute
+const CONGRESS_POLL_MS = 60_000;
+const MARKET_TICK_MS = 30_000;
 const LS_KEY = "pulse_last_seen_congress_at";
 
 interface Props {
@@ -20,9 +27,10 @@ export default function TopBar({ lastUpdated, refreshing, onRefresh }: Props) {
     : null;
 
   const [badgeCount, setBadgeCount] = useState(0);
+  const [market, setMarket] = useState<MarketStatus>(() => getMarketStatus());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // When on the hot page, clear the badge and record last-seen timestamp
+  // Hot-page badge clear
   useEffect(() => {
     if (pathname === "/hot") {
       localStorage.setItem(LS_KEY, String(Date.now()));
@@ -30,7 +38,7 @@ export default function TopBar({ lastUpdated, refreshing, onRefresh }: Props) {
     }
   }, [pathname]);
 
-  // Poll /api/congress and compute unseen count
+  // Poll congress for unseen count
   useEffect(() => {
     const compute = async () => {
       try {
@@ -41,15 +49,21 @@ export default function TopBar({ lastUpdated, refreshing, onRefresh }: Props) {
         const unseen = trades.filter((t) => t.tradeDate * 1000 > lastSeen).length;
         setBadgeCount(unseen);
       } catch {
-        // ignore
+        /* ignore */
       }
     };
-
     compute();
     intervalRef.current = setInterval(compute, CONGRESS_POLL_MS);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
+  }, []);
+
+  // Tick market status every 30s
+  useEffect(() => {
+    const tick = () => setMarket(getMarketStatus());
+    const id = setInterval(tick, MARKET_TICK_MS);
+    return () => clearInterval(id);
   }, []);
 
   const isTerminal = pathname === "/terminal" || pathname === "/";
@@ -70,77 +84,107 @@ export default function TopBar({ lastUpdated, refreshing, onRefresh }: Props) {
             </p>
           </div>
           <nav className="flex h-16 items-center">
-            <a
-              href="/terminal"
-              className={`px-4 h-full flex items-center gap-2 transition-all border-b-2 ${
-                isTerminal
-                  ? "text-white border-white"
-                  : "text-slate-400 border-transparent hover:text-slate-200"
-              }`}
-            >
-              <span className="material-symbols-outlined text-[20px]">dashboard</span>
-              <span className={`font-['Inter'] text-[13px] ${isTerminal ? "font-semibold" : "font-medium"}`}>Terminal</span>
-            </a>
-            <a
-              href="/world"
-              className={`px-4 h-full flex items-center gap-2 transition-all border-b-2 ${
-                isWorld
-                  ? "text-white border-white"
-                  : "text-slate-400 border-transparent hover:text-slate-200"
-              }`}
-            >
-              <span className="material-symbols-outlined text-[20px]">public</span>
-              <span className={`font-['Inter'] text-[13px] ${isWorld ? "font-semibold" : "font-medium"}`}>World</span>
-            </a>
-            <a
+            <NavItem href="/terminal" icon="dashboard" label="Terminal" active={isTerminal} />
+            <NavItem href="/world" icon="public" label="World" active={isWorld} />
+            <NavItem
               href="/hot"
-              className={`px-4 h-full flex items-center gap-2 transition-all border-b-2 relative ${
-                isHot
-                  ? "text-white border-white"
-                  : "text-slate-400 border-transparent hover:text-slate-200"
-              }`}
-            >
-              <span className="material-symbols-outlined text-[20px]">local_fire_department</span>
-              <span className={`font-['Inter'] text-[13px] ${isHot ? "font-semibold" : "font-medium"}`}>Hot</span>
-              {badgeCount > 0 && (
-                <span className="absolute top-3 right-1 min-w-[16px] h-[16px] flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-black px-1 leading-none animate-pulse">
-                  {badgeCount > 99 ? "99+" : badgeCount}
-                </span>
-              )}
-            </a>
+              icon="local_fire_department"
+              label="Hot"
+              active={isHot}
+              badge={badgeCount}
+            />
           </nav>
         </div>
 
-        {/* Right side */}
-        <div className="flex items-center gap-6">
-          {/* Market status */}
-          <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded">
-            <div
-              className={`w-2 h-2 rounded-full ${
-                refreshing ? "bg-blue-400 animate-pulse" : "bg-slate-300 animate-pulse"
+        {/* ── Segmented market cluster ── */}
+        <div className="flex items-center rounded-md overflow-hidden bg-white/[0.03] border border-white/[0.07]">
+          {/* State */}
+          <div className="flex items-center gap-2 px-3 py-1.5">
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${MARKET_STATE_DOT[market.state]} ${
+                market.state === "open" ? "animate-pulse shadow-[0_0_8px_var(--color-positive)]" : ""
               }`}
             />
-            <span className="font-['Space_Grotesk'] text-xs tracking-tight font-medium text-slate-300 uppercase">
-              {refreshing ? "Refreshing…" : "Market Open"}
+            <span className="font-mono text-[11px] font-bold text-white tracking-[0.04em]">
+              {refreshing ? "REFRESHING…" : MARKET_STATE_LABEL[market.state]}
             </span>
           </div>
 
-          {/* Timestamp + refresh */}
-          <div className="hidden sm:flex items-center gap-3">
+          <Divider />
+
+          {/* Countdown */}
+          <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5">
+            <span className="font-mono text-[10px] text-slate-400">{market.verb}</span>
+            <span className="font-mono text-[11px] font-bold text-white">{market.countdown}</span>
+          </div>
+
+          <div className="hidden md:block">
+            <Divider />
+          </div>
+
+          {/* Sync + refresh */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5">
+            <span className="font-mono text-[10px] text-slate-400 hidden sm:inline">synced</span>
             {timeStr && (
-              <span className="text-slate-500 font-mono text-[10px]">{timeStr}</span>
+              <span className="font-mono text-[11px] font-medium text-slate-200">{timeStr}</span>
             )}
             <button
               onClick={onRefresh}
               disabled={refreshing}
-              className="text-slate-400 hover:bg-white/5 p-1.5 rounded transition-colors active:scale-95 duration-100 disabled:opacity-40"
+              className="ml-1 text-positive hover:text-white disabled:opacity-40 disabled:text-slate-500 transition-colors active:scale-95 duration-100 inline-flex"
               title="Refresh"
+              aria-label="Refresh"
             >
-              <span className="material-symbols-outlined text-[18px]">refresh</span>
+              <span
+                className={`material-symbols-outlined text-[14px] ${
+                  refreshing ? "animate-spin" : ""
+                }`}
+              >
+                refresh
+              </span>
             </button>
           </div>
         </div>
       </div>
     </header>
+  );
+}
+
+/* ── Internals ── */
+
+function Divider() {
+  return <div className="w-px h-4 bg-white/[0.08]" />;
+}
+
+interface NavItemProps {
+  href: string;
+  icon: string;
+  label: string;
+  active: boolean;
+  badge?: number;
+}
+
+function NavItem({ href, icon, label, active, badge }: NavItemProps) {
+  return (
+    <a
+      href={href}
+      className={`px-4 h-full flex items-center gap-2 transition-all border-b-2 relative ${
+        active
+          ? "text-white border-white"
+          : "text-slate-400 border-transparent hover:text-slate-200"
+      }`}
+    >
+      <span className="material-symbols-outlined text-[20px]">{icon}</span>
+      <span
+        className={`font-['Inter'] text-[13px] ${active ? "font-semibold" : "font-medium"}`}
+      >
+        {label}
+      </span>
+      {badge !== undefined && badge > 0 && (
+        <span className="absolute top-3 right-1 min-w-[16px] h-[16px] flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-black px-1 leading-none animate-pulse">
+          {badge > 99 ? "99+" : badge}
+        </span>
+      )}
+    </a>
   );
 }

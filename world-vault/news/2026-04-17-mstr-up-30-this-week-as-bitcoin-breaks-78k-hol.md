@@ -1,24 +1,26 @@
 ---
 date: "2026-04-17"
 ticker: HOOD
-verdict: BUY
-confidence: 0.80
-relevance: 0.80
-country: unknown
+sector: Financial Services
+verdict: HOLD
+confidence: 0.50
+relevance: 0.50
+country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1sodqgw/mstr_up_30_this_week_as_bitcoin_breaks_78k/"
 tags:
   - news
   - hood
-  - buy
+  - hold
   - world-brain
+  - financial-services
 ---
 
 # MSTR up 30%+ this week as Bitcoin breaks $78K. Holdings back in profit.
 
-**Verdict**: BUY (80% confidence)  
-**Relevance to [[HOOD]]**: 80%  
-**Geographic origin**: Unknown  
+**Verdict**: HOLD (50% confidence)  
+**Relevance to [[HOOD]]**: 50%  
+**Geographic origin**: US  
 
 ## Summary
 MSTR up 30%+ this week as Bitcoin breaks $78K. Holdings back in profit.
@@ -45,3 +47,4 @@ _No analysis available._
 ## Links
 - [Source Article](https://www.reddit.com/r/stocks/comments/1sodqgw/mstr_up_30_this_week_as_bitcoin_breaks_78k/)
 - [[HOOD]]
+- [[US-news]]

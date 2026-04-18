@@ -3,6 +3,7 @@
 import { useRef, useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import NewsCard from "./NewsCard";
+import PendingNewsCard from "./PendingNewsCard";
 import CongressTradeCard from "./CongressTradeCard";
 import NewsCollapsible from "./NewsCollapsible";
 import { FinnhubBadge, XBadge, RedditBadge } from "./mediabadges";
@@ -10,14 +11,15 @@ import GlassContainer from "./ui/LiquidGlass/GlassContainer";
 import GlassView from "./ui/LiquidGlass/GlassView";
 import Sparkline from "./ui/Sparkline";
 import CompanyLogo from "./ui/CompanyLogo";
+import SentimentBar from "./SentimentBar";
+import EmptyState from "./EmptyState";
 import { formatCurrency, formatPercent, formatGainLoss } from "@/lib/utils/format";
 import type { Position } from "@/types/position.types";
 import type { ClassifiedStory, CongressTrade } from "@/types/news.types";
 
-// Sort order for news source groups (lower = first)
 const SOURCE_ORDER = ["twitter", "reddit", "finnhub", "newsapi"] as const;
 const SOURCE_PRIORITY: Record<string, number> = { twitter: 0, reddit: 1, finnhub: 2, newsapi: 3 };
-
+const POSITION_R = 12;
 
 function SourceBadge({ source }: { source: string }) {
   if (source === "finnhub") return <FinnhubBadge />;
@@ -25,8 +27,6 @@ function SourceBadge({ source }: { source: string }) {
   if (source === "twitter") return <XBadge />;
   return <span className="text-[10px] text-slate-500 font-bold">News</span>;
 }
-
-const POSITION_R = 12;
 
 interface Props {
   position: Position;
@@ -56,58 +56,79 @@ function CongressHeader() {
   );
 }
 
-function LoadingSkeleton() {
-  return (
-    <div className="space-y-4">
-      {[0, 1].map((i) => (
-        <div key={i} className={`space-y-2 animate-pulse ${i === 1 ? "opacity-60" : ""}`}>
-          <div className="h-3 w-12 bg-slate-800 rounded-sm" />
-          <div className="h-4 w-full bg-slate-700 rounded-sm" />
-          <div className="h-4 w-3/4 bg-slate-700 rounded-sm" />
-          <div className="h-2 w-20 bg-slate-800 rounded-sm mt-4" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-export default function PositionCard({ position, stories, congressTrades = [], loading, frosted }: Props) {
+export default function PositionCard({
+  position,
+  stories,
+  congressTrades = [],
+  loading,
+  frosted,
+}: Props) {
   const articleRef = useRef<HTMLDivElement>(null);
   const [_hovered, setHovered] = useState(false);
 
-  const { ticker, description, marketValue, gainLoss, quantity, currentPrice, pricePaid, history } = position;
+  const {
+    ticker,
+    description,
+    marketValue,
+    gainLoss,
+    quantity,
+    currentPrice,
+    pricePaid,
+    history,
+  } = position;
 
+  // Sentiment counts — now tri-state
   const buy = stories.filter((s) => s.verdict === "BUY").length;
   const sell = stories.filter((s) => s.verdict === "SELL").length;
   const hold = stories.filter((s) => s.verdict === "HOLD").length;
+  const avgConfidence = stories.length
+    ? (stories.reduce((acc, s) => acc + (s.confidence ?? 0), 0) / stories.length) * 100
+    : undefined;
 
-  const verdictScore = (buy + sell) > 0 ? buy / (buy + sell) : (hold > 0 ? 0.5 : 0.5);
   const gainPositive = gainLoss >= 0;
-  const gainStr = formatGainLoss(gainLoss);
   const gainPct = pricePaid > 0 ? ((currentPrice - pricePaid) / pricePaid) * 100 : 0;
-  const gainPctStr = formatPercent(gainPct);
-  const mvStr = formatCurrency(marketValue);
-  const priceStr = formatCurrency(currentPrice);
 
-  // Group stories by source, each group sorted by recency (newest first)
-  const storyGroups = useMemo(() => {
+  // Today's move: derived from history if available (last two points), else 0.
+  const todayDelta = useMemo(() => {
+    if (!history || history.length < 2) return null;
+    const last = history[history.length - 1];
+    const prev = history[history.length - 2];
+    if (typeof last !== "number" || typeof prev !== "number" || prev === 0) return null;
+    const diff = (last - prev) * quantity;
+    const pct = ((last - prev) / prev) * 100;
+    return { diff, pct };
+  }, [history, quantity]);
+
+  // Group stories by analyzed status and source
+  const { pendingStories, storyGroups } = useMemo(() => {
+    const pending: ClassifiedStory[] = [];
     const groups: Record<string, ClassifiedStory[]> = {};
+
     for (const story of stories) {
+      // Pending stories are unanalyzed OR have 0 confidence (raw mock data)
+      if (story.isAnalyzed === false || story.confidence === 0) {
+        pending.push(story);
+        continue;
+      }
+
       const src = story.source || "newsapi";
       if (!groups[src]) groups[src] = [];
       groups[src].push(story);
     }
-    // Sort each group by datetime descending (most recent first)
+
     for (const src of Object.keys(groups)) {
       groups[src].sort((a, b) => (b.datetime ?? 0) - (a.datetime ?? 0));
     }
-    return groups;
+
+    return {
+      pendingStories: pending.sort((a, b) => (b.datetime ?? 0) - (a.datetime ?? 0)),
+      storyGroups: groups,
+    };
   }, [stories]);
 
   const hasContent = stories.length > 0 || congressTrades.length > 0;
 
-
-  const highlight = verdictScore > 0.5 ? "#ccffeb" : verdictScore < 0.5 ? "#ffd6cc" : "#cbd5e1";
+  const scanColor = buy > sell ? "#00FF88" : sell > buy ? "#FF4444" : "#cbd5e1";
 
   return (
     <GlassView
@@ -117,11 +138,13 @@ export default function PositionCard({ position, stories, congressTrades = [], l
       className="relative flex flex-col group shadow-2xl transition-all duration-300"
       style={{
         backgroundColor: frosted ? "rgba(8, 13, 9, 0.92)" : "rgba(0, 0, 0, 0.6)",
-        backdropFilter: frosted ? "blur(48px) saturate(130%) brightness(1.06) contrast(0.92)" : undefined,
-        WebkitBackdropFilter: frosted ? "blur(48px) saturate(130%) brightness(1.06) contrast(0.92)" : undefined,
-        // Override glass-material border: neutral sides, let ticker-header-glow provide the top accent
+        backdropFilter: frosted
+          ? "blur(48px) saturate(130%) brightness(1.06) contrast(0.92)"
+          : undefined,
+        WebkitBackdropFilter: frosted
+          ? "blur(48px) saturate(130%) brightness(1.06) contrast(0.92)"
+          : undefined,
         border: frosted ? "1px solid rgba(255,255,255,0.07)" : undefined,
-        borderTop: frosted ? "1.5px solid rgba(255,255,255,0.1)" : undefined,
         overflow: "hidden",
       }}
     >
@@ -131,95 +154,153 @@ export default function PositionCard({ position, stories, congressTrades = [], l
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >
-        {/* Scanline reveal sweep */}
+        {/* Scanline reveal */}
         <motion.div
           className="absolute inset-x-0 h-[2px] z-50 pointer-events-none"
           style={{
-            background: `linear-gradient(90deg, transparent, ${highlight}, transparent)`,
-            boxShadow: `0 0 10px ${highlight}, 0 0 20px ${highlight}`,
+            background: `linear-gradient(90deg, transparent, ${scanColor}, transparent)`,
+            boxShadow: `0 0 10px ${scanColor}, 0 0 20px ${scanColor}`,
           }}
           initial={{ top: "0%", opacity: 0 }}
           animate={{ top: "100%", opacity: [0, 1, 1, 0] }}
           transition={{ duration: 1.5, ease: "easeInOut", delay: 0.2 }}
         />
 
-
-        {/* Card header with glow */}
         <div className={`ticker-header-glow ${glowClass(buy, sell, loading)}`}>
-
-          {/* CardHeader */}
-          <div className="p-4 pb-2">
-            <div className="flex items-start gap-3">
-              <div className="flex-1 min-w-0 flex items-start justify-between gap-2">
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h1 className="font-mono text-2xl font-black text-white tracking-tighter leading-none">{ticker}</h1>
-
-                    <CompanyLogo ticker={ticker} size={38} radius={9} />
-                  </div>
-                  <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest opacity-80 max-w-[65%] wrap-break-words" title={description}>
-                    {description}
-                  </p>
-                  <h2 className="font-mono text-xl font-bold text-white leading-none tracking-tight mt-1">{mvStr}</h2>
-                  <span className="font-mono text-[9px] font-medium text-slate-400">
-                    {priceStr} <span className="opacity-50 text-[8px]">/ SH</span>
+          {/* ── Header (logo-left anchor) ── */}
+          <div className="p-4 pb-3">
+            <div className="grid grid-cols-[auto_1fr_auto] gap-3.5 items-start">
+              <CompanyLogo ticker={ticker} size={44} radius={10} />
+              <div className="min-w-0 flex flex-col gap-1">
+                <div className="flex items-baseline gap-2.5">
+                  <h1 className="font-mono text-[22px] font-black text-white tracking-tighter leading-none">
+                    {ticker}
+                  </h1>
+                  <span
+                    className={`font-mono text-[10px] font-bold tracking-wider ${
+                      gainPositive ? "text-positive" : "text-negative"
+                    }`}
+                  >
+                    {gainPositive ? "▲" : "▼"} {formatPercent(gainPct)}
                   </span>
                 </div>
-                <div className="shrink-0">
-                  <Sparkline data={history || []} width={130} height={56} />
-                </div>
+                <p
+                  className="text-[10px] text-slate-400 font-medium leading-tight truncate max-w-full"
+                  title={description}
+                >
+                  {description}
+                </p>
+              </div>
+              <div className="shrink-0 relative">
+                <Sparkline data={history || []} width={120} height={44} />
+                {/* Halo ring on endpoint reinforces "live" */}
+                {history && history.length > 0 && (
+                  <span
+                    className="absolute top-[6px] right-0 w-2.5 h-2.5 rounded-full border"
+                    style={{
+                      borderColor: gainPositive
+                        ? "rgba(0,255,136,0.35)"
+                        : "rgba(255,68,68,0.35)",
+                    }}
+                  />
+                )}
               </div>
             </div>
           </div>
 
-          {/* Gain row */}
-          <div className="px-4 py-2 flex justify-between items-center border-t border-white/[0.03] bg-black/20">
-            <div className={`gain-row font-mono flex items-baseline gap-2 ${gainPositive ? "text-positive" : "text-negative"}`}>
-              <span className="text-sm font-black">{gainStr}</span>
-              <span className="text-[10px] font-bold opacity-80">{gainPctStr}</span>
-            </div>
-            <span className="shares-text font-mono text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-              {quantity} <span className="opacity-40">SHARES</span>
-            </span>
+          {/* ── 3-stat row ── */}
+          <div className="px-4 pb-3 grid grid-cols-3 gap-3.5 border-t border-white/[0.06] pt-3">
+            <Stat
+              label="Market Val"
+              value={formatCurrency(marketValue)}
+              sub={`${quantity} sh · ${formatCurrency(currentPrice)}`}
+            />
+            <Stat
+              label="Unrealized"
+              value={formatGainLoss(gainLoss)}
+              valueClass={gainPositive ? "text-positive" : "text-negative"}
+              sub={`Cost ${formatCurrency(pricePaid)} avg`}
+            />
+            <Stat
+              label="Today"
+              value={
+                todayDelta
+                  ? `${todayDelta.diff >= 0 ? "+" : ""}${formatCurrency(todayDelta.diff)}`
+                  : "—"
+              }
+              valueClass={
+                todayDelta
+                  ? todayDelta.diff >= 0
+                    ? "text-positive"
+                    : "text-negative"
+                  : "text-slate-400"
+              }
+              sub={todayDelta ? `${formatPercent(todayDelta.pct)}` : "no intraday"}
+            />
           </div>
 
-          {/* Verdict bar */}
-          <div className="px-4 py-3 border-t border-white/[0.05] bg-zinc-950/40">
-            <div className="flex flex-col gap-2">
-              <div className="verdict-bar w-full h-1.5 bg-white/5 rounded-full overflow-hidden flex">
-                <div
-                  className="bar-green bg-positive transition-all duration-1000 ease-out"
-                  style={{ width: `${verdictScore * 100}%`, boxShadow: "0 0 10px rgba(0, 255, 136, 0.3)" }}
-                />
-                <div
-                  className="bar-red bg-negative transition-all duration-1000 ease-out"
-                  style={{ width: `${(1 - verdictScore) * 100}%`, boxShadow: "0 0 10px rgba(255, 68, 68, 0.3)" }}
-                />
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="verdict-label text-[9px] font-black text-slate-500 tracking-[0.2em] uppercase">Verdict</span>
-                <span className={`text-[10px] font-mono font-bold ${verdictScore > 0.5 ? "text-positive" : verdictScore < 0.5 ? "text-negative" : "text-slate-400"}`}>
-                  {verdictScore > 0.5 ? "BULLISH" : verdictScore < 0.5 ? "BEARISH" : "NEUTRAL"}
-                </span>
-              </div>
-            </div>
+          {/* ── Sentiment strip ── */}
+          <div className="px-4 py-3 border-t border-white/[0.05] bg-black/[0.35]">
+            <SentimentBar
+              buy={buy}
+              hold={hold}
+              sell={sell}
+              avgConfidence={avgConfidence}
+            />
           </div>
         </div>
 
-        {/* News feed — grouped by source */}
+        {/* ── News feed (unchanged) ── */}
         <GlassContainer className="flex-1 p-3 border-t border-white/[0.05]">
-          {loading && !hasContent && <LoadingSkeleton />}
+          {loading && !hasContent && (
+            <EmptyState
+              icon="progress_activity"
+              headline="Loading feed…"
+              sub={`Classifying stories for ${ticker}`}
+              variant="loading"
+            />
+          )}
 
           {!loading && !hasContent && (
-            <div className="flex flex-col items-center justify-center py-6 gap-2 text-center opacity-40">
-              <span className="material-symbols-outlined text-3xl">info</span>
-              <p className="text-[10px] font-bold uppercase tracking-wider">No recent news</p>
-            </div>
+            <EmptyState
+              icon="candlestick_chart"
+              headline="No recent news"
+              sub="Refresh or check back later"
+              variant="neutral"
+            />
           )}
 
           {hasContent && (
             <div className="space-y-3">
-              {/* Congress trades — always first */}
+              {pendingStories.length > 0 && (
+                <NewsCollapsible
+                  badge={
+                    <span className="flex items-center gap-2">
+                      <div className="relative w-2.5 h-2.5">
+                        <div className="absolute inset-0 rounded-full border border-white/10" />
+                        <motion.div
+                          className="absolute inset-0 rounded-full border-t border-t-[#00FF88] border-r-transparent border-b-transparent border-l-transparent"
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
+                        />
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        Pending
+                      </span>
+                    </span>
+                  }
+                  count={pendingStories.length}
+                  defaultExpanded
+                >
+                  {pendingStories.map((story) => (
+                    <PendingNewsCard
+                      key={`${story.ticker}-${story.source}-${story.datetime}-${story.headline}`}
+                      story={story}
+                    />
+                  ))}
+                </NewsCollapsible>
+              )}
+
               {congressTrades.length > 0 && (
                 <NewsCollapsible
                   badge={<CongressHeader />}
@@ -232,7 +313,6 @@ export default function PositionCard({ position, stories, congressTrades = [], l
                 </NewsCollapsible>
               )}
 
-              {/* News story decks — one per source, ordered twitter → reddit → finnhub → newsapi */}
               {SOURCE_ORDER.filter((src) => storyGroups[src]?.length).map((src) => {
                 const group = storyGroups[src];
                 return (
@@ -251,7 +331,6 @@ export default function PositionCard({ position, stories, congressTrades = [], l
                 );
               })}
 
-              {/* Any sources not in SOURCE_ORDER */}
               {Object.keys(storyGroups)
                 .filter((src) => SOURCE_PRIORITY[src] === undefined)
                 .map((src) => {
@@ -276,5 +355,30 @@ export default function PositionCard({ position, stories, congressTrades = [], l
         </GlassContainer>
       </div>
     </GlassView>
+  );
+}
+
+/* ─── Internal ─── */
+
+interface StatProps {
+  label: string;
+  value: string;
+  valueClass?: string;
+  sub: string;
+}
+
+function Stat({ label, value, valueClass = "text-white", sub }: StatProps) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="font-mono text-[9px] font-bold text-slate-500 tracking-[0.2em] uppercase">
+        {label}
+      </span>
+      <span className={`font-mono text-[15px] font-bold leading-none tracking-tight ${valueClass}`}>
+        {value}
+      </span>
+      <span className="font-mono text-[10px] font-medium text-slate-400 truncate" title={sub}>
+        {sub}
+      </span>
+    </div>
   );
 }

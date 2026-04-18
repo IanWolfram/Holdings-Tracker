@@ -234,6 +234,123 @@ function setCache(key: string, data: unknown, ttlMs = NEWS_CACHE_TTL_MS): void {
   cache.set(key, { data, expiresAt: Date.now() + ttlMs });
 }
 
+export interface ETradeTransaction {
+  transactionId: string;
+  transactionDate: number; // epoch ms
+  transactionType: string; // "Bought", "Sold", "Dividend", etc.
+  amount: number;
+  ticker?: string;
+  quantity?: number;
+  price?: number;
+  fee?: number;
+}
+
+/** Fetch all transactions for a date range, handling pagination */
+export async function getTransactions(
+  startDate: string, // MM-DD-YYYY
+  endDate: string    // MM-DD-YYYY
+): Promise<ETradeTransaction[]> {
+  const CACHE_KEY = `transactions:${startDate}:${endDate}`;
+  const cached = fromCache<ETradeTransaction[]>(CACHE_KEY);
+  if (cached) return cached;
+
+  let accountIdKey = fromCache<string>("accountIdKey");
+  if (!accountIdKey) {
+    accountIdKey = await fetchAccountIdKey();
+    setCache("accountIdKey", accountIdKey, ACCOUNT_CACHE_TTL_MS);
+  }
+
+  const all: ETradeTransaction[] = [];
+  let startAt = 0;
+  const count = 50;
+
+  while (true) {
+    const oauth = buildOAuth();
+    const url =
+      `${ETRADE_BASE_URL}/v1/accounts/${accountIdKey}/transactions/list.json` +
+      `?startDate=${startDate}&endDate=${endDate}&count=${count}&startAt=${startAt}`;
+    const requestData = { url, method: "GET" };
+    const headers = toHeader(oauth, oauth.authorize(requestData, accessToken()));
+
+    const res = await fetch(url, {
+      headers: { ...headers, Accept: "application/json" },
+    });
+
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Transactions fetch failed ${res.status}: ${body}`);
+    }
+
+    const json = await res.json();
+    const raw = json?.TransactionListResponse?.Transaction ?? [];
+    const page: ETradeTransaction[] = (Array.isArray(raw) ? raw : [raw]).map(
+      (t: Record<string, unknown>) => ({
+        transactionId: String(t.transactionId ?? ""),
+        transactionDate: Number(t.transactionDate ?? 0),
+        transactionType: String(t.transactionType ?? ""),
+        amount: Number(t.amount ?? 0),
+        ticker: (t.brokerage as Record<string, unknown> | undefined)?.product
+          ? String(((t.brokerage as Record<string, unknown>).product as Record<string, unknown>)?.symbol ?? "")
+          : undefined,
+        quantity: (t.brokerage as Record<string, unknown> | undefined)?.quantity
+          ? Number((t.brokerage as Record<string, unknown>).quantity)
+          : undefined,
+        price: (t.brokerage as Record<string, unknown> | undefined)?.price
+          ? Number((t.brokerage as Record<string, unknown>).price)
+          : undefined,
+        fee: (t.brokerage as Record<string, unknown> | undefined)?.fee
+          ? Number((t.brokerage as Record<string, unknown>).fee)
+          : undefined,
+      })
+    );
+
+    all.push(...page);
+
+    const totalCount = Number(json?.TransactionListResponse?.totalCount ?? 0);
+    startAt += count;
+    if (startAt >= totalCount || page.length < count) break;
+  }
+
+  setCache(CACHE_KEY, all, NEWS_CACHE_TTL_MS);
+  return all;
+}
+
+/** Fetch cash balance (uninvested money) for the first account */
+export async function getCashBalance(): Promise<number> {
+  const CACHE_KEY = "cashBalance";
+  const cached = fromCache<number>(CACHE_KEY);
+  if (cached !== null) return cached;
+
+  let accountIdKey = fromCache<string>("accountIdKey");
+  if (!accountIdKey) {
+    accountIdKey = await fetchAccountIdKey();
+    setCache("accountIdKey", accountIdKey, ACCOUNT_CACHE_TTL_MS);
+  }
+
+  const oauth = buildOAuth();
+  const url = `${ETRADE_BASE_URL}/v1/accounts/${accountIdKey}/balance.json?instType=BROKERAGE&realTimeNAV=true`;
+  const requestData = { url, method: "GET" };
+  const headers = toHeader(oauth, oauth.authorize(requestData, accessToken()));
+
+  const res = await fetch(url, {
+    headers: { ...headers, Accept: "application/json" },
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Balance fetch failed ${res.status}: ${body}`);
+  }
+
+  const json = await res.json();
+  const cash: number =
+    json?.BalanceResponse?.Computed?.cashAvailableForInvestment ??
+    json?.BalanceResponse?.Computed?.netCash ??
+    0;
+
+  setCache(CACHE_KEY, cash);
+  return cash;
+}
+
 /** Main entry point — returns positions with 5-min caching */
 export async function getPositions(): Promise<Position[]> {
   const CACHE_KEY = "positions";
