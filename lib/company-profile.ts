@@ -166,15 +166,17 @@ function fallbackProfile(ticker: string): CompanyProfile | null {
   const tc = TICKER_COORDS[ticker];
 
   if (wp) {
+    const countryName = lookupCountryByCode(wp.countryCode) ?? wp.countryCode;
+    const countryCoords = lookupCountry(countryName);
     return {
       ticker,
       name: wp.name,
-      country: lookupCountryByCode(wp.countryCode) ?? wp.countryCode,
+      country: countryName,
       countryCode: wp.countryCode,
       sector: "Unknown",
       industry: "Unknown",
-      lat: tc?.lat ?? wp.lat,
-      lon: tc?.lon ?? wp.lon,
+      lat: tc?.lat ?? countryCoords?.lat ?? 0,
+      lon: tc?.lon ?? countryCoords?.lon ?? 0,
     };
   }
 

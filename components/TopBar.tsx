@@ -9,6 +9,7 @@ import {
   MARKET_STATE_DOT,
   type MarketStatus,
 } from "@/lib/marketHours";
+import AgentTrigger from "./AgentTrigger";
 
 const CONGRESS_POLL_MS = 60_000;
 const MARKET_TICK_MS = 30_000;
@@ -18,9 +19,19 @@ interface Props {
   lastUpdated: Date | null;
   refreshing: boolean;
   onRefresh: () => void;
+  totalValue?: number;
+  totalGainLoss?: number;
+  cashBalance?: number;
 }
 
-export default function TopBar({ lastUpdated, refreshing, onRefresh }: Props) {
+export default function TopBar({
+  lastUpdated,
+  refreshing,
+  onRefresh,
+  totalValue,
+  totalGainLoss,
+  cashBalance,
+}: Props) {
   const pathname = usePathname();
   const timeStr = lastUpdated
     ? lastUpdated.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
@@ -69,6 +80,7 @@ export default function TopBar({ lastUpdated, refreshing, onRefresh }: Props) {
   const isTerminal = pathname === "/terminal" || pathname === "/";
   const isWorld = pathname === "/world";
   const isHot = pathname === "/hot";
+  const isAgent = pathname === "/agent";
 
   return (
     <header className="bg-[#1e2023] border-b border-white/5 sticky top-0 z-50">
@@ -93,6 +105,7 @@ export default function TopBar({ lastUpdated, refreshing, onRefresh }: Props) {
               active={isHot}
               badge={badgeCount}
             />
+            <NavItem href="/agent" icon="psychology" label="Agent" active={isAgent} />
           </nav>
         </div>
 
@@ -121,6 +134,13 @@ export default function TopBar({ lastUpdated, refreshing, onRefresh }: Props) {
           <div className="hidden md:block">
             <Divider />
           </div>
+
+          {/* Agent Trigger */}
+          <div className="px-3 py-1.5 flex items-center">
+            <AgentTrigger />
+          </div>
+
+          <Divider />
 
           {/* Sync + refresh */}
           <div className="flex items-center gap-1.5 px-3 py-1.5">

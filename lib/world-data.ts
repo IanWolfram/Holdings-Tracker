@@ -165,11 +165,15 @@ export async function getWorldData(positions: Position[]): Promise<WorldData> {
   // ── 6. Kick off background world-brain enrichment (non-blocking) ──────────
   // This runs AFTER we've returned the fast response. It will refine
   // geo-origin inference via the AI Brain and update the cache for next poll.
+  // DISABLED: Background enrichment is no longer automatic. 
+  // It must be triggered manually via the Stock Agent (Pulse) to avoid unexpected AI costs/load.
+  /*
   if (!enrichmentLock) {
     enrichmentLock = runBackgroundEnrichment(data, positions, profiles)
       .catch((err) => console.error("[world-data] Background enrichment error:", err))
       .finally(() => { enrichmentLock = null; });
   }
+  */
 
   return data;
 }

@@ -5,6 +5,7 @@ sector: Financial Services
 verdict: HOLD
 confidence: 0.50
 relevance: 0.50
+verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1s3fv0y/hood_announces_15bn_share_buyback/"
@@ -14,6 +15,7 @@ tags:
   - hold
   - world-brain
   - financial-services
+  - m5-verified
 ---
 
 # HOOD announces $1.5Bn Share Buyback

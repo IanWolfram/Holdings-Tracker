@@ -5,6 +5,7 @@ sector: Tech
 verdict: HOLD
 confidence: 0.50
 relevance: 0.50
+verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1s5cjf5/sp_and_nasdaq_have_erased_7_months_of_gains_in_3/"
@@ -14,6 +15,7 @@ tags:
   - hold
   - world-brain
   - tech
+  - m5-verified
 ---
 
 # S&amp;P and NASDAQ have erased 7 months of gains in 3 weeks.. so why buy and hold?

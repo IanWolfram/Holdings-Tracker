@@ -5,6 +5,7 @@ sector: Financial Services
 verdict: HOLD
 confidence: 0.50
 relevance: 0.50
+verified: true
 country: US
 source: finnhub
 url: "https://finnhub.io/api/news?id=422c056ecc51304ab314948db185f3344b68e1a268ede922ecc9a9d51e36b1d6"
@@ -14,6 +15,7 @@ tags:
   - hold
   - world-brain
   - financial-services
+  - m5-verified
 ---
 
 # Cathie Wood sells fresh wave of crypto stocks worth $2.57 million

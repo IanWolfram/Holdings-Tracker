@@ -33,6 +33,7 @@ A real-time financial portfolio tracking dashboard built with **Next.js 16**, **
 1. **Start the AI Brain**: Run `./scripts/mlx-server.sh` in a dedicated terminal.
 2. **Launch Pulse**: Run `npm run dev` in another terminal.
 3. **Verify Auth**: Ensure E\*TRADE tokens are active (run `npm run etrade:auth` if expired).
+4. **Run the Stock Agent**: Run `npm run agent` in another terminal or click button in top right of UI.
 
 ### Prerequisites
 
@@ -91,12 +92,12 @@ Navigate to `http://localhost:3000` to view your dashboard.
 
 ## 🧠 Intelligence Tools
 
-### Portfolio Intelligence Agent
+### Stock Agent
 
 Run a deep-intelligence sweep across your entire portfolio using the local LLM. The agent reasons about **indirect impact** (e.g., a data center fire in Taiwan affecting NVDA/AMD) and provides a beautiful terminal report.
 
 ```bash
-npm run agent         # run the Intelligence Agent on all positions
+npm run agent         # run the Stock Agent on all positions
 ```
 
 ### World Intelligence Refresh

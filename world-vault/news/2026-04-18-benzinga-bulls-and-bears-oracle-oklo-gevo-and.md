@@ -5,6 +5,7 @@ sector: Financial Services
 verdict: HOLD
 confidence: 0.50
 relevance: 0.50
+verified: true
 country: US
 source: finnhub
 url: "https://finnhub.io/api/news?id=751fd8fc0fd3d3c25f73843f074808926298824eb7812d7d5e45746cbbd750d2"
@@ -14,6 +15,7 @@ tags:
   - hold
   - world-brain
   - financial-services
+  - m5-verified
 ---
 
 # Benzinga Bulls And Bears: Oracle, Oklo, Gevo — And Markets Close At Record Highs

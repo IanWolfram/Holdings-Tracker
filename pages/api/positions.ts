@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import type { Position } from "@/types/position.types";
 import { getQuote, getHistory } from "@/lib/market-data";
 import { getServices } from "@/src/registry";
+import { fetchCompanyProfile } from "@/lib/company-profile";
 
 async function enrichWithRealPrices(positions: Position[]): Promise<Position[]> {
   const results = await Promise.allSettled(
@@ -45,6 +46,27 @@ async function enrichWithHistory(positions: Position[]): Promise<Position[]> {
   );
 }
 
+async function enrichWithCompanyNames(positions: Position[]): Promise<Position[]> {
+  const results = await Promise.allSettled(
+    positions.map(async (pos) => {
+      // Only fetch if description is missing or equals the ticker (E*TRADE limitation)
+      if (pos.description && pos.description !== pos.ticker) return pos;
+      try {
+        const profile = await fetchCompanyProfile(pos.ticker);
+        if (profile?.name && profile.name !== pos.ticker) {
+          return { ...pos, description: profile.name };
+        }
+      } catch {
+        // silently keep original description
+      }
+      return pos;
+    })
+  );
+  return results.map((r, i) =>
+    r.status === "fulfilled" ? r.value : positions[i]
+  );
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<Position[] | { error: string }>
@@ -60,12 +82,14 @@ export default async function handler(
     const isMock = process.env.ETRADE_ENV === "mock";
 
     if (isMock) {
-      const enriched = await enrichWithRealPrices(positions);
-      return res.status(200).json(enriched);
+      const withPrices = await enrichWithRealPrices(positions);
+      const withNames = await enrichWithCompanyNames(withPrices);
+      return res.status(200).json(withNames);
     }
 
-    const enriched = await enrichWithHistory(positions);
-    res.status(200).json(enriched);
+    const withHistory = await enrichWithHistory(positions);
+    const withNames = await enrichWithCompanyNames(withHistory);
+    res.status(200).json(withNames);
   } catch (err) {
     console.error("[/api/positions]", err);
     res.status(500).json({ error: "Failed to fetch positions" });

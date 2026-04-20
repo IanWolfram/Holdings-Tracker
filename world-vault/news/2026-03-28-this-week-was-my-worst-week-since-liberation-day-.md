@@ -5,6 +5,7 @@ sector: Financial Services
 verdict: HOLD
 confidence: 0.50
 relevance: 0.50
+verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1s5xb4t/this_week_was_my_worst_week_since_liberation_day/"
@@ -14,6 +15,7 @@ tags:
   - hold
   - world-brain
   - financial-services
+  - m5-verified
 ---
 
 # This week was my worst week since liberation day. Not sure how to deal with it

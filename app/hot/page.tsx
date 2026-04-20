@@ -128,6 +128,8 @@ export default function HotPage() {
   const [tickerNews, setTickerNews] = useState<Record<string, ClassifiedStory[]>>({});
   const [loadingNews, setLoadingNews] = useState<Record<string, boolean>>({});
   const [loadingHot, setLoadingHot] = useState(true);
+  const [trendingCollapsed, setTrendingCollapsed] = useState(false);
+  const [insidersCollapsed, setInsidersCollapsed] = useState(false);
 
   const hotIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const congressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -209,74 +211,111 @@ export default function HotPage() {
 
         {/* Trending Stocks */}
         <section>
-          <div className="flex items-center gap-3 mb-4">
-            <span className="material-symbols-outlined text-[22px] text-orange-400">local_fire_department</span>
+          <button 
+            onClick={() => setTrendingCollapsed(!trendingCollapsed)}
+            className="flex items-center gap-3 mb-4 w-full group"
+          >
+            <span className="material-symbols-outlined text-[20px] text-orange-400 group-hover:scale-110 transition-transform">local_fire_department</span>
             <h2 className="font-['Space_Grotesk'] text-[18px] font-black text-white tracking-tight">
               Trending Stocks
             </h2>
             <span className="text-[10px] text-slate-600 uppercase tracking-wider font-bold">Today</span>
-          </div>
-
-          {loadingHot && (
-            <div className="space-y-2">
-              {[0, 1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-14 rounded-[10px] bg-white/[0.03] animate-pulse" style={{ opacity: 1 - i * 0.15 }} />
-              ))}
-            </div>
-          )}
+            <span className={`material-symbols-outlined text-[18px] text-slate-700 ml-auto transition-transform duration-300 ${trendingCollapsed ? "" : "rotate-180"}`}>
+              expand_more
+            </span>
+          </button>
 
           <AnimatePresence>
-            <motion.div className="space-y-2">
-              {hotTickers.map((t) => (
-                <TickerRow
-                  key={t.ticker}
-                  ticker={t}
-                  expanded={expandedTicker === t.ticker}
-                  onClick={() => handleTickerClick(t.ticker)}
-                  news={tickerNews[t.ticker] ?? []}
-                  loadingNews={loadingNews[t.ticker] ?? false}
-                />
-              ))}
-            </motion.div>
+            {!trendingCollapsed && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="overflow-hidden"
+              >
+                {loadingHot && (
+                  <div className="space-y-2">
+                    {[0, 1, 2, 3, 4].map((i) => (
+                      <div key={i} className="h-14 rounded-[10px] bg-white/[0.03] animate-pulse" style={{ opacity: 1 - i * 0.15 }} />
+                    ))}
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  {hotTickers.map((t) => (
+                    <TickerRow
+                      key={t.ticker}
+                      ticker={t}
+                      expanded={expandedTicker === t.ticker}
+                      onClick={() => handleTickerClick(t.ticker)}
+                      news={tickerNews[t.ticker] ?? []}
+                      loadingNews={loadingNews[t.ticker] ?? false}
+                    />
+                  ))}
+                </div>
+              </motion.div>
+            )}
           </AnimatePresence>
         </section>
 
-        {/* Congress Trades */}
+        {/* Insider & Political Intelligence */}
         <section>
-          <div className="flex items-center gap-3 mb-4">
-            <span className="material-symbols-outlined text-[22px]" style={{ color: "#b45309" }}>gavel</span>
+          <button 
+            onClick={() => setInsidersCollapsed(!insidersCollapsed)}
+            className="flex items-center gap-3 mb-4 w-full group text-left"
+          >
+            <span className="material-symbols-outlined text-[20px] group-hover:scale-110 transition-transform" style={{ color: "#b45309" }}>gavel</span>
             <h2 className="font-['Space_Grotesk'] text-[18px] font-black text-white tracking-tight">
-              Global Congress Feed
+              Insider & Political Intelligence
             </h2>
             {newCongressCount > 0 && (
               <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 uppercase tracking-wider animate-pulse">
                 {newCongressCount} NEW
               </span>
             )}
-            <span className="text-[10px] text-slate-600 uppercase tracking-wider font-bold ml-auto">
-              via Capitol Trades · refreshes every 60s
+            <span className={`material-symbols-outlined text-[18px] text-slate-700 ml-auto transition-transform duration-300 ${insidersCollapsed ? "" : "rotate-180"}`}>
+              expand_more
             </span>
-          </div>
+          </button>
 
-          {congressTrades.length === 0 && (
-            <EmptyState
-              icon="gavel"
-              headline="No recent trades"
-              sub="The halls of Congress are silent"
-              variant="congress"
-              className="py-12"
-            />
-          )}
+          <AnimatePresence>
+            {!insidersCollapsed && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="overflow-hidden"
+              >
+                <div className="flex items-center gap-2 mb-3 -mt-1 ml-9">
+                  <span className="text-[10px] text-slate-600 uppercase tracking-wider font-bold">
+                    via Finnhub & Capitol Trades · refreshes every 60s
+                  </span>
+                </div>
 
-          <div className="space-y-2">
-            {congressTrades.map((trade) => (
-              <CongressTradeCard
-                key={trade.id}
-                trade={trade}
-                isNew={trade.tradeDate * 1000 > lastSeenAt}
-              />
-            ))}
-          </div>
+                {congressTrades.length === 0 && (
+                  <EmptyState
+                    icon="gavel"
+                    headline="No recent trades"
+                    sub="The halls of Congress are silent"
+                    variant="congress"
+                    className="py-12"
+                  />
+                )}
+
+                <div className="space-y-2">
+                  {congressTrades.map((trade) => (
+                    <CongressTradeCard
+                      key={trade.id}
+                      trade={trade}
+                      isNew={trade.tradeDate * 1000 > lastSeenAt}
+                    />
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </section>
 
       </main>

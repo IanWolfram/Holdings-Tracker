@@ -2,7 +2,6 @@ import { buildConfig } from "@/src/config";
 import { MapCache } from "@/src/infrastructure/cache/MapCache";
 import { ETradeProvider } from "@/src/infrastructure/providers/ETradeProvider";
 import { FinnhubProvider } from "@/src/infrastructure/providers/FinnhubProvider";
-import { TwitterProvider } from "@/src/infrastructure/providers/TwitterProvider";
 import { RedditProvider } from "@/src/infrastructure/providers/RedditProvider";
 import { NewsAPIProvider } from "@/src/infrastructure/providers/NewsAPIProvider";
 import { ClassifierService } from "@/src/services/ClassifierService";
@@ -31,10 +30,9 @@ function wire() {
 
   const classifier = new ClassifierService(cfg.ai);
 
-  const newsProviders: { reddit: INewsProvider; finnhub?: INewsProvider; twitter?: INewsProvider; newsapi?: INewsProvider } = {
+  const newsProviders: { reddit: INewsProvider; finnhub?: INewsProvider; newsapi?: INewsProvider } = {
     reddit: new RedditProvider(),
     ...(cfg.finnhub.apiKey ? { finnhub: new FinnhubProvider(cfg.finnhub.apiKey) } : {}),
-    ...(cfg.twitter.bearerToken ? { twitter: new TwitterProvider(cfg.twitter.bearerToken) } : {}),
     ...(cfg.newsapi.apiKey ? { newsapi: new NewsAPIProvider(cfg.newsapi.apiKey) } : {}),
   };
 

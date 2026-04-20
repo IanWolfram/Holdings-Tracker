@@ -1,7 +1,6 @@
 import React from "react";
 import type { GraphProps } from "./types";
 import { SparklinePath } from "./SparklinePath";
-import { YAxis } from "./YAxis";
 import { XAxis } from "./XAxis";
 
 /**
@@ -21,7 +20,7 @@ export function Graph({ data, width = 60, height = 24 }: GraphProps) {
   const range = max - min || 1;
   const isPositive = data[data.length - 1] >= data[0];
   
-  const pl = 22;
+  const pl = 4;
   const pr = 4;
   const py = 6;
 
@@ -33,13 +32,14 @@ export function Graph({ data, width = 60, height = 24 }: GraphProps) {
   const points = data.map((val, i) => ({ x: toX(i), y: toY(val) }));
 
   // SMA with window = ~25% of data length, min 3
+  // Uses expanding window at start so the line is "complete" from i=0
   const window = Math.max(3, Math.floor(data.length * 0.25));
-  const smaPoints = data.reduce<{ x: number; y: number }[]>((acc, _, i) => {
-    if (i < window - 1) return acc;
-    const avg = data.slice(i - window + 1, i + 1).reduce((s, v) => s + v, 0) / window;
-    acc.push({ x: toX(i), y: toY(avg) });
-    return acc;
-  }, []);
+  const smaPoints = data.map((_, i) => {
+    const start = Math.max(0, i - window + 1);
+    const subset = data.slice(start, i + 1);
+    const avg = subset.reduce((s, v) => s + v, 0) / subset.length;
+    return { x: toX(i), y: toY(avg) };
+  });
 
   const priceColor = isPositive ? "#00FF88" : "#FF4444";
 
@@ -80,7 +80,6 @@ export function Graph({ data, width = 60, height = 24 }: GraphProps) {
           width={width} height={height}
           points={points} dataLength={data.length}
         />
-        <YAxis pl={pl} py={py} height={height} max={max} min={min} />
 
         {/* Interior Grid Line */}
         <line

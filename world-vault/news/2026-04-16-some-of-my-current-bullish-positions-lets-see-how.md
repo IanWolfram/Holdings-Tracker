@@ -5,6 +5,7 @@ sector: Financial Services
 verdict: HOLD
 confidence: 0.50
 relevance: 0.50
+verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1smusir/some_of_my_current_bullish_positions_lets_see_how/"
@@ -14,6 +15,7 @@ tags:
   - hold
   - world-brain
   - financial-services
+  - m5-verified
 ---
 
 # some of my current bullish positions. lets see how it plays out.

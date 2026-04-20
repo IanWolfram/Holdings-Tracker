@@ -5,6 +5,7 @@ sector: Financial Services
 verdict: HOLD
 confidence: 0.50
 relevance: 0.50
+verified: true
 country: US
 source: finnhub
 url: "https://finnhub.io/api/news?id=375f65f6493a182f8d5ef683f14ada71cfd222ec22df8443e0de963bddfbbe9f"
@@ -14,6 +15,7 @@ tags:
   - hold
   - world-brain
   - financial-services
+  - m5-verified
 ---
 
 # What Moved Markets This Week

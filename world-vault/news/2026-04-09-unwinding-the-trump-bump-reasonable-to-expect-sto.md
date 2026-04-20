@@ -5,6 +5,7 @@ sector: Tech
 verdict: HOLD
 confidence: 0.50
 relevance: 0.50
+verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1sgrbia/unwinding_the_trump_bump_reasonable_to_expect/"
@@ -14,6 +15,7 @@ tags:
   - hold
   - world-brain
   - tech
+  - m5-verified
 ---
 
 # Unwinding the Trump Bump? Reasonable to expect stocks outperforming on his election and forward will drop when he's out?

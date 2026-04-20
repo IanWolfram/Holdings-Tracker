@@ -5,6 +5,7 @@ sector: Tech
 verdict: HOLD
 confidence: 0.50
 relevance: 0.50
+verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1skjzub/palantir_80usd/"
@@ -14,6 +15,7 @@ tags:
   - hold
   - world-brain
   - tech
+  - m5-verified
 ---
 
 # palantir: 80usd

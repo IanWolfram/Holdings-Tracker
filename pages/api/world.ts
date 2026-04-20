@@ -4,6 +4,7 @@ import { WORLD_PROFILES, MOCK_POSITIONS } from "@/lib/position-list";
 import { lookupCountryByCode } from "@/lib/country-coords";
 import { getWorldData } from "@/lib/world-data";
 import { getServices } from "@/src/registry";
+import { fetchCompanyProfile } from "@/lib/company-profile";
 
 export default async function handler(
   req: NextApiRequest,
@@ -114,20 +115,16 @@ export default async function handler(
     }
   }
 
+  const profilesList = await Promise.all(
+    Object.keys(WORLD_PROFILES).map(async (ticker) => {
+      const prof = await fetchCompanyProfile(ticker);
+      return prof ? [ticker, prof] : null;
+    })
+  );
+
   const mockData: WorldData = {
     fetchedAt: t,
-    profiles: Object.fromEntries(
-      Object.entries(WORLD_PROFILES).map(([ticker, wp]) => [ticker, {
-        ticker,
-        name: wp.name,
-        country: lookupCountryByCode(wp.countryCode) ?? wp.countryCode,
-        countryCode: wp.countryCode,
-        sector: "Unknown",
-        industry: "Unknown",
-        lat: wp.lat,
-        lon: wp.lon,
-      }])
-    ) as WorldData["profiles"],
+    profiles: Object.fromEntries(profilesList.filter(Boolean) as [string, any][]),
     countries: mockCountries,
   };
 

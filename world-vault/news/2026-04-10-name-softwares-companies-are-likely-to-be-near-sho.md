@@ -5,6 +5,7 @@ sector: Tech
 verdict: HOLD
 confidence: 0.50
 relevance: 0.50
+verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1shyly5/name_softwares_companies_are_likely_to_be_near/"
@@ -14,6 +15,7 @@ tags:
   - hold
   - world-brain
   - tech
+  - m5-verified
 ---
 
 # Name softwares companies are likely to be near short term bottom and sharing oberservations

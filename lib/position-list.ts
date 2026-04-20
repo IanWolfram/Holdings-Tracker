@@ -12,14 +12,14 @@ export const MOCK_POSITIONS: Position[] = [
   { ticker: "005930", description: "Samsung Electronics Co. Ltd",    quantity: 10,  marketValue:  620.00,  gainLoss:   20.00, pricePaid:  60.00, currentPrice:  62.00 },
 ];
 
-export const WORLD_PROFILES: Record<string, { name: string; ticker: string; countryCode: string; lat: number; lon: number }> = {
-  "BR":     { name: "Broadridge Financial Solutions", ticker: "BR",     countryCode: "US", lat: 40.71,  lon: -74.00  },
-  "MSFT":   { name: "Microsoft Corporation",          ticker: "MSFT",   countryCode: "US", lat: 47.60,  lon: -122.33 },
-  "AAPL":   { name: "Apple Inc.",                     ticker: "AAPL",   countryCode: "US", lat: 37.33,  lon: -122.03 },
-  "NVDA":   { name: "NVIDIA Corporation",             ticker: "NVDA",   countryCode: "US", lat: 37.36,  lon: -121.97 },
-  "JPM":    { name: "JPMorgan Chase & Co.",           ticker: "JPM",    countryCode: "US", lat: 40.75,  lon: -73.98  },
-  "RBL":    { name: "Roblox Corporation",             ticker: "RBL",    countryCode: "US", lat: 37.56,  lon: -122.32 },
-  "TM":     { name: "Toyota Motor Corporation",       ticker: "TM",     countryCode: "JP", lat: 35.08,  lon: 137.15  },
-  "INFY":   { name: "Infosys Limited",                ticker: "INFY",   countryCode: "IN", lat: 12.97,  lon:  77.59  },
-  "005930": { name: "Samsung Electronics Co. Ltd",    ticker: "005930", countryCode: "KR", lat: 37.56,  lon: 126.97  },
+export const WORLD_PROFILES: Record<string, { name: string; ticker: string; countryCode: string }> = {
+  "BR":     { name: "Broadridge Financial Solutions", ticker: "BR",     countryCode: "US" },
+  "MSFT":   { name: "Microsoft Corporation",          ticker: "MSFT",   countryCode: "US" },
+  "AAPL":   { name: "Apple Inc.",                     ticker: "AAPL",   countryCode: "US" },
+  "NVDA":   { name: "NVIDIA Corporation",             ticker: "NVDA",   countryCode: "US" },
+  "JPM":    { name: "JPMorgan Chase & Co.",           ticker: "JPM",    countryCode: "US" },
+  "RBL":    { name: "Roblox Corporation",             ticker: "RBL",    countryCode: "US" },
+  "TM":     { name: "Toyota Motor Corporation",       ticker: "TM",     countryCode: "JP" },
+  "INFY":   { name: "Infosys Limited",                ticker: "INFY",   countryCode: "IN" },
+  "005930": { name: "Samsung Electronics Co. Ltd",    ticker: "005930", countryCode: "KR" },
 };

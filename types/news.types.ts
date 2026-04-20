@@ -4,7 +4,11 @@ export interface Classification {
   verdict: Verdict;
   confidence: number;
   reason?: string;
+  relevanceScore?: number;
+  originCountryCode?: string | null;
   classifiedAt: string;
+  isAnalyzed?: boolean;
+  fromVault?: boolean;
 }
 
 export interface ClassifiedStory extends Classification {
@@ -15,8 +19,6 @@ export interface ClassifiedStory extends Classification {
   datetime: number;
   author?: string;
   source: "finnhub" | "twitter" | "reddit" | "newsapi";
-  relevanceScore?: number;  // 0-1 world-brain sector relevance score
-  originCountry?: string;   // ISO alpha-2 code of the news geo-origin
   isAnalyzed?: boolean;     // True if hardware-native DeepSeek analysis was performed
 }
 

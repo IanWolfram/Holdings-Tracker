@@ -18,7 +18,7 @@ export default async function handler(
   try {
     const { newsService } = getServices();
     const deadline = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("news fetch timeout")), 45_000)
+      setTimeout(() => reject(new Error("news fetch timeout")), 300_000)
     );
     const stories = await Promise.race([newsService.getNewsForTicker(ticker), deadline]);
     res.status(200).json(stories);

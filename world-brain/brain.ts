@@ -7,19 +7,28 @@ import path from "path";
 
 let systemPrompt: string | null = null;
 
+export function invalidateSystemPromptCache(): void {
+  systemPrompt = null;
+}
+
 function getSystemPrompt(): string {
   if (!systemPrompt) {
     const dir = path.join(process.cwd(), "world-brain");
-    systemPrompt = ["AGENT.md", "sector-rules.md"]
+    const baseParts = ["AGENT.md", "sector-rules.md"]
       .map((f) => {
-        try {
-          return fs.readFileSync(path.join(dir, f), "utf-8");
-        } catch {
-          return "";
-        }
+        try { return fs.readFileSync(path.join(dir, f), "utf-8"); } catch { return ""; }
       })
-      .filter(Boolean)
-      .join("\n\n---\n\n");
+      .filter(Boolean);
+
+    let insightsBlock = "";
+    try {
+      const raw = fs.readFileSync(path.join(dir, "market-insights.md"), "utf-8");
+      if (raw.trim()) {
+        insightsBlock = `\n\n---\n\n## Accumulated Market Intelligence\n\n${raw.trim()}`;
+      }
+    } catch { /* file doesn't exist yet — that's fine */ }
+
+    systemPrompt = baseParts.join("\n\n---\n\n") + insightsBlock;
   }
   return systemPrompt;
 }
@@ -36,6 +45,23 @@ export interface UnifiedAnalysis {
 }
 
 // ---------------------------------------------------------------------------
+// Helper: strip DeepSeek-R1 chain-of-thought blocks.
+// The model often omits the opening <think> tag, outputting raw thinking
+// text followed by </think>. Handle both cases.
+// ---------------------------------------------------------------------------
+
+function stripThink(raw: string): string {
+  // Case 1: proper <think>...</think> wrapper
+  let stripped = raw.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+  // Case 2: thinking content starts at position 0, only closing </think> present
+  const closeIdx = stripped.lastIndexOf("</think>");
+  if (closeIdx !== -1) {
+    stripped = stripped.slice(closeIdx + "</think>".length).trim();
+  }
+  return stripped;
+}
+
+// ---------------------------------------------------------------------------
 // Main inference function — single Ollama call for both trading signal + geo
 // ---------------------------------------------------------------------------
 
@@ -45,30 +71,77 @@ import type { Verdict } from "@/types/news.types";
 
 // ... (system prompt logic remains same)
 
+export async function callMlxRaw(systemPromptText: string, userMessage: string): Promise<string> {
+  const baseUrl = process.env.MLX_BASE_URL ?? "http://localhost:8080/v1";
+  const model = process.env.MLX_MODEL ?? "mlx-community/DeepSeek-R1-Distill-Qwen-14B-4bit";
+
+  if (!(await isAiHealthy("mlx", baseUrl))) return "";
+
+  try {
+    const raw = await withInferenceSemaphore(async () => {
+      const res = await fetch(`${baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: systemPromptText },
+            { role: "user", content: userMessage },
+          ],
+          temperature: 0.3,
+          max_tokens: 1024,
+          stream: true,
+        }),
+        signal: AbortSignal.timeout(300_000),
+      });
+      if (!res.ok) throw new Error(`MLX HTTP ${res.status}`);
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error("No response body");
+      const decoder = new TextDecoder("utf-8");
+      let localRaw = "";
+      let buffer = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (let line of lines) {
+          line = line.trim();
+          if (!line.startsWith("data: ")) continue;
+          const dataStr = line.slice(6).trim();
+          if (dataStr === "[DONE]" || !dataStr) continue;
+          try {
+            const parsed = JSON.parse(dataStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) localRaw += content;
+          } catch { /* ignore partial chunks */ }
+        }
+      }
+      return localRaw;
+    });
+    return stripThink(raw);
+  } catch (err) {
+    console.error("[brain] callMlxRaw error:", err);
+    return "";
+  }
+}
+
 export async function analyzeStory(
   ticker: string,
   headline: string,
   summary: string,
   holdingTickers: string[] = [],
-  holdingSectors: string[] = []
+  holdingSectors: string[] = [],
+  onStream?: (text: string) => void,
+  tickerContext?: string,
+  recentVerdicts?: Array<{ headline: string; verdict: string; confidence: number; reason: string }>
 ): Promise<UnifiedAnalysis> {
-  const engine = process.env.AI_ENGINE ?? "ollama";
-  const ollamaEnabled = process.env.OLLAMA_ENABLED === "true";
-  
-  // Backwards compatibility: if OLLAMA_ENABLED is true but AI_ENGINE is not set, use ollama
-  const activeEngine = (engine === "mlx" || (engine === "ollama" && ollamaEnabled)) ? engine : "none";
-  if (activeEngine === "none") return fallbackAnalysis();
+  const baseUrl = process.env.MLX_BASE_URL ?? "http://localhost:8080/v1";
+  const model = process.env.MLX_MODEL ?? "mlx-community/DeepSeek-R1-Distill-Qwen-14B-4bit";
 
-  const baseUrl = engine === "mlx" 
-    ? (process.env.MLX_BASE_URL ?? "http://localhost:8080/v1")
-    : (process.env.OLLAMA_BASE_URL ?? "http://localhost:11434");
-
-  const model = engine === "mlx"
-    ? (process.env.MLX_MODEL ?? "mlx-community/DeepSeek-R1-Distill-Qwen-14B-4bit")
-    : (process.env.OLLAMA_MODEL ?? "gemma4-aggro");
-
-  if (!(await isAiHealthy(engine, baseUrl))) {
-    console.warn(`[brain] ${engine.toUpperCase()} engine at ${baseUrl} is not responding.`);
+  if (!(await isAiHealthy("mlx", baseUrl))) {
+    console.warn(`[brain] MLX engine at ${baseUrl} is not responding.`);
     return fallbackAnalysis();
   }
 
@@ -76,38 +149,40 @@ export async function analyzeStory(
     ? `Holdings context:\nTickers: ${holdingTickers.join(", ")}\nSectors: ${[...new Set(holdingSectors)].join(", ")}`
     : `Focal ticker: ${ticker}`;
 
+  const tickerContextBlock = tickerContext
+    ? `\n\nTicker Knowledge:\n${tickerContext.slice(0, 400)}`
+    : "";
+
+  const fewShotBlock = recentVerdicts && recentVerdicts.length > 0
+    ? "\n\nRecent verdicts for this ticker (for calibration only):\n" +
+      recentVerdicts.map(v =>
+        `- "${v.headline.slice(0, 80)}" → ${v.verdict} (${Math.round(v.confidence * 100)}%): ${v.reason.slice(0, 120)}`
+      ).join("\n")
+    : "";
+
   const userMessage =
     `${holdingsBlock}\n\n` +
-    `Focal ticker: ${ticker}\n` +
-    `Headline: ${headline}\n` +
+    `Focal ticker: ${ticker}` +
+    tickerContextBlock +
+    fewShotBlock +
+    `\n\nHeadline: ${headline}\n` +
     `Summary: ${summary || "(no summary)"}\n\n` +
     `OUTPUT ONLY THE JSON OBJECT. NO MARKDOWN. NO EXPLANATION. START WITH { AND END WITH }.`;
 
   let raw = "";
   try {
     raw = await withInferenceSemaphore(async () => {
-      const isMlx = engine === "mlx";
-      const url = isMlx ? `${baseUrl}/chat/completions` : `${baseUrl}/api/chat`;
-      
-      const body = isMlx 
-        ? {
-            model,
-            messages: [
-              { role: "system", content: getSystemPrompt() },
-              { role: "user",   content: userMessage },
-            ],
-            temperature: 0.1,
-            stream: false,
-          }
-        : {
-            model,
-            stream: false,
-            options: { temperature: 0.1 },
-            messages: [
-              { role: "system", content: getSystemPrompt() },
-              { role: "user",   content: userMessage },
-            ],
-          };
+      const url = `${baseUrl}/chat/completions`;
+      const body = {
+        model,
+        messages: [
+          { role: "system", content: getSystemPrompt() },
+          { role: "user",   content: userMessage },
+        ],
+        temperature: 0.1,
+        max_tokens: 4096,
+        stream: true,
+      };
 
       const res = await fetch(url, {
         method: "POST",
@@ -117,21 +192,55 @@ export async function analyzeStory(
       });
 
       if (!res.ok) {
-        console.error(`[brain] ${engine} error ${res.status}`);
-        throw new Error(`${engine} HTTP ${res.status}`);
+        console.error(`[brain] MLX error ${res.status}`);
+        throw new Error(`MLX HTTP ${res.status}`);
       }
+      
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error("No response body");
+      const decoder = new TextDecoder("utf-8");
+      
+      let localRaw = "";
+      let buffer = "";
 
-      const json = await res.json();
-      return isMlx ? (json.choices[0]?.message?.content ?? "") : (json.message?.content ?? "");
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        
+        for (let line of lines) {
+          line = line.trim();
+          if (line.startsWith("data: ")) {
+            const dataStr = line.slice(6).trim();
+            if (dataStr === "[DONE]") continue;
+            if (!dataStr) continue;
+            try {
+              const parsed = JSON.parse(dataStr);
+              const content = parsed.choices?.[0]?.delta?.content;
+              if (content) {
+                localRaw += content;
+                onStream?.(localRaw);
+              }
+            } catch (e) {
+              // Ignore partial JSON parsing errors
+            }
+          }
+        }
+      }
+      
+      return localRaw;
     });
   } catch (err) {
-    console.error(`[brain] ${engine} unreachable:`, err);
+    console.error(`[brain] MLX unreachable:`, err);
     return fallbackAnalysis();
   }
 
   try {
     // 1. Strip <think> tags (Chain of Thought) if present
-    let cleaned = raw.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+    let cleaned = stripThink(raw);
 
     // 2. Clear out any "Alright, let's break this down" or introductory conversational filler
     // We look for the first '{' and the last '}' to isolate the JSON object

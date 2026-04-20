@@ -3,9 +3,16 @@ import type { Classification } from "@/types/news.types";
 import { classifyNews } from "@/lib/classifier";
 
 export interface ClassifierConfig {
-  enabled: boolean;
-  baseUrl: string;
-  model: string;
+  engine: string;
+  mlx: {
+    baseUrl: string;
+    model: string;
+  };
+  ollama: {
+    enabled: boolean;
+    baseUrl: string;
+    model: string;
+  };
 }
 
 export class ClassifierService implements IClassifier {

@@ -6,8 +6,10 @@ import MobileDashboard from "@/components/mobile/MobileDashboard";
 import { POLL_INTERVAL_MS } from "@/lib/constants";
 import type { Position } from "@/types/position.types";
 import type { ClassifiedStory, CongressTrade } from "@/types/news.types";
+import type { AgentProgress } from "@/lib/agent/service";
 
-const CONGRESS_POLL_MS = 60_000; // 1 minute
+const CONGRESS_POLL_MS = 60_000;
+const AGENT_POLL_MS = 2_000;
 
 export default function Dashboard() {
   const [positions, setPositions] = useState<Position[]>([]);
@@ -18,16 +20,19 @@ export default function Dashboard() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [cashBalance, setCashBalance] = useState<number | undefined>(undefined);
   const [totalGainLoss, setTotalGainLoss] = useState<number | undefined>(undefined);
+  const [agentState, setAgentState] = useState<AgentProgress>({ status: "idle" });
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const congressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const agentIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const heldTickersRef = useRef<string[]>([]);
+  const prevAgentStatusRef = useRef<string>("idle");
 
   const fetchNews = useCallback(async (tickers: string[]) => {
     setLoadingNews(Object.fromEntries(tickers.map((t) => [t, true])));
     await Promise.all(
       tickers.map(async (ticker) => {
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 50_000);
+        const timer = setTimeout(() => controller.abort(), 300_000);
         try {
           const res = await fetch(`/api/news?ticker=${ticker}`, { signal: controller.signal });
           if (!res.ok) return;
@@ -94,6 +99,48 @@ export default function Dashboard() {
     }
   }, [fetchNews, fetchCongress]);
 
+  // Merge agent verdicts into news state without a server round-trip
+  const mergeAgentResults = useCallback((progress: AgentProgress) => {
+    if (!progress.results) return;
+    setNews((prev) => {
+      const updated = { ...prev };
+      for (const { ticker, verdicts } of progress.results!.tickerResults) {
+        if (!updated[ticker]) continue;
+        updated[ticker] = updated[ticker].map((story) => {
+          const match = verdicts.find((v) => v.headline === story.headline);
+          if (!match) return story;
+          return {
+            ...story,
+            verdict: match.analysis.verdict as ClassifiedStory["verdict"],
+            confidence: match.analysis.confidence,
+            reason: match.analysis.reason ?? story.reason,
+            isAnalyzed: true,
+            classifiedAt: new Date().toISOString(),
+          };
+        });
+      }
+      return updated;
+    });
+  }, []);
+
+  // Poll agent progress
+  const pollAgent = useCallback(async () => {
+    try {
+      const res = await fetch("/api/agent/run");
+      if (!res.ok) return;
+      const data: AgentProgress = await res.json();
+
+      const wasRunning = prevAgentStatusRef.current === "running";
+      const justCompleted = wasRunning && data.status === "complete";
+      prevAgentStatusRef.current = data.status;
+
+      setAgentState(data);
+      if (justCompleted) mergeAgentResults(data);
+    } catch {
+      // ignore
+    }
+  }, [mergeAgentResults]);
+
   useEffect(() => {
     refresh();
     intervalRef.current = setInterval(refresh, POLL_INTERVAL_MS);
@@ -102,7 +149,6 @@ export default function Dashboard() {
     };
   }, [refresh]);
 
-  // Poll congress trades independently every minute
   useEffect(() => {
     congressIntervalRef.current = setInterval(() => {
       fetchCongress(heldTickersRef.current);
@@ -111,6 +157,14 @@ export default function Dashboard() {
       if (congressIntervalRef.current) clearInterval(congressIntervalRef.current);
     };
   }, [fetchCongress]);
+
+  useEffect(() => {
+    pollAgent();
+    agentIntervalRef.current = setInterval(pollAgent, AGENT_POLL_MS);
+    return () => {
+      if (agentIntervalRef.current) clearInterval(agentIntervalRef.current);
+    };
+  }, [pollAgent]);
 
   return (
     <>
@@ -123,6 +177,7 @@ export default function Dashboard() {
           refreshing={refreshing}
           lastUpdated={lastUpdated}
           onRefresh={refresh}
+          agentState={agentState}
           totalValue={positions.length > 0 ? positions.reduce((sum, p) => sum + p.marketValue, 0) : undefined}
           totalGainLoss={totalGainLoss}
           cashBalance={cashBalance}

@@ -5,6 +5,7 @@ sector: Professional Services
 verdict: HOLD
 confidence: 0.50
 relevance: 0.50
+verified: true
 country: US
 source: finnhub
 url: "https://finnhub.io/api/news?id=22a5b8ef2df594ddf82ecfbed06b6901be228e73b05bf26776fb79820ae9548e"
@@ -14,6 +15,7 @@ tags:
   - hold
   - world-brain
   - professional-services
+  - m5-verified
 ---
 
 # Best Value Stocks to Buy for April 17th

@@ -16,6 +16,7 @@ import EmptyState from "./EmptyState";
 import { formatCurrency, formatPercent, formatGainLoss } from "@/lib/utils/format";
 import type { Position } from "@/types/position.types";
 import type { ClassifiedStory, CongressTrade } from "@/types/news.types";
+import type { AgentProgress } from "@/lib/agent/service";
 
 const SOURCE_ORDER = ["twitter", "reddit", "finnhub", "newsapi"] as const;
 const SOURCE_PRIORITY: Record<string, number> = { twitter: 0, reddit: 1, finnhub: 2, newsapi: 3 };
@@ -34,6 +35,7 @@ interface Props {
   congressTrades?: CongressTrade[];
   loading: boolean;
   frosted?: boolean;
+  agentState?: AgentProgress;
 }
 
 function glowClass(buy: number, sell: number, loading: boolean): string {
@@ -62,6 +64,7 @@ export default function PositionCard({
   congressTrades = [],
   loading,
   frosted,
+  agentState,
 }: Props) {
   const articleRef = useRef<HTMLDivElement>(null);
   const [_hovered, setHovered] = useState(false);
@@ -105,12 +108,10 @@ export default function PositionCard({
     const groups: Record<string, ClassifiedStory[]> = {};
 
     for (const story of stories) {
-      // Pending stories are unanalyzed OR have 0 confidence (raw mock data)
-      if (story.isAnalyzed === false || story.confidence === 0) {
+      if (story.isAnalyzed !== true) {
         pending.push(story);
         continue;
       }
-
       const src = story.source || "newsapi";
       if (!groups[src]) groups[src] = [];
       groups[src].push(story);
@@ -170,73 +171,81 @@ export default function PositionCard({
           {/* ── Header (logo-left anchor) ── */}
           <div className="p-4 pb-3">
             <div className="grid grid-cols-[auto_1fr_auto] gap-3.5 items-start">
-              <CompanyLogo ticker={ticker} size={44} radius={10} />
-              <div className="min-w-0 flex flex-col gap-1">
-                <div className="flex items-baseline gap-2.5">
-                  <h1 className="font-mono text-[22px] font-black text-white tracking-tighter leading-none">
+              <div className="flex flex-col items-center gap-1.5 shrink-0">
+                <CompanyLogo ticker={ticker} size={44} radius={10} />
+                <span
+                  className={`font-mono text-[11px] font-black tracking-tight ${
+                    gainPositive ? "text-positive" : "text-negative"
+                  }`}
+                >
+                  {gainPositive ? "▲" : "▼"}&nbsp;{Math.abs(gainPct).toFixed(2)}%
+                </span>
+              </div>
+              <div className="min-w-0 flex flex-col gap-0.5">
+                {/* Row 1: ticker only */}
+                <div className="flex items-center gap-2">
+                  <h1 className="font-mono text-[22px] font-black text-white tracking-tighter leading-none shrink-0">
                     {ticker}
                   </h1>
-                  <span
-                    className={`font-mono text-[10px] font-bold tracking-wider ${
-                      gainPositive ? "text-positive" : "text-negative"
-                    }`}
-                  >
-                    {gainPositive ? "▲" : "▼"} {formatPercent(gainPct)}
-                  </span>
                 </div>
+                {/* Row 2: full company name */}
                 <p
                   className="text-[10px] text-slate-400 font-medium leading-tight truncate max-w-full"
                   title={description}
                 >
                   {description}
                 </p>
+                {/* Row 3: price per share */}
+                <span className="font-mono text-[10px] text-slate-500 font-medium">
+                  {formatCurrency(currentPrice)}&thinsp;<span className="opacity-50 text-[9px]">/ SH</span>
+                </span>
               </div>
-              <div className="shrink-0 relative">
+              <div className="shrink-0">
                 <Sparkline data={history || []} width={120} height={44} />
-                {/* Halo ring on endpoint reinforces "live" */}
-                {history && history.length > 0 && (
-                  <span
-                    className="absolute top-[6px] right-0 w-2.5 h-2.5 rounded-full border"
-                    style={{
-                      borderColor: gainPositive
-                        ? "rgba(0,255,136,0.35)"
-                        : "rgba(255,68,68,0.35)",
-                    }}
-                  />
-                )}
               </div>
             </div>
           </div>
 
           {/* ── 3-stat row ── */}
-          <div className="px-4 pb-3 grid grid-cols-3 gap-3.5 border-t border-white/[0.06] pt-3">
-            <Stat
-              label="Market Val"
-              value={formatCurrency(marketValue)}
-              sub={`${quantity} sh · ${formatCurrency(currentPrice)}`}
-            />
-            <Stat
-              label="Unrealized"
-              value={formatGainLoss(gainLoss)}
-              valueClass={gainPositive ? "text-positive" : "text-negative"}
-              sub={`Cost ${formatCurrency(pricePaid)} avg`}
-            />
-            <Stat
-              label="Today"
-              value={
-                todayDelta
-                  ? `${todayDelta.diff >= 0 ? "+" : ""}${formatCurrency(todayDelta.diff)}`
-                  : "—"
-              }
-              valueClass={
-                todayDelta
-                  ? todayDelta.diff >= 0
-                    ? "text-positive"
-                    : "text-negative"
-                  : "text-slate-400"
-              }
-              sub={todayDelta ? `${formatPercent(todayDelta.pct)}` : "no intraday"}
-            />
+          <div className="flex border-t border-white/[0.06]">
+            <div className="flex-1 py-3 px-2 flex items-center justify-center">
+              <Stat
+                label="Market Val"
+                value={formatCurrency(marketValue)}
+                sub={`${quantity} sh · ${formatCurrency(currentPrice)}`}
+                align="center"
+              />
+            </div>
+            <div className="w-px bg-white/[0.06]" />
+            <div className="flex-1 py-3 px-2 flex items-center justify-center">
+              <Stat
+                label="Unrealized"
+                value={formatGainLoss(gainLoss)}
+                valueClass={gainPositive ? "text-positive" : "text-negative"}
+                sub={`Bought at ${formatCurrency(pricePaid)} / SH`}
+                align="center"
+              />
+            </div>
+            <div className="w-px bg-white/[0.06]" />
+            <div className="flex-1 py-3 px-2 flex items-center justify-center">
+              <Stat
+                label="Today"
+                value={
+                  todayDelta
+                    ? `${todayDelta.diff >= 0 ? "+" : ""}${formatCurrency(todayDelta.diff)}`
+                    : "—"
+                }
+                valueClass={
+                  todayDelta
+                    ? todayDelta.diff >= 0
+                      ? "text-positive"
+                      : "text-negative"
+                    : "text-slate-400"
+                }
+                sub={todayDelta ? `${formatPercent(todayDelta.pct)}` : "no intraday"}
+                align="center"
+              />
+            </div>
           </div>
 
           {/* ── Sentiment strip ── */}
@@ -296,6 +305,7 @@ export default function PositionCard({
                     <PendingNewsCard
                       key={`${story.ticker}-${story.source}-${story.datetime}-${story.headline}`}
                       story={story}
+                      agentState={agentState}
                     />
                   ))}
                 </NewsCollapsible>
@@ -365,18 +375,20 @@ interface StatProps {
   value: string;
   valueClass?: string;
   sub: string;
+  align?: "left" | "center" | "right";
 }
 
-function Stat({ label, value, valueClass = "text-white", sub }: StatProps) {
+function Stat({ label, value, valueClass = "text-white", sub, align = "left" }: StatProps) {
+  const alignClass = align === "center" ? "items-center text-center" : align === "right" ? "items-end text-right" : "items-start text-left";
   return (
-    <div className="flex flex-col gap-1">
+    <div className={`flex flex-col gap-1 ${alignClass}`}>
       <span className="font-mono text-[9px] font-bold text-slate-500 tracking-[0.2em] uppercase">
         {label}
       </span>
-      <span className={`font-mono text-[15px] font-bold leading-none tracking-tight ${valueClass}`}>
+      <span className={`font-mono text-[14px] font-bold leading-none tracking-tight ${valueClass}`}>
         {value}
       </span>
-      <span className="font-mono text-[10px] font-medium text-slate-400 truncate" title={sub}>
+      <span className="font-mono text-[9.5px] font-medium text-slate-400 leading-snug break-words" title={sub}>
         {sub}
       </span>
     </div>

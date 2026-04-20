@@ -7,6 +7,7 @@ import type { ClassifiedStory } from "@/types/news.types";
 import { MOCK_NEWS, MOCK_PENDING } from "@/lib/mock-news";
 import { getCompanyName } from "@/lib/company-names";
 import { NEWS_CACHE_TTL_MS } from "@/lib/constants";
+import { keywordClassify } from "@/lib/classifier";
 
 const THIRTY_DAYS_S = 30 * 24 * 60 * 60;
 
@@ -31,7 +32,6 @@ export class NewsService {
   constructor(
     private readonly providers: {
       finnhub?: INewsProvider;
-      twitter?: INewsProvider;
       reddit: INewsProvider;
       newsapi?: INewsProvider;
     },
@@ -45,16 +45,10 @@ export class NewsService {
 
     const companyName = await getCompanyName(ticker);
 
-    const [finnhubItems, twitterItems, redditItems, newsapiItems] = await Promise.all([
+    const [finnhubItems, redditItems, newsapiItems] = await Promise.all([
       this.providers.finnhub
         ? this.providers.finnhub.fetchNews(ticker).catch((err) => {
             console.error(`[news] Finnhub error for ${ticker}:`, err);
-            return [];
-          })
-        : [],
-      this.providers.twitter
-        ? this.providers.twitter.fetchNews(ticker).catch((err) => {
-            console.error(`[news] Twitter error for ${ticker}:`, err);
             return [];
           })
         : [],
@@ -71,7 +65,7 @@ export class NewsService {
     ]);
 
     const totalRealStories =
-      finnhubItems.length + twitterItems.length + redditItems.length + newsapiItems.length;
+      finnhubItems.length + redditItems.length + newsapiItems.length;
 
     if (totalRealStories === 0) {
       if (MOCK_VERDICTS?.[ticker]) {
@@ -97,15 +91,22 @@ export class NewsService {
     const cutoff = Math.floor(Date.now() / 1000) - THIRTY_DAYS_S;
     const allItems = [
       ...finnhubItems.map((a) => ({ ticker, ...a, source: "finnhub" as const })),
-      ...twitterItems.map((a) => ({ ticker, ...a, source: "twitter" as const })),
       ...redditItems.map((a) => ({ ticker, ...a, source: "reddit" as const })),
       ...newsapiItems.map((a) => ({ ticker, ...a, source: "newsapi" as const })),
     ].filter((s) => s.datetime >= cutoff);
 
     const classified: ClassifiedStory[] = [];
-    for (const s of allItems) {
-      const cls = await this.classifier.classify(s.ticker, s.headline, s.summary ?? "");
-      classified.push({ ...s, ...cls });
+    // Only deep-analyze the first 3 stories to avoid timeouts and save tokens/time
+    // The rest will use keyword/default logic from the classifier
+    for (let i = 0; i < allItems.length; i++) {
+      const s = allItems[i];
+      if (i < 3) {
+        const cls = await this.classifier.classify(s.ticker, s.headline, s.summary ?? "");
+        classified.push({ ...s, ...cls });
+      } else {
+        const cls = keywordClassify(s.headline, s.summary ?? "");
+        classified.push({ ...s, ...cls });
+      }
     }
 
     const pending = MOCK_PENDING[ticker] || [];

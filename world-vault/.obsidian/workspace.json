@@ -4,17 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "d208f8a6a51560ef",
+        "id": "219bfc2c712332ea",
         "type": "tabs",
         "children": [
           {
-            "id": "2d5579a4fb0089d6",
+            "id": "4e0bcb044ebbd457",
             "type": "leaf",
             "state": {
-              "type": "graph",
-              "state": {},
-              "icon": "lucide-git-fork",
-              "title": "Graph view"
+              "type": "markdown",
+              "state": {
+                "file": "MMS.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "MMS"
             }
           }
         ]
@@ -179,39 +183,39 @@
       "bases:Create new base": false
     }
   },
-  "active": "2d5579a4fb0089d6",
+  "active": "4e0bcb044ebbd457",
   "lastOpenFiles": [
-    "README.md",
-    "RXD.md",
+    "PLTR.md",
     "HOOD.md",
-    "2026-04-15.md",
-    "news/2026-03-30-rebalancing-for-current-market.md",
-    "news/2026-04-18-palantir-stock-has-made-its-early-investors-rich-.md",
-    "news/2026-04-18-palantir-technologies-inc-pltr-and-stellantis-e.md",
-    "news/2026-04-18-wedbush-remains-bullish-on-palantir-technologies-.md",
-    "news/2026-04-18-soundhound-soun-vs-palantir-pltr-which-ai-st.md",
-    "news/2026-04-18-a-look-at-palantir-technologies-pltr-valuation-a.md",
-    "news/2026-04-18-jim-cramer-on-lumen-technologies-lumn-i-ve-alw.md",
-    "news/2026-04-17-democratic-congresswoman-slams-prediction-markets-.md",
-    "news/2026-04-17-markets-shatter-records-as-iran-opens-strait-of-ho.md",
-    "news/2026-04-18-what-moved-markets-this-week.md",
-    "news/2026-04-18-benzinga-bulls-and-bears-oracle-oklo-gevo-and.md",
-    "news/2026-04-18-nasdaq-rebound-buy-2-monster-growth-stocks-up-20-.md",
-    "news/2026-04-18-cathie-wood-sells-fresh-wave-of-crypto-stocks-wort.md",
-    "news/2026-04-18-whale-s-insight-the-rebound-is-spreading-across-b.md",
-    "news/2026-04-18-1-russell-2000-stock-with-competitive-advantages-a.md",
-    "US-news.md",
+    "MMS.md",
+    "news/2026-04-18-1-unstoppable-ai-stock-that-could-soar-186-to-joi.md",
+    "news/2026-04-19-prediction-the-ai-supply-chain-shortage-will-crea.md",
+    "news/2026-04-19-prediction-palantir-s-stock-will-make-a-huge-move.md",
+    "news/2026-04-19-assessing-palantir-technologies-pltr-after-recen.md",
+    "news/2026-04-19-forget-the-chip-boom-wall-street-s-ultimate-cont.md",
+    "news/2026-04-20-direxion-heads-in-a-new-direction-with-income-etfs.md",
+    "news/2026-04-20-kevin-warsh-would-be-the-first-tech-bro-fed-chair-.md",
+    "news/2026-04-20-u-s-seizes-iranian-flagged-ship-warsh-s-big-week.md",
+    "news/2026-04-20-kevin-warsh-s-ties-to-tech-bros-here-s-what-to-kn.md",
+    "news/2026-04-20-relatively-ethical-stocks.md",
+    "news/2026-04-20-ai-demand-surge-has-no-cracks-says-analyst.md",
+    "news/2026-04-20-how-pentagon-budget-reveal-could-boost-palantir-st.md",
+    "news/2026-04-20-letter-to-surf-air-mobility-inc-shareholders-from.md",
+    "news/2026-04-20-scott-galloway-says-the-spacex-ipo-has-no-anchor-.md",
+    "news/2026-04-18-schwab-crypto-launch-tests-robinhood-s-valuation-a.md",
+    "news/2026-04-19-prediction-markets-are-a-1-trillion-market-by-203.md",
+    "news/2026-04-19-robinhood-ceo-vlad-tenev-opened-up-about-what-succ.md",
+    "news/2026-04-19-index-funds-feel-like-a-black-box-lately-.md",
+    "news/2026-04-20-stocks-making-the-biggest-moves-premarket-america.md",
+    "news/2026-04-20-mizuho-maintains-outperform-on-robinhood-markets-.md",
+    "news/2026-04-20-robinhood-to-rally-around-27-here-are-10-top-ana.md",
+    "news/2026-04-20-why-strategy-stock-is-falling-when-bitcoin-isn-t.md",
+    "news/2026-04-20-melker-there-s-no-way-schwab-can-compete-with-r.md",
+    "Untitled 1.canvas",
     "Untitled.canvas",
-    "news/2026-04-10-microsoft-msft-is-down-31-from-its-ath.md",
     "Untitled 4.canvas",
-    "news/2026-04-11-analyst-consensus-on-msft-remains-strong-buy-with-.md",
-    "news/2026-03-23-copper-can-price-fast-new-supply-cannot.md",
-    "daily/2026-04-14.md",
-    "news/2026-04-09-i-legitimately-think-anthropic-is-worth-at-least-.md",
-    "news/2026-04-13-microsoft-s-ai-push-is-unlike-anything-i-ve-seen-.md",
     "Untitled.base",
     "Untitled 3.canvas",
-    "Untitled 2.canvas",
-    "Untitled 1.canvas"
+    "Untitled 2.canvas"
   ]
 }

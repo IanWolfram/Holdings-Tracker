@@ -4,7 +4,7 @@ import TopBar from "@/components/TopBar";
 import PositionCard from "@/components/PositionCard";
 import type { Position } from "@/types/position.types";
 import type { ClassifiedStory, CongressTrade } from "@/types/news.types";
-
+import type { AgentProgress } from "@/lib/agent/service";
 import EmptyState from "@/components/EmptyState";
 
 interface DesktopDashboardProps {
@@ -15,6 +15,7 @@ interface DesktopDashboardProps {
   refreshing: boolean;
   lastUpdated: Date | null;
   onRefresh: () => void;
+  agentState?: AgentProgress;
   totalValue?: number;
   totalGainLoss?: number;
   cashBalance?: number;
@@ -28,6 +29,7 @@ export default function DesktopDashboard({
   refreshing,
   lastUpdated,
   onRefresh,
+  agentState,
   totalValue,
   totalGainLoss,
   cashBalance,
@@ -57,6 +59,7 @@ export default function DesktopDashboard({
               stories={news[pos.ticker] ?? []}
               congressTrades={congressTrades[pos.ticker] ?? []}
               loading={loadingNews[pos.ticker] ?? false}
+              agentState={agentState}
             />
           ))}
         </div>

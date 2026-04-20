@@ -1,14 +1,15 @@
 import fs from "fs";
 import path from "path";
 import { fetchFinnhubNews } from "./finnhub";
-import { fetchTwitterNews } from "./twitter";
 import { fetchRedditPosts } from "./reddit";
 import { fetchNewsAPIArticles } from "./newsapi";
 import { getCompanyName } from "./company-names";
 import { classifyNews } from "./classifier";
 import { MOCK_NEWS } from "./mock-news";
-import { NEWS_CACHE_TTL_MS } from "./constants";
+import { NEWS_CACHE_TTL_MS, WORLD_VAULT_PATH } from "./constants";
+import { writeStoryNote } from "../world-brain/obsidian";
 import type { ClassifiedStory } from "@/types/news.types";
+import type { GeoStory } from "@/types/geo.types";
 export type { ClassifiedStory } from "@/types/news.types";
 
 // Pre-classified verdicts from scripts/review-verdicts.ts --save
@@ -45,16 +46,10 @@ export async function getNewsForTicker(
 
   // Reddit needs no API key — always attempt it
   // Only attempt keyed sources when their credentials are present
-  const [finnhubArticles, tweets, redditPosts, newsAPIArticles] = await Promise.all([
+  const [finnhubArticles, redditPosts, newsAPIArticles] = await Promise.all([
     process.env.FINNHUB_API_KEY
       ? fetchFinnhubNews(ticker).catch((err) => {
           console.error(`[news] Finnhub error for ${ticker}:`, err);
-          return [];
-        })
-      : [],
-    process.env.TWITTER_BEARER_TOKEN
-      ? fetchTwitterNews(ticker).catch((err) => {
-          console.error(`[news] Twitter error for ${ticker}:`, err);
           return [];
         })
       : [],
@@ -73,7 +68,7 @@ export async function getNewsForTicker(
   // If all real sources came back empty, classify and cache mock news so
   // tooltips still show AI reasoning instead of being empty
   const totalRealStories =
-    finnhubArticles.length + tweets.length + redditPosts.length + newsAPIArticles.length;
+    finnhubArticles.length + redditPosts.length + newsAPIArticles.length;
   if (totalRealStories === 0) {
     // Use pre-classified verdicts if available (run scripts/review-verdicts.ts --save to generate)
     if (MOCK_VERDICTS?.[ticker]) {
@@ -86,7 +81,7 @@ export async function getNewsForTicker(
     const classified: ClassifiedStory[] = [];
     for (const s of mockStories) {
       if (s.reason) { classified.push(s); continue; }
-      const cls = await classifyNews(s.ticker, s.headline, s.summary ?? "");
+      const cls = await classifyNews(s.ticker, s.headline, s.summary ?? "", s.url);
       classified.push({ ...s, verdict: cls.verdict, confidence: cls.confidence, reason: cls.reason, classifiedAt: cls.classifiedAt });
     }
     const filtered = withinThirtyDays(classified);
@@ -104,15 +99,6 @@ export async function getNewsForTicker(
       url: a.url,
       datetime: a.datetime,
       source: "finnhub" as const,
-    })),
-    ...tweets.map((t) => ({
-      ticker,
-      headline: t.text.slice(0, 120),
-      summary: t.text,
-      url: t.url,
-      datetime: t.datetime,
-      author: t.author,
-      source: "twitter" as const,
     })),
     ...redditPosts.map((p) => ({
       ticker,
@@ -136,8 +122,14 @@ export async function getNewsForTicker(
   // Classify stories sequentially to avoid overwhelming the local GPU
   const classified: ClassifiedStory[] = [];
   for (const s of stories) {
-    const cls = await classifyNews(s.ticker, s.headline, s.summary ?? "");
-    classified.push({ ...s, ...cls });
+    const cls = await classifyNews(s.ticker, s.headline, s.summary ?? "", s.url);
+    const result = { ...s, ...cls };
+    classified.push(result);
+
+    // PERSISTENCE: If newly analyzed by the brain, remember it in the vault
+    if (result.isAnalyzed && !result.fromVault && WORLD_VAULT_PATH) {
+      writeStoryNote(result as unknown as GeoStory, WORLD_VAULT_PATH, sector);
+    }
   }
 
   // Sort newest first, drop anything older than 30 days

@@ -23,11 +23,10 @@ async function main() {
       for (const item of news.slice(0, 5)) {
         console.log(`TITLE: ${item.headline}`);
         console.log(`SUMMARY: ${item.summary || "(no summary)"}`);
-        console.log(`ID: ${item.id}`);
         console.log('---');
       }
     } catch (err) {
-      console.error(`Failed for ${ticker}: ${err.message}`);
+      console.error(`Failed for ${ticker}: ${(err as Error).message}`);
     }
   }
 }
