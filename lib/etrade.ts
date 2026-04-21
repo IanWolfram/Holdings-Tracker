@@ -22,6 +22,7 @@ import {
 import type { Position } from "@/types/position.types";
 export { MOCK_POSITIONS } from "./position-list";
 import { MOCK_POSITIONS } from "./position-list";
+import { fetchCandlesPolygon } from "./polygon";
 
 function buildOAuth(): OAuth {
   return new OAuth({
@@ -197,7 +198,7 @@ function withSyntheticHistory(positions: Position[]): Position[] {
     
     // Create a plausible 3-month random walk
     // Start at a price consistent with the gainLoss
-    const startingVal = current - (pos.gainLoss / pos.quantity);
+    const startingVal = current - (pos.quantity > 0 ? (pos.gainLoss / pos.quantity) : 0);
     let val = startingVal;
     
     // Add multiple levels of noise for "bumps and ridges"
@@ -206,15 +207,41 @@ function withSyntheticHistory(positions: Position[]): Position[] {
         // Primary trend walk
         const trend = (current - val) / (points - i);
         // Volatility components
-        const noise = (Math.random() - 0.5) * (current * 0.015);
-        const ridges = Math.sin(i * 0.5) * (current * 0.005);
+        const noise = (Math.random() - 0.5) * (current * 0.012);
         
-        val += trend + noise + ridges;
+        val += trend + noise;
     }
     history.push(current);
 
     return { ...pos, history };
   });
+}
+
+/**
+ * Fetches real historical price history from Finnhub.
+ * Falls back to synthetic if the API key is missing or the call fails.
+ */
+async function withRealHistory(positions: Position[]): Promise<Position[]> {
+  const hasKey = !!process.env.POLYGON_API_KEY;
+
+  return Promise.all(
+    positions.map(async (pos) => {
+      if (pos.history && pos.history.length > 0) return pos;
+
+      if (hasKey) {
+        try {
+          const history = await fetchCandlesPolygon(pos.ticker, 90);
+          if (history && history.length > 0) {
+            return { ...pos, history };
+          }
+        } catch (err) {
+          // Non-fatal, fallback to synthetic
+        }
+      }
+
+      return withSyntheticHistory([pos])[0];
+    })
+  );
 }
 
 // Simple in-memory cache: accountIdKey + positions with 5-min TTL
@@ -374,7 +401,7 @@ export async function getPositions(): Promise<Position[]> {
     return true;
   });
 
-  const withHistory = withSyntheticHistory(positions);
+  const withHistory = await withRealHistory(positions);
   setCache(CACHE_KEY, withHistory);
   return withHistory;
 }
@@ -414,5 +441,5 @@ export async function getPositionsSafe(): Promise<Position[]> {
     }
   }
 
-  return withSyntheticHistory(positions);
+  return withRealHistory(positions);
 }

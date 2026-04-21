@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { WORLD_VAULT_PATH } from "./constants";
+import { WORLD_VAULT_PATH, resolveVaultPath } from "./constants";
 import type { Verdict, Classification } from "@/types/news.types";
 
 // ---------------------------------------------------------------------------
@@ -8,11 +8,8 @@ import type { Verdict, Classification } from "@/types/news.types";
 // ---------------------------------------------------------------------------
 
 async function findInVault(url: string): Promise<Classification | null> {
-  if (!WORLD_VAULT_PATH) return null;
-  const vaultPath = WORLD_VAULT_PATH.startsWith(".") 
-    ? path.join(process.cwd(), WORLD_VAULT_PATH) 
-    : WORLD_VAULT_PATH;
-  
+  const vaultPath = resolveVaultPath(WORLD_VAULT_PATH);
+  if (!vaultPath) return null;
   const newsDir = path.join(vaultPath, "news");
   if (!fs.existsSync(newsDir)) return null;
 

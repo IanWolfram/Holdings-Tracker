@@ -14,9 +14,13 @@ export function invalidateSystemPromptCache(): void {
 function getSystemPrompt(): string {
   if (!systemPrompt) {
     const dir = path.join(process.cwd(), "world-brain");
-    const baseParts = ["AGENT.md", "sector-rules.md"]
-      .map((f) => {
-        try { return fs.readFileSync(path.join(dir, f), "utf-8"); } catch { return ""; }
+    const agentsDir = path.join(dir, "agents");
+    
+    const baseParts = [
+      { name: "AGENT.md", path: path.join(agentsDir, "AGENT.md") },
+      { name: "sector-rules.md", path: path.join(dir, "sector-rules.md") }
+    ].map((f) => {
+        try { return fs.readFileSync(f.path, "utf-8"); } catch { return ""; }
       })
       .filter(Boolean);
 

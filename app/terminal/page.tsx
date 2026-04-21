@@ -9,7 +9,8 @@ import type { ClassifiedStory, CongressTrade } from "@/types/news.types";
 import type { AgentProgress } from "@/lib/agent/service";
 
 const CONGRESS_POLL_MS = 60_000;
-const AGENT_POLL_MS = 2_000;
+const AGENT_POLL_MS_ACTIVE = 2_000;  // while running
+const AGENT_POLL_MS_IDLE   = 30_000; // while idle/complete
 
 export default function Dashboard() {
   const [positions, setPositions] = useState<Position[]>([]);
@@ -24,6 +25,7 @@ export default function Dashboard() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const congressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const agentIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const agentPollRateRef = useRef<number>(AGENT_POLL_MS_IDLE);
   const heldTickersRef = useRef<string[]>([]);
   const prevAgentStatusRef = useRef<string>("idle");
 
@@ -107,7 +109,7 @@ export default function Dashboard() {
       for (const { ticker, verdicts } of progress.results!.tickerResults) {
         if (!updated[ticker]) continue;
         updated[ticker] = updated[ticker].map((story) => {
-          const match = verdicts.find((v) => v.headline === story.headline);
+          const match = verdicts.find((v) => v.url === story.url || v.headline === story.headline);
           if (!match) return story;
           return {
             ...story,
@@ -136,6 +138,14 @@ export default function Dashboard() {
 
       setAgentState(data);
       if (justCompleted) mergeAgentResults(data);
+
+      // Reschedule at appropriate rate for current status
+      const desiredRate = data.status === "running" ? AGENT_POLL_MS_ACTIVE : AGENT_POLL_MS_IDLE;
+      if (desiredRate !== agentPollRateRef.current) {
+        agentPollRateRef.current = desiredRate;
+        if (agentIntervalRef.current) clearInterval(agentIntervalRef.current);
+        agentIntervalRef.current = setInterval(pollAgent, desiredRate);
+      }
     } catch {
       // ignore
     }
@@ -160,7 +170,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     pollAgent();
-    agentIntervalRef.current = setInterval(pollAgent, AGENT_POLL_MS);
+    agentIntervalRef.current = setInterval(pollAgent, agentPollRateRef.current);
     return () => {
       if (agentIntervalRef.current) clearInterval(agentIntervalRef.current);
     };

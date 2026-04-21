@@ -54,7 +54,7 @@ export async function getInsiderTrades(tickers: string[]): Promise<CongressTrade
         const filedDate = parseDate(t.filingDate);
         const value = Math.abs(t.change * t.price);
         return {
-          id: `insider-${t.symbol}-${t.transactionDate}-${i}`,
+          id: `insider-${t.symbol}-${t.transactionDate}-${t.transactionCode}-${t.name.replace(/\s+/g, "_")}-${Math.abs(t.change)}-${i}`,
           politician: t.name,
           party: "I" as const,
           chamber: "house" as const,

@@ -2,6 +2,50 @@ import fs from "fs";
 import path from "path";
 import type { GeoStory, WorldData } from "@/types/geo.types";
 
+function buildNoteContent(story: GeoStory, dateStr: string, sector?: string): string {
+  return [
+    "---",
+    `date: "${dateStr}"`,
+    `ticker: ${story.ticker}`,
+    ...(sector ? [`sector: ${sector}`] : []),
+    `verdict: ${story.verdict}`,
+    `confidence: ${story.confidence.toFixed(2)}`,
+    `relevance: ${story.relevanceScore.toFixed(2)}`,
+    `verified: ${story.isAnalyzed ?? false}`,
+    `country: ${story.originCountryCode ?? "unknown"}`,
+    `source: ${story.source}`,
+    `url: "${story.url}"`,
+    "tags:",
+    ...[
+      "news",
+      story.ticker.toLowerCase(),
+      story.verdict.toLowerCase(),
+      "world-brain",
+      ...(sector ? [sector.toLowerCase().replace(/\s+/g, "-")] : []),
+      ...(story.isAnalyzed ? ["m5-verified"] : []),
+    ].map((t) => `  - ${t}`),
+    "---",
+    "",
+    `# ${story.headline}`,
+    "",
+    `**Verdict**: ${story.verdict} (${Math.round(story.confidence * 100)}% confidence)  `,
+    `**Relevance to [[${story.ticker}]]**: ${Math.round(story.relevanceScore * 100)}%  `,
+    `**Geographic origin**: ${story.originCountryCode ?? "Unknown"}  `,
+    "",
+    "## Summary",
+    story.summary || "_No summary available._",
+    "",
+    "## AI Analysis",
+    story.reason ?? "_No analysis available._",
+    "",
+    "## Links",
+    `- [Source Article](${story.url})`,
+    `- [[${story.ticker}]]`,
+    ...(story.originCountryCode ? [`- [[${story.originCountryCode}-news]]`] : []),
+    "",
+  ].join("\n");
+}
+
 // ---------------------------------------------------------------------------
 // Individual story note
 // ---------------------------------------------------------------------------
@@ -15,61 +59,32 @@ export function writeStoryNote(story: GeoStory, vaultPath: string, sector?: stri
       .replace(/[^a-z0-9]/gi, "-")
       .replace(/-+/g, "-")
       .toLowerCase();
-    const notePath = path.join(vaultPath, "news", `${dateStr}-${slug}.md`);
+    const newsDir = path.join(vaultPath, "news");
+    const notePath = path.join(newsDir, `${dateStr}-${slug}.md`);
+
+    // If a file for this URL already exists (possibly under a different slug), use that path
+    // and skip if it's already verified — don't downgrade an MLX-verified entry.
+    try {
+      const existing = fs.readdirSync(newsDir).find((f) => {
+        if (!f.endsWith(".md")) return false;
+        const content = fs.readFileSync(path.join(newsDir, f), "utf-8");
+        return content.includes(`url: "${story.url}"`);
+      });
+      if (existing) {
+        const existingContent = fs.readFileSync(path.join(newsDir, existing), "utf-8");
+        if (existingContent.includes("verified: true") && !story.isAnalyzed) return;
+        // Use the existing path so we don't create a duplicate
+        const resolvedPath = path.join(newsDir, existing);
+        if (resolvedPath !== notePath) {
+          // Write to existing path, skip the default slug path
+          fs.writeFileSync(resolvedPath, buildNoteContent(story, dateStr, sector), "utf-8");
+          return;
+        }
+      }
+    } catch { /* directory may not exist yet — fall through to normal write */ }
 
     fs.mkdirSync(path.dirname(notePath), { recursive: true });
-
-    const tagList = [
-      "news",
-      story.ticker.toLowerCase(),
-      story.verdict.toLowerCase(),
-      "world-brain",
-      ...(sector ? [sector.toLowerCase().replace(/\s+/g, "-")] : []),
-    ];
-
-    const content = [
-      "---",
-      `date: "${dateStr}"`,
-      `ticker: ${story.ticker}`,
-      ...(sector ? [`sector: ${sector}`] : []),
-      `verdict: ${story.verdict}`,
-      `confidence: ${story.confidence.toFixed(2)}`,
-      `relevance: ${story.relevanceScore.toFixed(2)}`,
-      `verified: ${story.isAnalyzed ?? false}`,
-      `country: ${story.originCountryCode ?? "unknown"}`,
-      `source: ${story.source}`,
-      `url: "${story.url}"`,
-      "tags:",
-      ...[
-        "news",
-        story.ticker.toLowerCase(),
-        story.verdict.toLowerCase(),
-        "world-brain",
-        ...(sector ? [sector.toLowerCase().replace(/\s+/g, "-")] : []),
-        ...(story.isAnalyzed ? ["m5-verified"] : []),
-      ].map((t) => `  - ${t}`),
-      "---",
-      "",
-      `# ${story.headline}`,
-      "",
-      `**Verdict**: ${story.verdict} (${Math.round(story.confidence * 100)}% confidence)  `,
-      `**Relevance to [[${story.ticker}]]**: ${Math.round(story.relevanceScore * 100)}%  `,
-      `**Geographic origin**: ${story.originCountryCode ?? "Unknown"}  `,
-      "",
-      "## Summary",
-      story.summary || "_No summary available._",
-      "",
-      "## AI Analysis",
-      story.reason ?? "_No analysis available._",
-      "",
-      "## Links",
-      `- [Source Article](${story.url})`,
-      `- [[${story.ticker}]]`,
-      ...(story.originCountryCode ? [`- [[${story.originCountryCode}-news]]`] : []),
-      "",
-    ].join("\n");
-
-    fs.writeFileSync(notePath, content, "utf-8");
+    fs.writeFileSync(notePath, buildNoteContent(story, dateStr, sector), "utf-8");
   } catch (err) {
     console.error("[obsidian] Failed to write story note:", err);
   }

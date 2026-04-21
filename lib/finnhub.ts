@@ -118,3 +118,33 @@ export async function fetchQuote(ticker: string): Promise<Quote> {
     });
   });
 }
+/**
+ * Fetch historical stock candles using direct REST for better 2026 compatibility
+ */
+export async function fetchCandles(
+  ticker: string,
+  days: number = 90
+): Promise<number[]> {
+  const key = process.env.FINNHUB_API_KEY;
+  if (!key) throw new Error("FINNHUB_API_KEY is not set");
+
+  const to = Math.floor(Date.now() / 1000);
+  const from = to - days * 24 * 60 * 60;
+  const url = `https://finnhub.io/api/v1/stock/candle?symbol=${ticker}&resolution=D&from=${from}&to=${to}&token=${key}`;
+
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    
+    const data = await res.json();
+    if (data.s === "ok" && Array.isArray(data.c)) {
+      console.log(`[finnhub] 2026 Sync: Fetched ${data.c.length} candles for ${ticker}`);
+      return data.c;
+    }
+    console.warn(`[finnhub] No candles for ${ticker} in 2026 range:`, data.s);
+    return [];
+  } catch (err) {
+    console.error(`[finnhub] 2026 Fetch error for ${ticker}:`, err);
+    return [];
+  }
+}

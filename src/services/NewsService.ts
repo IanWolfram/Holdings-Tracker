@@ -39,6 +39,10 @@ export class NewsService {
     private readonly cache: ICache
   ) {}
 
+  invalidateTicker(ticker: string): void {
+    this.cache.delete(ticker);
+  }
+
   async getNewsForTicker(ticker: string, sector?: string): Promise<ClassifiedStory[]> {
     const cached = this.cache.get<ClassifiedStory[]>(ticker);
     if (cached) return cached;
@@ -78,8 +82,8 @@ export class NewsService {
       const classified: ClassifiedStory[] = [];
       for (const s of mockStories) {
         if (s.reason) { classified.push(s); continue; }
-        const cls = await this.classifier.classify(s.ticker, s.headline, s.summary ?? "");
-        classified.push({ ...s, verdict: cls.verdict, confidence: cls.confidence, reason: cls.reason, classifiedAt: cls.classifiedAt });
+        const cls = await this.classifier.classify(s.ticker, s.headline, s.summary ?? "", s.url);
+        classified.push({ ...s, ...cls });
       }
       const pending = MOCK_PENDING[ticker] || [];
       const filtered = withinThirtyDays(classified);
@@ -101,7 +105,7 @@ export class NewsService {
     for (let i = 0; i < allItems.length; i++) {
       const s = allItems[i];
       if (i < 3) {
-        const cls = await this.classifier.classify(s.ticker, s.headline, s.summary ?? "");
+        const cls = await this.classifier.classify(s.ticker, s.headline, s.summary ?? "", s.url);
         classified.push({ ...s, ...cls });
       } else {
         const cls = keywordClassify(s.headline, s.summary ?? "");

@@ -196,21 +196,6 @@ export default function NewsCard({
                         />
                       </div>
                     </div>
-
-                    {!isAnalyzed ? (
-                      <button
-                        onClick={handleAnalyze}
-                        disabled={analyzing}
-                        className="shrink-0 text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded bg-white text-black hover:bg-white/90 disabled:opacity-50 transition-colors"
-                      >
-                        {analyzing ? "Thinking..." : "Deep Analysis"}
-                      </button>
-                    ) : (
-                      <div className="shrink-0 flex items-center gap-1 text-[8px] font-bold text-slate-500 uppercase tracking-widest border border-slate-700 px-1.5 py-0.5 rounded">
-                        <span className="material-symbols-outlined text-[10px]">check_circle</span>
-                        Final
-                      </div>
-                    )}
                   </div>
 
                   {/* Reasoning */}

@@ -1,5 +1,6 @@
 import { fetchStooqQuote } from "./stooq";
 import { fetchYahooHistory } from "./yahoo-finance";
+import { fetchCandlesPolygon } from "./polygon";
 import { NEWS_CACHE_TTL_MS, ACCOUNT_CACHE_TTL_MS } from "./constants";
 import type { QuoteData, HistoryData } from "@/types/market-data.types";
 
@@ -77,6 +78,19 @@ export async function getHistory(ticker: string): Promise<HistoryData | null> {
     return cached.data;
   }
 
+  // Primary: Polygon.io (requires POLYGON_API_KEY)
+  try {
+    const closes = await fetchCandlesPolygon(ticker, 90);
+    if (closes.length > 0) {
+      const data: HistoryData = { ticker, closes, source: "polygon", fetchedAt: Date.now() };
+      historyCache.set(ticker, { data, expiresAt: Date.now() + ACCOUNT_CACHE_TTL_MS });
+      return data;
+    }
+  } catch (err) {
+    console.warn(`[market-data] Polygon history failed for ${ticker}:`, (err as Error).message);
+  }
+
+  // Fallback: Yahoo Finance
   try {
     const data = await fetchYahooHistory(ticker);
     historyCache.set(ticker, {

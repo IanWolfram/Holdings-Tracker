@@ -11,12 +11,19 @@ export interface VaultStory {
   date: string;
 }
 
-const ARCHIVIST_SYSTEM_PROMPT = `You are a financial intelligence archivist. Synthesize past news analysis patterns into concise, actionable knowledge for future inference. Output plain markdown prose, 3-5 sentences. No JSON, no bullet lists, no numbered lists, no headers, no preamble. Write as a single compact paragraph.`;
+function getSubagentPrompt(filename: string): string {
+  try {
+    const dir = path.join(process.cwd(), "world-brain", "agents");
+    return fs.readFileSync(path.join(dir, filename), "utf-8").trim();
+  } catch (err) {
+    console.error(`[learn] Failed to read subagent prompt ${filename}:`, err);
+    return "";
+  }
+}
 
-const ANALYST_SYSTEM_PROMPT = `You are a cross-portfolio financial pattern analyst. Identify macro patterns, cross-sector correlations, and signal calibration notes from today's sweep. Write 3-6 sentences as plain markdown prose. No JSON, no bullet lists, no headers. Be concise and analytically precise.`;
-
+import { resolveVaultPath as _resolveVaultPath } from "../lib/constants";
 function resolveVaultPath(vaultPath: string): string {
-  return vaultPath.startsWith(".") ? path.join(process.cwd(), vaultPath) : vaultPath;
+  return _resolveVaultPath(vaultPath) ?? vaultPath;
 }
 
 function parseFrontmatter(content: string): Record<string, string> {
@@ -102,7 +109,7 @@ export async function buildTickerKnowledge(
     `4. Confidence calibration notes (e.g., "analyst upgrades typically score 0.75-0.85")\n\n` +
     `Write ONLY the knowledge block as plain prose. No headers. No JSON. No preamble. No mention of "knowledge block."`;
 
-  const result = await callMlxRaw(ARCHIVIST_SYSTEM_PROMPT, userMessage);
+  const result = await callMlxRaw(getSubagentPrompt("ARCHIVIST.md"), userMessage);
   return result;
 }
 
@@ -172,7 +179,7 @@ export async function runMetaReflection(
     `(4) Any anomalies or contradictions worth flagging for future sessions\n\n` +
     `Output only plain prose. No headers, no lists, no JSON.`;
 
-  const reflection = await callMlxRaw(ANALYST_SYSTEM_PROMPT, userMessage);
+  const reflection = await callMlxRaw(getSubagentPrompt("META-ANALYST.md"), userMessage);
   if (!reflection) {
     console.log("[learn] Meta-reflection returned empty — skipping market-insights update.");
     return;

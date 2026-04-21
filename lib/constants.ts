@@ -9,6 +9,11 @@ export const ACCOUNT_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 export const WORLD_CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
 export const WORLD_VAULT_PATH = process.env.WORLD_VAULT_PATH ?? null;
 
+export function resolveVaultPath(vaultPath: string | null | undefined): string | null {
+  if (!vaultPath) return null;
+  return vaultPath.startsWith(".") ? require("path").join(process.cwd(), vaultPath) : vaultPath;
+}
+
 
 // UI Configuration
 export const NEWS_PREVIEW_COUNT = 3;

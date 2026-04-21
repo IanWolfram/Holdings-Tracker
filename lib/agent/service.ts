@@ -7,7 +7,7 @@ import { analyzeStory, UnifiedAnalysis } from "../../world-brain/brain";
 import { getRecentVaultStories, runLearningPass } from "../../world-brain/learn";
 import { ensureMlxServer } from "../mlx";
 import { writeStoryNote, writeDailySummary } from "../../world-brain/obsidian";
-import { WORLD_VAULT_PATH } from "../constants";
+import { WORLD_VAULT_PATH, resolveVaultPath } from "../constants";
 import type { GeoStory, WorldData } from "@/types/geo.types";
 
 export interface AgentProgress {
@@ -27,6 +27,7 @@ export interface TickerResult {
   verdicts: {
     verdict: string;
     headline: string;
+    url: string;
     analysis: UnifiedAnalysis;
   }[];
 }
@@ -100,6 +101,12 @@ export async function runStockAgent(): Promise<AgentRunResult> {
     let totalSells = 0;
     let totalHolds = 0;
 
+    // Invalidate news cache for all tickers before starting so vault-stored verdicts
+    // are picked up via findInVault on fresh fetch — enables correct resume after cancel.
+    for (const p of positions) {
+      getServices().newsService.invalidateTicker(p.ticker);
+    }
+
     // 3. Analyze news per ticker
     for (const pos of positions) {
       if (isCancelled) break;
@@ -119,9 +126,7 @@ export async function runStockAgent(): Promise<AgentRunResult> {
       let tickerContext: string | undefined;
       let recentVerdicts: Array<{ headline: string; verdict: string; confidence: number; reason: string }> | undefined;
       if (WORLD_VAULT_PATH) {
-        const resolvedVault = WORLD_VAULT_PATH.startsWith(".")
-          ? path.join(process.cwd(), WORLD_VAULT_PATH)
-          : WORLD_VAULT_PATH;
+        const resolvedVault = resolveVaultPath(WORLD_VAULT_PATH)!;
         try {
           const raw = fs.readFileSync(path.join(resolvedVault, `${pos.ticker}.md`), "utf-8");
           const body = raw.match(/^---[\s\S]*?---\s*([\s\S]*)$/)?.[1]?.trim() ?? "";
@@ -175,6 +180,7 @@ export async function runStockAgent(): Promise<AgentRunResult> {
         verdicts.push({
           verdict: analysis.verdict,
           headline: article.headline,
+          url: article.url,
           analysis
         });
 
@@ -196,10 +202,12 @@ export async function runStockAgent(): Promise<AgentRunResult> {
             source: article.source,
             originCountryCode: analysis.originCountryCode ?? profile?.countryCode,
             relevanceScore: analysis.relevanceScore,
-            isAnalyzed: true,
+            isAnalyzed: Boolean(analysis.reason), // false if MLX returned a fallback (empty reason)
           };
           allGeoStories.push(geoStory);
           writeStoryNote(geoStory, WORLD_VAULT_PATH, profile?.sector);
+          // Immediately bust the cache so this verdict is picked up if the run is cancelled
+          getServices().newsService.invalidateTicker(pos.ticker);
         }
       }
 

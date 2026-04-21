@@ -4,7 +4,7 @@ ticker: PLTR
 sector: Tech
 verdict: BUY
 confidence: 0.95
-relevance: 0.95
+relevance: 0.98
 verified: true
 country: US
 source: finnhub
@@ -21,7 +21,7 @@ tags:
 # Palantir Technologies Is About to Control the Skies With AI
 
 **Verdict**: BUY (95% confidence)  
-**Relevance to [[PLTR]]**: 95%  
+**Relevance to [[PLTR]]**: 98%  
 **Geographic origin**: US  
 
 ## Summary

@@ -22,6 +22,6 @@ export interface QuoteData {
 export interface HistoryData {
   ticker: string;
   closes: number[];
-  source: "yahoo";
+  source: "yahoo" | "polygon";
   fetchedAt: number;
 }
