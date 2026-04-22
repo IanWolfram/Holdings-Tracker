@@ -1,34 +1,35 @@
 ---
-date: "2026-04-18"
-ticker: 005930
+date: "2026-04-13"
+ticker: RBL
 sector: Unknown
-verdict: BUY
-confidence: 0.60
-relevance: 0.60
-country: KR
-source: finnhub
+verdict: SELL
+confidence: 0.88
+relevance: 0.88
+verified: false
+country: US
+source: twitter
 url: "#"
 tags:
   - news
-  - 005930
-  - buy
+  - rbl
+  - sell
   - world-brain
   - unknown
 ---
 
-# Samsung Electronics swings to profit on DRAM price recovery, HBM3 yield improvements
+# RBL misses Q2 revenue estimates by 8%, cites softer-than-expected ad market.
 
-**Verdict**: BUY (60% confidence)  
-**Relevance to [[005930]]**: 60%  
-**Geographic origin**: KR  
+**Verdict**: SELL (88% confidence)  
+**Relevance to [[RBL]]**: 88%  
+**Geographic origin**: US  
 
 ## Summary
-DS division posted ₩3.8T operating profit as DRAM spot prices rose 22% QoQ and HBM3 yields exceeded 70%.
+RBL misses Q2 revenue estimates by 8%, cites softer-than-expected ad market.
 
 ## AI Analysis
-_No analysis available._
+The 8% revenue miss confirms market weakness, justifying a sell signal despite general optimism.
 
 ## Links
 - [Source Article](#)
-- [[005930]]
-- [[KR-news]]
+- [[RBL]]
+- [[US-news]]

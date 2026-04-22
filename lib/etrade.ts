@@ -53,7 +53,7 @@ function toHeader(oauth: OAuth, data: OAuth.Authorization): { Authorization: str
 }
 
 /** Step 1 of OAuth flow — get a request token */
-export async function getRequestToken(): Promise<{
+export async function getRequestToken(callbackUrl?: string): Promise<{
   token: string;
   tokenSecret: string;
   authUrl: string;
@@ -63,7 +63,8 @@ export async function getRequestToken(): Promise<{
   const requestData = { url, method: "GET" };
 
   const headers = toHeader(oauth, oauth.authorize(requestData));
-  const res = await fetch(`${url}?oauth_callback=oob`, {
+  const callback = callbackUrl ?? "oob";
+  const res = await fetch(`${url}?oauth_callback=${encodeURIComponent(callback)}`, {
     headers: { ...headers, Accept: "application/json" },
   });
 
@@ -184,32 +185,36 @@ async function fetchPortfolio(accountIdKey: string): Promise<Position[]> {
   return positions;
 }
 
-/** 
- * Generates a synthetic price history for positions that don't have one.
- * Uses current price and gain/loss to create a plausible random walk.
- */
+function seededRand(seed: number): () => number {
+  let s = seed;
+  return () => {
+    s = (s * 1664525 + 1013904223) & 0xffffffff;
+    return (s >>> 0) / 0xffffffff;
+  };
+}
+
+function tickerSeed(ticker: string): number {
+  let h = 0;
+  for (let i = 0; i < ticker.length; i++) h = (Math.imul(31, h) + ticker.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
 function withSyntheticHistory(positions: Position[]): Position[] {
   return positions.map(pos => {
     if (pos.history && pos.history.length > 0) return pos;
 
-    const points = 90; // Approx 3 months of daily data
+    const rand = seededRand(tickerSeed(pos.ticker));
+    const points = 90;
     const history: number[] = [];
     const current = pos.currentPrice;
-    
-    // Create a plausible 3-month random walk
-    // Start at a price consistent with the gainLoss
     const startingVal = current - (pos.quantity > 0 ? (pos.gainLoss / pos.quantity) : 0);
     let val = startingVal;
-    
-    // Add multiple levels of noise for "bumps and ridges"
+
     for (let i = 0; i < points - 1; i++) {
-        history.push(val);
-        // Primary trend walk
-        const trend = (current - val) / (points - i);
-        // Volatility components
-        const noise = (Math.random() - 0.5) * (current * 0.012);
-        
-        val += trend + noise;
+      history.push(val);
+      const trend = (current - val) / (points - i);
+      const noise = (rand() - 0.5) * (current * 0.012);
+      val += trend + noise;
     }
     history.push(current);
 
@@ -442,4 +447,31 @@ export async function getPositionsSafe(): Promise<Position[]> {
   }
 
   return withRealHistory(positions);
+}
+
+/** Update .env.local with new tokens */
+export async function updateEtradeTokens(token: string, secret: string) {
+  if (typeof window !== "undefined") {
+    throw new Error("updateEtradeTokens can only be called on the server");
+  }
+
+  const fs = await import("fs");
+  const path = await import("path");
+  const envPath = path.resolve(process.cwd(), ".env.local");
+
+  let content = fs.existsSync(envPath) ? fs.readFileSync(envPath, "utf8") : "";
+
+  const update = (key: string, value: string) => {
+    const regex = new RegExp(`^${key}=.*$`, "m");
+    if (regex.test(content)) {
+      content = content.replace(regex, `${key}=${value}`);
+    } else {
+      content = content.trimEnd() + `\n${key}=${value}\n`;
+    }
+  };
+
+  update("ETRADE_OAUTH_TOKEN", token);
+  update("ETRADE_OAUTH_TOKEN_SECRET", secret);
+
+  fs.writeFileSync(envPath, content);
 }

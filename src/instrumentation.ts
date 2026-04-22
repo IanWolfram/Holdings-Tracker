@@ -36,5 +36,5 @@ export async function register() {
   });
 
   (global as any)._worldCronScheduled = true;
-  console.info("[world-cron] Service initialized: hourly 06:00–23:00");
+  console.info(`[world-cron] Service initialized: ${schedule}`);
 }

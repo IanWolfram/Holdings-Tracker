@@ -139,7 +139,7 @@ function applyCountryBuffers(
     const geom = new THREE.BufferGeometry();
     geom.setAttribute("position", new THREE.BufferAttribute(data.linePositions, 3));
     geom.setAttribute("color", new THREE.BufferAttribute(data.lineColors, 3));
-    const mat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 1.0, linewidth: 1 });
+    const mat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 1.0, linewidth: 2 });
     const lines = new THREE.LineSegments(geom, mat);
     lines.userData = { isMergedBorder: true };
     globeGroup.add(lines);
@@ -178,7 +178,7 @@ function applyStateBuffers(
     const geom = new THREE.BufferGeometry();
     geom.setAttribute("position", new THREE.BufferAttribute(stateLinePositions, 3));
     geom.setAttribute("color", new THREE.BufferAttribute(stateLineColors, 3));
-    const mat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 1.0, linewidth: 1 });
+    const mat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 1.0, linewidth: 2 });
     const lines = new THREE.LineSegments(geom, mat);
     lines.userData = { isStateBorder: true };
     globeGroup.add(lines);
@@ -343,7 +343,7 @@ function animateGlobe(
   renderer: THREE.WebGLRenderer
 ) {
   const effectiveTarget = isFocused ? focusZoom : state.targetZoom;
-  camera.position.z += (effectiveTarget - camera.position.z) * 0.1;
+  camera.position.z += (effectiveTarget - camera.position.z) * 0.16;
 
   if (selectedMarker) selectedMarker.rotateOnAxis(LOCAL_Y, 0.018);
 
@@ -366,8 +366,9 @@ function animateGlobe(
       if (Math.abs(state.dragVelocity.x) < 0.1 && Math.abs(state.dragVelocity.y) < 0.1) {
         globeGroup.rotation.y += 0.0006;
       } else {
-        globeGroup.rotation.y += state.dragVelocity.x * 0.005;
-        globeGroup.rotation.x += state.dragVelocity.y * 0.005;
+        const panFactor = 0.005 * (camera.position.z / 2.6);
+        globeGroup.rotation.y += state.dragVelocity.x * panFactor;
+        globeGroup.rotation.x += state.dragVelocity.y * panFactor;
       }
     }
   }
@@ -403,9 +404,16 @@ function animateGlobe(
       _mat.compose(_tmpPos, _quat.set(0, 0, 0, 1), _scale);
       markerInstances.spheres.setMatrixAt(ms.instanceId, _mat);
 
-      _scale.setScalar(ms.dotRadius * 4 * vis);
-      _mat.compose(_tmpPos, _quat.set(0, 0, 0, 1), _scale);
-      markerInstances.hitSpheres.setMatrixAt(ms.instanceId, _mat);
+      if (vis === 0) {
+        // Zero-scale makes the matrix non-invertible, causing phantom raycaster
+        // hits on invisible instances. Move them off-screen instead.
+        _mat.makeTranslation(0, 0, -9999);
+        markerInstances.hitSpheres.setMatrixAt(ms.instanceId, _mat);
+      } else {
+        _scale.setScalar(ms.dotRadius * 4);
+        _mat.compose(_tmpPos, _quat.set(0, 0, 0, 1), _scale);
+        markerInstances.hitSpheres.setMatrixAt(ms.instanceId, _mat);
+      }
 
       _quat.setFromUnitVectors(UP, ms.outward);
       _scale.setScalar((ms.dHalfH / 2.4) * ms.hoverT * vis);
@@ -672,13 +680,15 @@ export default function GlobeCanvas({
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      state.targetZoom = Math.max(1.2, Math.min(state.targetZoom + e.deltaY * 0.002, 6.0));
+      state.targetZoom = Math.max(1.2, Math.min(state.targetZoom + e.deltaY * 0.012, 6.0));
       if (zoomSlider) zoomSlider.value = state.targetZoom.toString();
     };
 
     let mouseDownX = 0, mouseDownY = 0;
+    let mouseIsDownOnMount = false;
     const onMouseDown = (e: MouseEvent) => {
       state.isDragging = true;
+      mouseIsDownOnMount = true;
       mouseDownX = e.clientX;
       mouseDownY = e.clientY;
       state.previousMousePosition = { x: e.clientX, y: e.clientY };
@@ -686,6 +696,8 @@ export default function GlobeCanvas({
 
     const onMouseUp = (e: MouseEvent) => {
       state.isDragging = false;
+      if (!mouseIsDownOnMount) return;
+      mouseIsDownOnMount = false;
       if (Math.sqrt(Math.pow(e.clientX - mouseDownX, 2) + Math.pow(e.clientY - mouseDownY, 2)) > 5) return;
 
       const rect = mount.getBoundingClientRect();
@@ -693,44 +705,84 @@ export default function GlobeCanvas({
       const ndcY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
       raycasterRef.current.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera);
 
-      const allTargets: THREE.Object3D[] = [
-        ...countryLinesRef.current,
-        ...(markerInstancesRef.current ? [markerInstancesRef.current.hitSpheres] : []),
-      ];
-      const hits = raycasterRef.current.intersectObjects(allTargets).filter(
-        (h) => { _n.copy(h.point).normalize(); _d.copy(camera.position).sub(h.point).normalize(); return _n.dot(_d) > 0.1; }
-      );
+      const facingFilter = (h: THREE.Intersection) => {
+        _n.copy(h.point).normalize();
+        _d.copy(camera.position).sub(h.point).normalize();
+        return _n.dot(_d) > 0.1;
+      };
 
-      if (hits.length > 0) {
-        const hit = hits[0];
-        const ud = hit.object.userData as { isMergedBorder?: boolean; isMarkerInstance?: boolean };
+      const focusCountry = (code: string, hitPoint: THREE.Vector3) => {
+        const geoData = countryGeoDataRef.current[code];
+        localHitRef.current = geoData ? geoData.centroid.clone() : globeGroup.worldToLocal(hitPoint.clone());
+        targetQuatRef.current = new THREE.Quaternion().setFromUnitVectors(
+          localHitRef.current.clone().normalize(),
+          new THREE.Vector3(0, 0, 1)
+        );
+        focusZoomRef.current = geoData ? zoomForAngularRadius(geoData.angularRadius) : 2.0;
+        onFocusClickRef.current({ type: "country", code });
+      };
 
-        if (ud.isMarkerInstance && hit.instanceId !== undefined) {
-          const ms = hqMarkersRef.current[hit.instanceId];
-          if (ms) {
-            localHitRef.current = globeGroup.worldToLocal(hit.point.clone());
+      // Test stock markers first — the default Line.threshold (1 world-unit) is
+      // far too large for the unit-sphere globe, so mixing borders and hitSpheres
+      // in a single intersectObjects call causes border segments to shadow dots.
+      // By testing hitSpheres (mesh geometry, exact intersection) first we guarantee
+      // dot clicks always resolve to the correct stock, never to a country border.
+      let markerHandled = false;
+      if (markerInstancesRef.current) {
+        const markerHits = raycasterRef.current
+          .intersectObjects([markerInstancesRef.current.hitSpheres])
+          .filter(facingFilter);
+        if (markerHits.length > 0 && markerHits[0].instanceId !== undefined) {
+          const ms = hqMarkersRef.current[markerHits[0].instanceId];
+          if (ms?.visible) {
+            localHitRef.current = globeGroup.worldToLocal(markerHits[0].point.clone());
             targetQuatRef.current = new THREE.Quaternion().setFromUnitVectors(
               localHitRef.current.clone().normalize(),
               new THREE.Vector3(0, 0, 1)
             );
             focusZoomRef.current = 1.45;
             onFocusClickRef.current({ type: "stock", ticker: ms.ticker });
-          }
-        } else if (ud.isMergedBorder && hit.index !== undefined) {
-          const code = segmentToCountryRef.current[Math.floor(hit.index / 2)];
-          if (code) {
-            const geoData = countryGeoDataRef.current[code];
-            localHitRef.current = geoData ? geoData.centroid.clone() : globeGroup.worldToLocal(hit.point.clone());
-            targetQuatRef.current = new THREE.Quaternion().setFromUnitVectors(
-              localHitRef.current.clone().normalize(),
-              new THREE.Vector3(0, 0, 1)
-            );
-            focusZoomRef.current = geoData ? zoomForAngularRadius(geoData.angularRadius) : 2.0;
-            onFocusClickRef.current({ type: "country", code });
+            markerHandled = true;
           }
         }
-      } else {
-        onFocusClickRef.current(null);
+      }
+
+      if (!markerHandled) {
+        // Test border lines (excludes decorative dot-fill Points meshes).
+        const borderTargets = countryLinesRef.current.filter((obj) => !obj.userData.isMergedDots);
+        const borderHits = raycasterRef.current.intersectObjects(borderTargets).filter(facingFilter);
+        if (borderHits.length > 0) {
+          const hit = borderHits[0];
+          if ((hit.object.userData as { isMergedBorder?: boolean }).isMergedBorder && hit.index !== undefined) {
+            const code = segmentToCountryRef.current[Math.floor(hit.index / 2)];
+            if (code) focusCountry(code, hit.point);
+          }
+        } else {
+          // No border/marker hit — intersect globe sphere to detect country by
+          // centroid proximity, so clicking inside a country's area also works.
+          _invMat.copy(globeGroup.matrixWorld).invert();
+          _localRay.origin.copy(raycasterRef.current.ray.origin).applyMatrix4(_invMat);
+          _localRay.direction.copy(raycasterRef.current.ray.direction).transformDirection(_invMat);
+          if (_localRay.intersectSphere(_globeSphere, _sphereHit)) {
+            _sphereHit.normalize();
+            let bestDot = -1;
+            let bestCode: string | null = null;
+            for (const [entryCode, geoData] of Object.entries(countryGeoDataRef.current)) {
+              const dot = geoData.centroid.dot(_sphereHit);
+              if (dot > Math.cos(geoData.angularRadius * 1.1) && dot > bestDot) {
+                bestDot = dot;
+                bestCode = entryCode;
+              }
+            }
+            if (bestCode) {
+              focusCountry(bestCode, globeGroup.localToWorld(_sphereHit.clone()));
+            } else {
+              onFocusClickRef.current(null);
+            }
+          } else {
+            onFocusClickRef.current(null);
+          }
+        }
       }
     };
 
@@ -739,8 +791,9 @@ export default function GlobeCanvas({
       if (state.isDragging) {
         state.dragVelocity.x = e.clientX - state.previousMousePosition.x;
         state.dragVelocity.y = e.clientY - state.previousMousePosition.y;
-        globeGroup.rotation.y += state.dragVelocity.x * 0.005;
-        globeGroup.rotation.x += state.dragVelocity.y * 0.005;
+        const panFactor = 0.005 * (camera.position.z / 3.0);
+        globeGroup.rotation.y += state.dragVelocity.x * panFactor;
+        globeGroup.rotation.x += state.dragVelocity.y * panFactor;
         state.previousMousePosition = { x: e.clientX, y: e.clientY };
       }
 

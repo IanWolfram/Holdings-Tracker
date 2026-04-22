@@ -24,6 +24,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@types/three": "^0.183.1",
+    "apify-client": "^2.23.0",
     "autoprefixer": "^10.4.27",
     "axios": "^1.15.0",
     "clsx": "^2.1.1",

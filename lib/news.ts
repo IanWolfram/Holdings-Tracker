@@ -119,18 +119,19 @@ export async function getNewsForTicker(
     })),
   ].filter((s) => s.datetime >= cutoff);
 
-  // Classify stories sequentially to avoid overwhelming the local GPU
-  const classified: ClassifiedStory[] = [];
-  for (const s of stories) {
-    const cls = await classifyNews(s.ticker, s.headline, s.summary ?? "", s.url);
-    const result = { ...s, ...cls };
-    classified.push(result);
-
-    // PERSISTENCE: If newly analyzed by the brain, remember it in the vault
-    if (result.isAnalyzed && !result.fromVault && WORLD_VAULT_PATH) {
-      writeStoryNote(result as unknown as GeoStory, WORLD_VAULT_PATH, sector);
-    }
-  }
+  // Classify stories in parallel (fast keyword/vault lookup)
+  const classified = await Promise.all(
+    stories.map(async (s) => {
+      const cls = await classifyNews(s.ticker, s.headline, s.summary ?? "", s.url);
+      const result = { ...s, ...cls };
+      
+      // PERSISTENCE: If newly analyzed by the brain, remember it in the vault
+      if (result.isAnalyzed && !result.fromVault && WORLD_VAULT_PATH) {
+        await writeStoryNote(result as unknown as GeoStory, WORLD_VAULT_PATH, sector);
+      }
+      return result;
+    })
+  );
 
   // Sort newest first, drop anything older than 30 days
   const recent = withinThirtyDays(classified).sort((a, b) => b.datetime - a.datetime);

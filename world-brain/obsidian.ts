@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { getVaultIndex, updateVaultIndex } from "../lib/vault-index";
 import type { GeoStory, WorldData } from "@/types/geo.types";
 
 function buildNoteContent(story: GeoStory, dateStr: string, sector?: string): string {
@@ -50,7 +51,7 @@ function buildNoteContent(story: GeoStory, dateStr: string, sector?: string): st
 // Individual story note
 // ---------------------------------------------------------------------------
 
-export function writeStoryNote(story: GeoStory, vaultPath: string, sector?: string): void {
+export async function writeStoryNote(story: GeoStory, vaultPath: string, sector?: string): Promise<void> {
   try {
     const date = new Date(story.datetime * 1000);
     const dateStr = date.toISOString().split("T")[0]; // YYYY-MM-DD
@@ -64,27 +65,34 @@ export function writeStoryNote(story: GeoStory, vaultPath: string, sector?: stri
 
     // If a file for this URL already exists (possibly under a different slug), use that path
     // and skip if it's already verified — don't downgrade an MLX-verified entry.
-    try {
-      const existing = fs.readdirSync(newsDir).find((f) => {
-        if (!f.endsWith(".md")) return false;
-        const content = fs.readFileSync(path.join(newsDir, f), "utf-8");
-        return content.includes(`url: "${story.url}"`);
-      });
-      if (existing) {
-        const existingContent = fs.readFileSync(path.join(newsDir, existing), "utf-8");
-        if (existingContent.includes("verified: true") && !story.isAnalyzed) return;
-        // Use the existing path so we don't create a duplicate
-        const resolvedPath = path.join(newsDir, existing);
-        if (resolvedPath !== notePath) {
-          // Write to existing path, skip the default slug path
-          fs.writeFileSync(resolvedPath, buildNoteContent(story, dateStr, sector), "utf-8");
-          return;
-        }
+    // Optimized duplicate check using the Vault Index
+    const index = await getVaultIndex(vaultPath);
+    const existing = index.get(story.url);
+    if (existing) {
+      if (existing.isAnalyzed && !story.isAnalyzed) return;
+      // Skip if content is identical (simplified check)
+      if (existing.verdict === story.verdict && existing.isAnalyzed === !!story.isAnalyzed) {
+        return;
       }
-    } catch { /* directory may not exist yet — fall through to normal write */ }
+      fs.writeFileSync(existing.filePath, buildNoteContent(story, dateStr, sector), "utf-8");
+      return;
+    }
 
     fs.mkdirSync(path.dirname(notePath), { recursive: true });
     fs.writeFileSync(notePath, buildNoteContent(story, dateStr, sector), "utf-8");
+    
+    // Update index so subsequent writes in this process know about the new file
+    updateVaultIndex(story.url, {
+      verdict: story.verdict,
+      confidence: story.confidence,
+      reason: story.reason,
+      relevanceScore: story.relevanceScore,
+      originCountryCode: story.originCountryCode || null,
+      classifiedAt: dateStr,
+      isAnalyzed: !!story.isAnalyzed,
+      fromVault: true,
+      filePath: notePath,
+    });
   } catch (err) {
     console.error("[obsidian] Failed to write story note:", err);
   }

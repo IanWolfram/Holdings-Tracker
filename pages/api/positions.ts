@@ -3,6 +3,7 @@ import type { Position } from "@/types/position.types";
 import { getQuote, getHistory } from "@/lib/market-data";
 import { getServices } from "@/src/registry";
 import { fetchCompanyProfile } from "@/lib/company-profile";
+import { withSyntheticHistory } from "@/src/mappers/positionMapper";
 
 async function enrichWithRealPrices(positions: Position[]): Promise<Position[]> {
   const results = await Promise.allSettled(
@@ -36,7 +37,6 @@ async function enrichWithRealPrices(positions: Position[]): Promise<Position[]> 
 async function enrichWithHistory(positions: Position[]): Promise<Position[]> {
   const results = await Promise.allSettled(
     positions.map(async (pos) => {
-      if (pos.history && pos.history.length > 0) return pos;
       const h = await getHistory(pos.ticker).catch(() => null);
       return h ? { ...pos, history: h.closes } : pos;
     })
@@ -88,7 +88,8 @@ export default async function handler(
     }
 
     const withHistory = await enrichWithHistory(positions);
-    const withNames = await enrichWithCompanyNames(withHistory);
+    const withFallback = withSyntheticHistory(withHistory);
+    const withNames = await enrichWithCompanyNames(withFallback);
     res.status(200).json(withNames);
   } catch (err) {
     console.error("[/api/positions]", err);

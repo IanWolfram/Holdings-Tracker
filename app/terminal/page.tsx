@@ -189,6 +189,7 @@ export default function Dashboard() {
           onRefresh={refresh}
           agentState={agentState}
           totalValue={positions.length > 0 ? positions.reduce((sum, p) => sum + p.marketValue, 0) : undefined}
+          totalCostBasis={positions.length > 0 ? positions.reduce((sum, p) => sum + p.pricePaid * p.quantity, 0) : undefined}
           totalGainLoss={totalGainLoss}
           cashBalance={cashBalance}
         />

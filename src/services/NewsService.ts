@@ -7,7 +7,6 @@ import type { ClassifiedStory } from "@/types/news.types";
 import { MOCK_NEWS, MOCK_PENDING } from "@/lib/mock-news";
 import { getCompanyName } from "@/lib/company-names";
 import { NEWS_CACHE_TTL_MS } from "@/lib/constants";
-import { keywordClassify } from "@/lib/classifier";
 
 const THIRTY_DAYS_S = 30 * 24 * 60 * 60;
 
@@ -41,6 +40,13 @@ export class NewsService {
 
   invalidateTicker(ticker: string): void {
     this.cache.delete(ticker);
+  }
+
+  patchCachedStory(ticker: string, url: string, patch: Partial<ClassifiedStory>): void {
+    const cached = this.cache.get<ClassifiedStory[]>(ticker);
+    if (!cached) return;
+    const updated = cached.map((s) => (s.url === url ? { ...s, ...patch } : s));
+    this.cache.set(ticker, updated, NEWS_CACHE_TTL_MS);
   }
 
   async getNewsForTicker(ticker: string, sector?: string): Promise<ClassifiedStory[]> {
@@ -100,17 +106,11 @@ export class NewsService {
     ].filter((s) => s.datetime >= cutoff);
 
     const classified: ClassifiedStory[] = [];
-    // Only deep-analyze the first 3 stories to avoid timeouts and save tokens/time
-    // The rest will use keyword/default logic from the classifier
-    for (let i = 0; i < allItems.length; i++) {
-      const s = allItems[i];
-      if (i < 3) {
-        const cls = await this.classifier.classify(s.ticker, s.headline, s.summary ?? "", s.url);
-        classified.push({ ...s, ...cls });
-      } else {
-        const cls = keywordClassify(s.headline, s.summary ?? "");
-        classified.push({ ...s, ...cls });
-      }
+    // classifier.classify is now vault-lookup + keyword only (no MLX), so it's safe to call for all.
+    // This ensures vault verdicts from prior agent runs are surfaced across the full article list.
+    for (const s of allItems) {
+      const cls = await this.classifier.classify(s.ticker, s.headline, s.summary ?? "", s.url);
+      classified.push({ ...s, ...cls });
     }
 
     const pending = MOCK_PENDING[ticker] || [];

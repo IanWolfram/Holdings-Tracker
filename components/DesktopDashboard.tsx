@@ -17,6 +17,7 @@ interface DesktopDashboardProps {
   onRefresh: () => void;
   agentState?: AgentProgress;
   totalValue?: number;
+  totalCostBasis?: number;
   totalGainLoss?: number;
   cashBalance?: number;
 }
@@ -31,12 +32,13 @@ export default function DesktopDashboard({
   onRefresh,
   agentState,
   totalValue,
+  totalCostBasis,
   totalGainLoss,
   cashBalance,
 }: DesktopDashboardProps) {
   return (
     <div className="min-h-screen flex flex-col bg-surface">
-      <TopBar lastUpdated={lastUpdated} refreshing={refreshing} onRefresh={onRefresh} totalValue={totalValue} totalGainLoss={totalGainLoss} cashBalance={cashBalance} />
+      <TopBar lastUpdated={lastUpdated} refreshing={refreshing} onRefresh={onRefresh} totalValue={totalValue} totalCostBasis={totalCostBasis} totalGainLoss={totalGainLoss} cashBalance={cashBalance} />
       <main className="p-6 space-y-8">
         {positions.length === 0 && !refreshing && (
           <EmptyState

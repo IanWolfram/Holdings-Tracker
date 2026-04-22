@@ -58,9 +58,7 @@ export default function AgentDashboard() {
           {/* Header Bar */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/[0.02]">
             <div className="flex items-center gap-3">
-              <span className={`material-symbols-outlined text-[18px] ${agentState.status === "running" ? "text-positive animate-pulse" : "text-slate-500"}`}>
-                psychology
-              </span>
+              <span className={`material-symbols-outlined text-[18px] ${agentState.status === "running" ? "text-positive animate-pulse" : "text-slate-500"}`}>neurology</span>
               <h2 className="font-mono text-sm font-bold text-white tracking-widest uppercase">
                 Pulse Intelligence Core
               </h2>

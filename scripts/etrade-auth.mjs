@@ -13,6 +13,7 @@ import { createHmac } from "crypto";
 import { createInterface } from "readline/promises";
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { resolve } from "path";
+import { execSync, exec } from "child_process";
 
 // Load .env.local manually
 const envPath = resolve(process.cwd(), ".env.local");
@@ -162,10 +163,51 @@ try {
   console.log(`  Request token: ${token}\n`);
 
   const authUrl = `https://us.etrade.com/e/t/etws/authorize?key=${CONSUMER_KEY}&token=${token}`;
-  console.log("Step 2: Authorize in your browser:");
-  console.log(`  ${authUrl}\n`);
+  console.log("Step 2: Authorizing in your browser...");
+  console.log(`  URL: ${authUrl}\n`);
 
-  const verifier = await rl.question("Step 3: Enter the verifier code from the browser: ");
+  // Automatically open the browser
+  try {
+    const openCmd = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
+    exec(`${openCmd} "${authUrl}"`);
+  } catch (err) {
+    // Ignore errors opening browser
+  }
+
+  console.log("Step 3: Waiting for verifier code...");
+  console.log("👉 Please log in. Once you see the 5-character code, just COPY it (Cmd+C).");
+  console.log("   I will detect it automatically from your clipboard.\n");
+
+  let verifier = "";
+  
+  // Try to get verifier from clipboard (Mac only for now, falls back to manual)
+  if (process.platform === "darwin") {
+    const startTime = Date.now();
+    const timeout = 120000; // 2 minutes
+    
+    process.stdout.write("Searching clipboard... ");
+    
+    while (Date.now() - startTime < timeout) {
+      try {
+        const clipboard = execSync("pbpaste", { encoding: "utf8" }).trim();
+        // E*Trade verifiers are 5 characters, alphanumeric
+        if (/^[A-Z0-9]{5}$/.test(clipboard)) {
+          verifier = clipboard;
+          console.log(`\n✅ Found code in clipboard: ${verifier}`);
+          break;
+        }
+      } catch (e) {}
+      
+      process.stdout.write(".");
+      await new Promise(r => setTimeout(r, 1000));
+    }
+    console.log("");
+  }
+
+  if (!verifier) {
+    verifier = await rl.question("Could not find code in clipboard. Please enter it manually: ");
+  }
+  
   rl.close();
 
   console.log("\nStep 4: Exchanging for access token...");

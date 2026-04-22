@@ -54,9 +54,10 @@ function srgbToLinear(c: number): number {
   return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
 }
 
-function verdictColor(verdict: "BUY" | "SELL" | "HOLD" | null): [number, number, number] {
-  let hex = 0x22442a;
-  if (verdict === "BUY") hex = 0x00ff88;
+function verdictColor(verdict: "BUY" | "SELL" | "HOLD" | null, selected = false): [number, number, number] {
+  let hex = 0x2d5238; // Slightly brighter base green
+  if (selected) hex = 0x4488ff;        // blue — focused but no verdict
+  else if (verdict === "BUY") hex = 0x00ff88;
   else if (verdict === "SELL") hex = 0xff4444;
   else if (verdict === "HOLD") hex = 0x64748b;
   const r = srgbToLinear((hex >> 16 & 255) / 255);
@@ -78,6 +79,14 @@ self.onmessage = (e) => {
   const dotColors: number[] = [];
   const segmentToCountry: string[] = [];
 
+  // Pre-check whether the focused country has relevant stories before the loop.
+  // Without this, entering focus mode on a country with no stories makes ALL
+  // countries render as dim green (showVerdict = false everywhere).
+  const focusedState = focusedCountryCode ? worldData?.countries[focusedCountryCode] : null;
+  const focusedHasRelevant = focusedState?.stories.some(
+    (s: { relevanceScore: number }) => s.relevanceScore >= relevanceThreshold
+  ) ?? false;
+
   for (const feature of geoJSON.features) {
     const code: string = feature.properties["ISO3166-1-Alpha-2"] ?? "";
     const state = worldData?.countries[code];
@@ -88,12 +97,17 @@ self.onmessage = (e) => {
 
     const hasFocus = !!focusedCountryCode;
     const isFocusedCountry = hasFocus && code === focusedCountryCode;
-    const showVerdict = hasRelevantStory && (!hasFocus || isFocusedCountry);
+    // Only dim non-focused countries when the focused country has a verdict to highlight.
+    // If the focused country has no relevant stories, don't suppress others' verdicts.
+    const dimOthers = hasFocus && focusedHasRelevant;
+    const showVerdict = hasRelevantStory && (!dimOthers || isFocusedCountry);
     const verdict = showVerdict ? (state?.netVerdict ?? null) : null;
+    // Give the focused country a distinct "selected" blue highlight even when it has no verdict.
+    const isSelected = isFocusedCountry && verdict === null;
 
-    const [r_base, g_base, b_base] = verdictColor(verdict);
-    const opacity = verdict !== null ? 1.0 : 0.45;
-    const radius = verdict !== null ? 1.002 : 1.001;
+    const [r_base, g_base, b_base] = verdictColor(verdict, isSelected);
+    const opacity = (verdict !== null || isSelected) ? 1.0 : 0.82; // Increased from 0.45
+    const radius = (verdict !== null || isSelected) ? 1.002 : 1.001;
     const r = r_base * opacity;
     const g = g_base * opacity;
     const b = b_base * opacity;
@@ -109,7 +123,7 @@ self.onmessage = (e) => {
     };
 
     const processDots = (polygonRings: number[][][]) => {
-      if (verdict === null) return;
+      if (verdict === null && !isSelected) return;
       const dots = dotFillPolygon(polygonRings, 0.9);
       for (const [lon, lat] of dots) {
         const v = latLonToVector3(lat, lon, radius - 0.001);
@@ -136,8 +150,8 @@ self.onmessage = (e) => {
   const stateLineColors: number[] = [];
 
   if (stateGeoJSON) {
-    const hex = 0x22442a;
-    const opacity = 0.28;
+    const hex = 0x3a5a41; // Brighter for state lines
+    const opacity = 0.62; // Increased from 0.28
     const sr = srgbToLinear((hex >> 16 & 255) / 255) * opacity;
     const sg = srgbToLinear((hex >> 8  & 255) / 255) * opacity;
     const sb = srgbToLinear((hex       & 255) / 255) * opacity;

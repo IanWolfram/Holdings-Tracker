@@ -74,9 +74,9 @@ export async function getWorldData(positions: Position[]): Promise<WorldData> {
         confidence: story.confidence,
         reason: story.reason,
         source: story.source,
-        // Use existing originCountry if world-brain already enriched it,
+        // Use existing originCountryCode if world-brain already enriched it,
         // otherwise default to HQ country
-        originCountryCode: story.originCountry ?? defaultCountryCode,
+        originCountryCode: story.originCountryCode ?? defaultCountryCode,
         // Use existing relevanceScore if set, otherwise use confidence
         relevanceScore: story.relevanceScore ?? story.confidence,
         isAnalyzed: story.isAnalyzed,
@@ -88,10 +88,12 @@ export async function getWorldData(positions: Position[]): Promise<WorldData> {
 
   // ── 3. Write individual story notes to Obsidian vault ────────────────────
   if (WORLD_VAULT_PATH && allGeoStories.length > 0) {
-    for (const story of allGeoStories) {
-      const sector = profiles[story.ticker]?.sector;
-      writeStoryNote(story, WORLD_VAULT_PATH, sector);
-    }
+    await Promise.all(
+      allGeoStories.map((story) => {
+        const sector = profiles[story.ticker]?.sector;
+        return writeStoryNote(story, WORLD_VAULT_PATH, sector);
+      })
+    );
   }
 
   // ── 4. Build country states ───────────────────────────────────────────────
@@ -216,7 +218,7 @@ async function runBackgroundEnrichment(
         const profile = profiles[story.ticker];
         const hqCode = profile?.countryCode;
         const alreadyEnriched =
-          story.originCountry && story.originCountry !== hqCode;
+          story.originCountryCode && story.originCountryCode !== hqCode;
         if (alreadyEnriched) {
           allEnriched.push({
             ticker: story.ticker,
@@ -228,7 +230,7 @@ async function runBackgroundEnrichment(
             confidence: story.confidence,
             reason: story.reason,
             source: story.source,
-            originCountryCode: story.originCountry,
+            originCountryCode: story.originCountryCode,
             relevanceScore: story.relevanceScore ?? story.confidence,
           });
           continue;

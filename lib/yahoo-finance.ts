@@ -13,13 +13,10 @@ const YAHOO_HEADERS = {
 
 let crumbCache: { crumb: string; cookie: string; expiresAt: number } | null =
   null;
+let crumbInflight: Promise<{ crumb: string; cookie: string }> | null = null;
 const CRUMB_TTL_MS = 60 * 60 * 1000;
 
-async function getCrumb(): Promise<{ crumb: string; cookie: string }> {
-  if (crumbCache && crumbCache.expiresAt > Date.now()) {
-    return crumbCache;
-  }
-
+async function fetchCrumb(): Promise<{ crumb: string; cookie: string }> {
   const consentRes = await fetch("https://finance.yahoo.com/", {
     headers: { ...YAHOO_HEADERS, Accept: "text/html" },
     redirect: "follow",
@@ -53,6 +50,20 @@ async function getCrumb(): Promise<{ crumb: string; cookie: string }> {
   return crumbCache;
 }
 
+async function getCrumb(): Promise<{ crumb: string; cookie: string }> {
+  if (crumbCache && crumbCache.expiresAt > Date.now()) {
+    return crumbCache;
+  }
+
+  if (!crumbInflight) {
+    crumbInflight = fetchCrumb().finally(() => {
+      crumbInflight = null;
+    });
+  }
+
+  return crumbInflight;
+}
+
 export async function fetchYahooHistory(
   ticker: string,
   days = 90
@@ -74,6 +85,13 @@ export async function fetchYahooHistory(
         Cookie: freshCookie,
         Accept: "application/json",
       },
+    });
+  }
+
+  if (res.status === 429) {
+    await new Promise((r) => setTimeout(r, 2000));
+    res = await fetch(url, {
+      headers: { ...YAHOO_HEADERS, Cookie: cookie, Accept: "application/json" },
     });
   }
 

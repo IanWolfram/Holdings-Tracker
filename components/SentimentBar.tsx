@@ -66,12 +66,26 @@ export default function SentimentBar({
   return (
     <div className="flex flex-col gap-2">
       {showHeader && (
-        <div className="flex justify-between items-baseline">
-          <span className="font-mono text-[9px] font-black text-slate-500 tracking-[0.22em] uppercase flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-[12px]">psychology</span>
-            {label} · {total} {total === 1 ? "story" : "stories"}
+        <div className="flex justify-between items-center gap-2">
+          <span className="font-mono text-[9px] font-black text-slate-500 tracking-[0.18em] uppercase flex items-center gap-1.5 whitespace-nowrap shrink-0">
+            <span 
+              className="material-symbols-outlined text-[12px]"
+              style={{ 
+                color: verdict === "bull" 
+                  ? "rgba(34, 197, 94, 0.8)" // Muted Green
+                  : verdict === "bear"
+                  ? "rgba(239, 68, 68, 0.8)" // Muted Red
+                  : undefined 
+              }}
+            >
+              neurology
+            </span>
+            <span className="flex flex-col leading-tight">
+              <span>{label}</span>
+              <span className="text-slate-600 font-medium">{total} {total === 1 ? "story" : "stories"}</span>
+            </span>
           </span>
-          <span className={`font-mono text-[11px] font-bold tracking-[0.1em] ${verdictColor}`}>
+          <span className={`font-mono text-[11px] font-bold tracking-[0.1em] whitespace-nowrap shrink-0 ${verdictColor}`}>
             {verdictLabel} · {dominantPct}%
           </span>
         </div>

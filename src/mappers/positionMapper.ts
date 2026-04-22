@@ -20,10 +20,26 @@ export function mapRawPosition(pos: {
   };
 }
 
+// Seeded PRNG so synthetic charts are stable across requests for the same ticker
+function seededRand(seed: number): () => number {
+  let s = seed;
+  return () => {
+    s = (s * 1664525 + 1013904223) & 0xffffffff;
+    return (s >>> 0) / 0xffffffff;
+  };
+}
+
+function tickerSeed(ticker: string): number {
+  let h = 0;
+  for (let i = 0; i < ticker.length; i++) h = (Math.imul(31, h) + ticker.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
 export function withSyntheticHistory(positions: Position[]): Position[] {
   return positions.map((pos) => {
     if (pos.history && pos.history.length > 0) return pos;
 
+    const rand = seededRand(tickerSeed(pos.ticker));
     const points = 90;
     const history: number[] = [];
     const current = pos.currentPrice;
@@ -33,7 +49,7 @@ export function withSyntheticHistory(positions: Position[]): Position[] {
     for (let i = 0; i < points - 1; i++) {
       history.push(val);
       const trend = (current - val) / (points - i);
-      const noise = (Math.random() - 0.5) * (current * 0.015);
+      const noise = (rand() - 0.5) * (current * 0.015);
       const ridges = Math.sin(i * 0.5) * (current * 0.005);
       val += trend + noise + ridges;
     }

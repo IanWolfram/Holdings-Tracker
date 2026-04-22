@@ -9,6 +9,7 @@ import { ensureMlxServer } from "../mlx";
 import { writeStoryNote, writeDailySummary } from "../../world-brain/obsidian";
 import { WORLD_VAULT_PATH, resolveVaultPath } from "../constants";
 import type { GeoStory, WorldData } from "@/types/geo.types";
+import type { ClassifiedStory } from "@/types/news.types";
 
 export interface AgentProgress {
   status: "idle" | "running" | "complete" | "error";
@@ -206,8 +207,15 @@ export async function runStockAgent(): Promise<AgentRunResult> {
           };
           allGeoStories.push(geoStory);
           writeStoryNote(geoStory, WORLD_VAULT_PATH, profile?.sector);
-          // Immediately bust the cache so this verdict is picked up if the run is cancelled
-          getServices().newsService.invalidateTicker(pos.ticker);
+          // Patch the cached entry in-place so the terminal sees the new verdict
+          // immediately without busting the full ticker cache (which causes slow reloads).
+          getServices().newsService.patchCachedStory(pos.ticker, article.url, {
+            verdict: analysis.verdict as ClassifiedStory["verdict"],
+            confidence: analysis.confidence,
+            reason: analysis.reason ?? undefined,
+            isAnalyzed: true,
+            classifiedAt: new Date().toISOString(),
+          });
         }
       }
 

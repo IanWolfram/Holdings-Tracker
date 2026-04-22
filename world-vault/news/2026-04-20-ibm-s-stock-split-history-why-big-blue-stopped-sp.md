@@ -4,7 +4,7 @@ ticker: HOOD
 sector: Financial Services
 verdict: HOLD
 confidence: 0.20
-relevance: 0.20
+relevance: 0.05
 verified: true
 country: US
 source: finnhub
@@ -21,7 +21,7 @@ tags:
 # IBM’s stock split history: Why Big Blue stopped splitting shares
 
 **Verdict**: HOLD (20% confidence)  
-**Relevance to [[HOOD]]**: 20%  
+**Relevance to [[HOOD]]**: 5%  
 **Geographic origin**: US  
 
 ## Summary

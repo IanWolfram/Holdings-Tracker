@@ -97,10 +97,8 @@ export default function AgentTrigger() {
               : "Start Stock Agent Deep Intelligence Sweep"
         }
       >
-        <span className={`material-symbols-outlined text-[18px] ${
-          isRunning ? "animate-pulse" : "group-hover:scale-110"
-        }`}>
-          {isRunning ? "stop_circle" : "psychology"}
+        <span className={`material-symbols-outlined text-[18px] ${isRunning ? "animate-pulse" : "group-hover:scale-110"}`}>
+          {isRunning ? "stop_circle" : "neurology"}
         </span>
         
         {/* Pulsing indicator when idle to suggest it's a high-conviction tool */}

@@ -24,9 +24,8 @@ export class PortfolioService {
     if (cached) return cached;
 
     const positions = await this.provider.getPositions();
-    const withHistory = withSyntheticHistory(positions);
-    this.cache.set(CACHE_KEY, withHistory, this.cfg.newsTtlMs);
-    return withHistory;
+    this.cache.set(CACHE_KEY, positions, this.cfg.newsTtlMs);
+    return positions;
   }
 
   /** Clears the local positions cache. */
