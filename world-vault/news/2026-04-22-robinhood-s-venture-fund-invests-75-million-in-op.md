@@ -1,35 +1,35 @@
 ---
 date: "2026-04-22"
-ticker: MSFT
-sector: Tech
+ticker: HOOD
+sector: Financial Services
 verdict: HOLD
 confidence: 0.50
 relevance: 0.50
 verified: false
 country: US
 source: finnhub
-url: "https://finnhub.io/api/news?id=f01f616c69f20bc49fcbece2be7536d2e5d4bf75a8c364eea73f930438ddd452"
+url: "https://finnhub.io/api/news?id=63548d1e7dee852f0eed276578505ee92821348592b49a911b6403e5db7b36fe"
 tags:
   - news
-  - msft
+  - hood
   - hold
   - world-brain
-  - tech
+  - financial-services
 ---
 
 # Robinhood's venture fund invests $75 million in OpenAI
 
 **Verdict**: HOLD (50% confidence)  
-**Relevance to [[MSFT]]**: 50%  
+**Relevance to [[HOOD]]**: 50%  
 **Geographic origin**: US  
 
 ## Summary
-Robinhood Ventures Fund I said on Wednesday it has closed a $75 million investment in ChatGPT maker OpenAI. ...
+Robinhood's venture fund has invested $75 million in ChatGPT maker OpenAI, it said on Wednesday, aiming ‌to broaden retail investor access to high-profile, privately ‌held technology companies.  Its rise has helped fuel a wave of investment and competition across Big Tech and startups alike, as companies race to ‌build and commercialize AI ⁠tools, drawing billions of dollars into the sector.  Robinhood Ventures Fund I, which went public in March, ⁠aims to give retail investors access to private company investments long dominated by Silicon Valley's largest venture capital firms.
 
 ## AI Analysis
 _No analysis available._
 
 ## Links
-- [Source Article](https://finnhub.io/api/news?id=f01f616c69f20bc49fcbece2be7536d2e5d4bf75a8c364eea73f930438ddd452)
-- [[MSFT]]
+- [Source Article](https://finnhub.io/api/news?id=63548d1e7dee852f0eed276578505ee92821348592b49a911b6403e5db7b36fe)
+- [[HOOD]]
 - [[US-news]]

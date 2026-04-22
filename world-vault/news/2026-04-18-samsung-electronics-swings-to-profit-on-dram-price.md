@@ -1,33 +1,33 @@
 ---
-date: "2026-04-13"
+date: "2026-04-12"
 ticker: RBL
 sector: Unknown
-verdict: SELL
-confidence: 0.88
-relevance: 0.88
+verdict: BUY
+confidence: 0.90
+relevance: 0.90
 verified: false
 country: US
-source: twitter
+source: finnhub
 url: "#"
 tags:
   - news
   - rbl
-  - sell
+  - buy
   - world-brain
   - unknown
 ---
 
-# RBL misses Q2 revenue estimates by 8%, cites softer-than-expected ad market.
+# Roblox (RBL) daily active users grow 17% YoY in latest platform metrics report
 
-**Verdict**: SELL (88% confidence)  
-**Relevance to [[RBL]]**: 88%  
+**Verdict**: BUY (90% confidence)  
+**Relevance to [[RBL]]**: 90%  
 **Geographic origin**: US  
 
 ## Summary
-RBL misses Q2 revenue estimates by 8%, cites softer-than-expected ad market.
+DAUs reached 88.9M with strong growth in the 17+ age demographic.
 
 ## AI Analysis
-The 8% revenue miss confirms market weakness, justifying a sell signal despite general optimism.
+The 17% YoY surge in Daily Active Users confirms robust platform health and expanding engagement, signaling future revenue upside.
 
 ## Links
 - [Source Article](#)
