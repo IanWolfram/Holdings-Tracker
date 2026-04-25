@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getPositions } from "@/lib/etrade";
 import { getWorldData, invalidateWorldCache } from "@/lib/world-data";
+import { requirePremiumAccess } from "@/lib/license";
 
 type Response =
   | { success: true; positions: number; refreshedAt: string }
@@ -10,6 +11,11 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<Response>
 ) {
+  const access = requirePremiumAccess();
+  if (!access.ok) {
+    return res.status(access.statusCode).json({ success: false, error: access.error });
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({ success: false, error: "Method not allowed" });
   }

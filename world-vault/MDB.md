@@ -1,5 +1,5 @@
 ---
-date: "2026-04-21"
+date: "2026-04-25"
 type: ticker-knowledge
 ticker: MDB
 sector: Tech
@@ -8,6 +8,6 @@ generated: true
 
 # MDB — Learned Patterns
 
-For MongoDB (MDB), positive headlines often involve product launches, partnerships, or advancements in cloud database solutions, which have reliably triggered BUY signals with high confidence scores (e.g., 0.75-0.85). Conversely, negative sentiment typically arises from regulatory scrutiny, competitive pressures, or cybersecurity concerns, which could warrant SELL signals. The tech sector's recurring themes include innovation in cloud infrastructure and data management, while geopolitical factors like trade tensions or data privacy regulations may impact MDB's performance. Analyst upgrades and product updates have historically been strong indicators, with confidence calibrated between 0.75-0.85 for positive signals and 0.6-0.7 for negative ones.
+When MDB announces direct operational investment, such as geographic expansion for engineering or AI development, or executive appointments to product leadership roles, it reliably triggers BUY signals at 78-82% confidence. Ecosystem compatibility news, like Amazon DocumentDB supporting in-place upgrades for MongoDB compatibility, can produce BUY signals as high as 92% confidence. Broader tech sector weakness driven by sympathy with major peers like ServiceNow or IBM, or pre-earnings contagion risk from SaaS earnings misses, triggers HOLD signals at 20-65% confidence, indicating soft sentiment rather than direct company-specific catalysts. No recurring geopolitical or macro factors disproportionately move MDB beyond sector-wide tech sentiment. Calibration note: operational investment and ecosystem expansion headlines consistently score 78-92% confidence, while sympathy-driven sector weakness never exceeds 65% confidence and should be treated as noise unless a direct MDB catalyst emerges.
 
-_Last updated: 2026-04-21_
+_Last updated: 2026-04-25_

@@ -9,6 +9,7 @@ import { groupStoriesBySource } from "@/lib/utils/stories";
 import type { Position } from "@/types/position.types";
 import type { ClassifiedStory, CongressTrade } from "@/types/news.types";
 import type { AgentProgress } from "@/lib/agent/service";
+import type { TickerPrediction } from "@/types/predictions";
 
 const SOURCE_ORDER = ["twitter", "reddit", "finnhub", "newsapi"] as const;
 const SOURCE_PRIORITY: Record<string, number> = { twitter: 0, reddit: 1, finnhub: 2, newsapi: 3 };
@@ -21,6 +22,8 @@ interface Props {
   loading: boolean;
   frosted?: boolean;
   agentState?: AgentProgress;
+  prediction?: TickerPrediction | null;
+  resolvedStats?: { total: number; correct: number };
 }
 
 function glowClass(buy: number, sell: number, loading: boolean): string {
@@ -37,6 +40,8 @@ export default function PositionCard({
   loading,
   frosted,
   agentState,
+  prediction,
+  resolvedStats,
 }: Props) {
   const articleRef = useRef<HTMLDivElement>(null);
   const [_hovered, setHovered] = useState(false);
@@ -50,6 +55,7 @@ export default function PositionCard({
     currentPrice,
     pricePaid,
     history,
+    purchaseDate,
   } = position;
 
   // Sentiment counts — now tri-state
@@ -128,6 +134,7 @@ export default function PositionCard({
           currentPrice={currentPrice}
           pricePaid={pricePaid}
           history={history}
+          purchaseDate={purchaseDate}
           gainPositive={gainPositive}
           gainPct={gainPct}
           todayDelta={todayDelta}
@@ -148,6 +155,8 @@ export default function PositionCard({
           sourceOrder={SOURCE_ORDER}
           sourcePriority={SOURCE_PRIORITY}
           agentState={agentState}
+          prediction={prediction}
+          resolvedStats={resolvedStats}
         />
       </div>
     </GlassView>

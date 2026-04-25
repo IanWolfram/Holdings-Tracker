@@ -1,0 +1,42 @@
+[
+  {
+    "id": "HOOD-1777086488382",
+    "ticker": "HOOD",
+    "runAt": 1777086488382,
+    "priceAtPrediction": 84.71,
+    "direction": "DOWN",
+    "magnitudePct": 5,
+    "horizonDays": 7,
+    "confidence": 0.8,
+    "reasoning": "Three high-confidence (≥0.75) SELL verdicts from CFTC and Wisconsin lawsuits directly threaten HOOD's prediction market sports contracts, a key growth driver. No strong BUY catalysts to offset; HOLD signals are weak or generic. Ticker knowledge confirms regulatory threats reliably trigger SELL signals. Self-calibration not needed as no recent misses on this ticker. Magnitude set at 5% for large-cap, reflecting realistic downside from regulatory overhang.",
+    "catalysts": [
+      {
+        "headline": "Prediction Markets: The Potential Multi‑Trillion Dollar Asset Class Hiding In Plain Sight",
+        "verdict": "HOLD",
+        "confidence": 0.2
+      },
+      {
+        "headline": "'CFTC Sues New York to Assert Prediction Market Jurisdiction' - Bloomberg Law",
+        "verdict": "SELL",
+        "confidence": 0.75
+      },
+      {
+        "headline": "Wisconsin Sues Kalshi, Robinhood, Coinbase, Polymarket, Crypto.com For Violating Gambling Ban",
+        "verdict": "SELL",
+        "confidence": 0.75
+      },
+      {
+        "headline": "Wisconsin Sues Prediction Markets Over Sports Betting Contracts",
+        "verdict": "SELL",
+        "confidence": 0.75
+      },
+      {
+        "headline": "Investors Heavily Search Robinhood Markets, Inc. (HOOD): Here is What You Need to Know",
+        "verdict": "HOLD",
+        "confidence": 0.5
+      }
+    ],
+    "engine": "deepseek_1776977666998",
+    "status": "pending"
+  }
+]

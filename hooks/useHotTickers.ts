@@ -92,6 +92,7 @@ export function useHotTickers() {
   return {
     hotTickers,
     congressTrades,
+    lastSeenAt,
     expandedTicker,
     tickerNews,
     loadingNews,

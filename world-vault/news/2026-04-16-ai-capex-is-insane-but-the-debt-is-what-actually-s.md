@@ -1,25 +1,26 @@
 ---
 date: "2026-04-16"
-ticker: NVDA
-sector: Unknown
+ticker: MSFT
+sector: Tech
 verdict: SELL
 confidence: 0.60
 relevance: 0.60
+verified: false
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1snbayy/ai_capex_is_insane_but_the_debt_is_what_actually/"
 tags:
   - news
-  - nvda
+  - msft
   - sell
   - world-brain
-  - unknown
+  - tech
 ---
 
 # AI capex is insane but the debt is what actually scares me
 
 **Verdict**: SELL (60% confidence)  
-**Relevance to [[NVDA]]**: 60%  
+**Relevance to [[MSFT]]**: 60%  
 **Geographic origin**: US  
 
 ## Summary
@@ -36,5 +37,5 @@ _No analysis available._
 
 ## Links
 - [Source Article](https://www.reddit.com/r/stocks/comments/1snbayy/ai_capex_is_insane_but_the_debt_is_what_actually/)
-- [[NVDA]]
+- [[MSFT]]
 - [[US-news]]

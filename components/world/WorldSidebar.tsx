@@ -7,6 +7,7 @@ import ChevronDownIcon from "@/components/icons/ChevronDownIcon";
 import ChevronRightIcon from "@/components/icons/ChevronRightIcon";
 import { SECTOR_ICONS } from "@/components/icons/SectorIcons";
 import type { GeoStory } from "@/types/geo.types";
+import type { ClassifiedStory } from "@/types/news.types";
 
 interface HoldingItem {
   ticker: string;
@@ -31,6 +32,19 @@ export default function WorldSidebar({
   setHoldingsOpen,
   holdings,
 }: WorldSidebarProps) {
+  const toClassifiedStory = (story: GeoStory): ClassifiedStory => {
+    const normalizedSource: ClassifiedStory["source"] =
+      story.source === "reddit" || story.source === "twitter" || story.source === "newsapi"
+        ? story.source
+        : "finnhub";
+
+    return {
+      ...story,
+      source: normalizedSource,
+      classifiedAt: new Date(story.datetime < 10000000000 ? story.datetime * 1000 : story.datetime).toISOString(),
+    };
+  };
+
   return (
     <div className="absolute top-4 left-6 z-20 flex flex-col items-start gap-4 w-[340px] max-h-[85vh] pointer-events-none">
       <div className="flex flex-col w-full pointer-events-none">
@@ -55,7 +69,7 @@ export default function WorldSidebar({
                 fullyCollapsible
               >
                 {stories.map((story, index) => (
-                  <NewsCard key={story.url || `story-${index}`} story={story} />
+                  <NewsCard key={story.url || `story-${index}`} story={toClassifiedStory(story)} />
                 ))}
               </NewsCollapsible>
             ))}

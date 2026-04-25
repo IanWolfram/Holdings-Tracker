@@ -1,7 +1,7 @@
 
 import { readFileSync, existsSync } from "fs";
 import { resolve } from "path";
-import { fetchFinnhubNews } from "./lib/finnhub";
+import { fetchFinnhubNews } from "../lib/finnhub";
 
 // Load .env.local
 const envPath = resolve(process.cwd(), ".env.local");

@@ -16,6 +16,7 @@
 import { readFileSync, existsSync } from "fs";
 import { resolve } from "path";
 import type { UnifiedAnalysis } from "../world-brain/brain";
+import { runStockAgent } from "../lib/agent/service";
 
 // Load .env.local synchronously before main() runs any lib code
 const envPath = resolve(process.cwd(), ".env.local");
@@ -97,10 +98,7 @@ function renderStory(
 
 // ── Main ─────────────────────────────────────────────────────────────────────
 
-import { runStockAgent, TickerResult } from "../lib/agent/service";
-
-// ── Main ─────────────────────────────────────────────────────────────────────
-
+async function main(): Promise<void> {
   const model = process.env.MLX_MODEL ?? "mlx-community/DeepSeek-R1-Distill-Qwen-14B-4bit";
 
   console.log(`\n${B}${C}Pulse — Stock Agent${R}`);

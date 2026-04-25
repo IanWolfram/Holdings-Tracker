@@ -1,10 +1,11 @@
 ---
 date: "2026-04-16"
 ticker: JPM
-sector: Unknown
+sector: Banking
 verdict: BUY
 confidence: 0.80
 relevance: 0.80
+verified: false
 country: US
 source: reddit
 url: "https://www.reddit.com/r/investing/comments/1smrd1a/jpm_beat_citi_beat_and_the_reactions_were/"
@@ -13,7 +14,7 @@ tags:
   - jpm
   - buy
   - world-brain
-  - unknown
+  - banking
 ---
 
 # JPM beat, Citi beat, and the reactions were different. Is earnings season mostly about expectations now?

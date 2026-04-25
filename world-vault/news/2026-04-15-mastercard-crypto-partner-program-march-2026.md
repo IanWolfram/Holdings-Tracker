@@ -1,10 +1,11 @@
 ---
 date: "2026-04-15"
 ticker: JPM
-sector: Unknown
+sector: Banking
 verdict: BUY
 confidence: 0.60
 relevance: 0.60
+verified: false
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1smao2s/mastercard_crypto_partner_program_march_2026/"
@@ -13,7 +14,7 @@ tags:
   - jpm
   - buy
   - world-brain
-  - unknown
+  - banking
 ---
 
 # Mastercard ‘Crypto Partner Program’ March 2026

@@ -8,10 +8,10 @@ import { MOCK_NEWS, MOCK_PENDING } from "@/lib/mock-news";
 import { getCompanyName } from "@/lib/company-names";
 import { NEWS_CACHE_TTL_MS } from "@/lib/constants";
 
-const THIRTY_DAYS_S = 30 * 24 * 60 * 60;
+const NEWS_WINDOW_S = 14 * 24 * 60 * 60;
 
-function withinThirtyDays(stories: ClassifiedStory[]): ClassifiedStory[] {
-  const cutoff = Math.floor(Date.now() / 1000) - THIRTY_DAYS_S;
+function withinNewsWindow(stories: ClassifiedStory[]): ClassifiedStory[] {
+  const cutoff = Math.floor(Date.now() / 1000) - NEWS_WINDOW_S;
   return stories.filter((s) => s.datetime >= cutoff);
 }
 
@@ -79,7 +79,7 @@ export class NewsService {
 
     if (totalRealStories === 0) {
       if (MOCK_VERDICTS?.[ticker]) {
-        const data = withinThirtyDays(MOCK_VERDICTS[ticker]);
+        const data = withinNewsWindow(MOCK_VERDICTS[ticker]);
         this.cache.set(ticker, data, NEWS_CACHE_TTL_MS);
         return data;
       }
@@ -92,13 +92,13 @@ export class NewsService {
         classified.push({ ...s, ...cls });
       }
       const pending = MOCK_PENDING[ticker] || [];
-      const filtered = withinThirtyDays(classified);
+      const filtered = withinNewsWindow(classified);
       const allResult = [...pending, ...filtered];
       this.cache.set(ticker, allResult, NEWS_CACHE_TTL_MS);
       return allResult;
     }
 
-    const cutoff = Math.floor(Date.now() / 1000) - THIRTY_DAYS_S;
+    const cutoff = Math.floor(Date.now() / 1000) - NEWS_WINDOW_S;
     const allItems = [
       ...finnhubItems.map((a) => ({ ticker, ...a, source: "finnhub" as const })),
       ...redditItems.map((a) => ({ ticker, ...a, source: "reddit" as const })),
@@ -114,7 +114,7 @@ export class NewsService {
     }
 
     const pending = MOCK_PENDING[ticker] || [];
-    const recent = withinThirtyDays(classified).sort((a, b) => b.datetime - a.datetime);
+    const recent = withinNewsWindow(classified).sort((a, b) => b.datetime - a.datetime);
     const allRecent = [...pending, ...recent];
     
     this.cache.set(ticker, allRecent, NEWS_CACHE_TTL_MS);

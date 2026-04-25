@@ -4,9 +4,15 @@ import { analyzeStory } from "../../world-brain/brain";
 import { getServices } from "@/src/registry";
 import { writeStoryNote } from "../../world-brain/obsidian";
 import { WORLD_VAULT_PATH } from "@/lib/constants";
+import { requirePremiumAccess } from "@/lib/license";
 import type { ClassifiedStory } from "@/types/news.types";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const access = requirePremiumAccess();
+  if (!access.ok) {
+    return res.status(access.statusCode).json({ error: access.error });
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed." });
   }
@@ -53,7 +59,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         confidence: analysis.confidence,
         reason: analysis.reason,
         source: "finnhub",
-        originCountryCode: analysis.originCountryCode,
+        originCountryCode: analysis.originCountryCode ?? undefined,
         relevanceScore: analysis.relevanceScore,
         isAnalyzed: true,
       },

@@ -1,7 +1,13 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { runStockAgent, getAgentProgress, cancelStockAgent } from "../../../lib/agent/service";
+import { requirePremiumAccess } from "@/lib/license";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const access = requirePremiumAccess();
+  if (!access.ok) {
+    return res.status(access.statusCode).json({ error: access.error });
+  }
+
   if (req.method === "GET") {
     const progress = getAgentProgress();
     return res.status(200).json({

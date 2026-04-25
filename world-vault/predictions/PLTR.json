@@ -1,0 +1,77 @@
+[
+  {
+    "ticker": "PLTR",
+    "direction": "UP",
+    "magnitudePct": 4.2,
+    "confidence": 0.76,
+    "reasoning": "Seed prediction for UI testing — replace when agent runs.",
+    "runAt": 1745452800000,
+    "horizonDays": 7,
+    "status": "resolved",
+    "priceAtPrediction": 118.5,
+    "resolvedAt": 1777086488382,
+    "priceAtResolution": 143.09,
+    "actualPct": 20.75,
+    "outcome": "CORRECT"
+  },
+  {
+    "id": "PLTR-1777086488382",
+    "ticker": "PLTR",
+    "runAt": 1777086488382,
+    "priceAtPrediction": 143.09,
+    "direction": "UP",
+    "magnitudePct": 2.5,
+    "horizonDays": 7,
+    "confidence": 0.65,
+    "reasoning": "Only one high-confidence BUY signal (IRS contract expansion at 72%) meets the threshold; the remaining verdicts are low-confidence HOLDs with no specific catalysts. Ticker knowledge confirms government contract wins are reliable buy signals, but a single catalyst without a cluster of ≥2 high-confidence signals limits conviction. Recent prediction was correct but magnitude was underestimated, so no downward calibration needed. Forecast UP with modest magnitude given single strong catalyst.",
+    "catalysts": [
+      {
+        "headline": "Palantir is reportedly helping the IRS investigate financial crimes",
+        "verdict": "BUY",
+        "confidence": 0.72
+      },
+      {
+        "headline": "Why Palantir Stock Is Slumping in 2026—and Why It Could Bounce Back",
+        "verdict": "HOLD",
+        "confidence": 0.5
+      },
+      {
+        "headline": "Kalshi Taps Pyth Network To Settle Bets On Gold, Oil, Wheat And More",
+        "verdict": "HOLD",
+        "confidence": 0.2
+      },
+      {
+        "headline": "One AI Stock Outpacing NVIDIA & Palantir - Why It's a Better Buy",
+        "verdict": "HOLD",
+        "confidence": 0.2
+      },
+      {
+        "headline": "These S&P500 stocks are the most active in today's session",
+        "verdict": "HOLD",
+        "confidence": 0.2
+      }
+    ],
+    "engine": "deepseek_1776977666998",
+    "status": "pending"
+  },
+  {
+    "id": "PLTR-1777086647281",
+    "ticker": "PLTR",
+    "runAt": 1777086647281,
+    "priceAtPrediction": 143.09,
+    "direction": "FLAT",
+    "magnitudePct": 0,
+    "horizonDays": 7,
+    "confidence": 0.8,
+    "reasoning": "Only one low-confidence HOLD verdict with no specific PLTR catalyst; no high-confidence BUY or SELL signals to form a directional cluster. Ticker patterns show strong BUY signals require specific government contract wins, which are absent. Recent prediction was correct but for a much larger move, reinforcing that without clear catalysts, FLAT is appropriate.",
+    "catalysts": [
+      {
+        "headline": "Dan Ives: AI trade is in the third inning and that is bullish",
+        "verdict": "HOLD",
+        "confidence": 0.5
+      }
+    ],
+    "engine": "deepseek_1776977666998",
+    "status": "pending"
+  }
+]

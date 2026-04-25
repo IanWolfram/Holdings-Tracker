@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pulse License</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0b0f12;
+        --panel: #141a20;
+        --border: #26303a;
+        --text: #e8edf2;
+        --muted: #93a3b5;
+        --accent: #2aa5ff;
+      }
+      body {
+        margin: 0;
+        font-family: "Space Grotesk", "Avenir Next", sans-serif;
+        background: radial-gradient(120% 120% at 10% 0%, #10202f 0%, var(--bg) 50%);
+        color: var(--text);
+      }
+      .wrap {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+      }
+      .panel {
+        width: 100%;
+        max-width: 520px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: linear-gradient(160deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+        padding: 24px;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 24px;
+        letter-spacing: 0.02em;
+      }
+      p {
+        margin: 0;
+        color: var(--muted);
+      }
+      .meta {
+        margin-top: 14px;
+        font-size: 13px;
+      }
+      .field {
+        margin-top: 20px;
+      }
+      input {
+        width: 100%;
+        box-sizing: border-box;
+        background: #0b1116;
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-size: 14px;
+        padding: 12px;
+        outline: none;
+      }
+      input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(42, 165, 255, 0.2);
+      }
+      .hint {
+        margin-top: 8px;
+        font-size: 12px;
+      }
+      .error {
+        margin-top: 10px;
+        min-height: 18px;
+        font-size: 12px;
+        color: #ff7d7d;
+      }
+      .actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 18px;
+      }
+      button {
+        border: 0;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .primary {
+        background: var(--accent);
+        color: #02111d;
+      }
+      .secondary {
+        background: #202833;
+        color: var(--text);
+      }
+      .ghost {
+        background: transparent;
+        color: var(--muted);
+        border: 1px solid var(--border);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="panel">
+        <h1>Unlock Pulse Desktop</h1>
+        <p id="statusText"></p>
+        <p class="meta" id="trialMeta"></p>
+
+        <div class="field">
+          <input id="licenseInput" placeholder="PULSE-AB12-CD34-EF56" autocomplete="off" />
+          <p class="hint">License key format: PULSE-XXXX-XXXX-XXXX</p>
+          <p class="error" id="errorText"></p>
+        </div>
+
+        <div class="actions">
+          <button class="primary" id="submitBtn">Activate</button>
+          <button class="secondary" id="trialBtn">Continue Trial</button>
+          <button class="ghost" id="quitBtn">Quit</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const daysRemaining = Number(params.get("daysRemaining") || "0");
+      const trialExpired = params.get("trialExpired") === "1";
+
+      const statusText = document.getElementById("statusText");
+      const trialMeta = document.getElementById("trialMeta");
+      const errorText = document.getElementById("errorText");
+      const submitBtn = document.getElementById("submitBtn");
+      const trialBtn = document.getElementById("trialBtn");
+      const quitBtn = document.getElementById("quitBtn");
+      const licenseInput = document.getElementById("licenseInput");
+
+      if (trialExpired) {
+        statusText.textContent = "Your 30-day trial has ended. Enter a valid license key to continue.";
+        trialMeta.textContent = "Trial expired";
+        trialBtn.disabled = true;
+        trialBtn.style.opacity = 0.45;
+        trialBtn.style.cursor = "not-allowed";
+      } else {
+        statusText.textContent = "Enter a license key now or continue your trial.";
+        trialMeta.textContent = `${daysRemaining} trial day${daysRemaining === 1 ? "" : "s"} remaining`;
+      }
+
+      submitBtn.addEventListener("click", () => {
+        const key = String(licenseInput.value || "").trim();
+        if (!key) {
+          errorText.textContent = "Enter your license key.";
+          return;
+        }
+        errorText.textContent = "";
+        window.pulseLicense.submitKey(key);
+      });
+
+      trialBtn.addEventListener("click", () => {
+        window.pulseLicense.continueTrial();
+      });
+
+      quitBtn.addEventListener("click", () => {
+        window.pulseLicense.quitApp();
+      });
+
+      licenseInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          submitBtn.click();
+        }
+      });
+    </script>
+  </body>
+</html>

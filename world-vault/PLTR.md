@@ -1,5 +1,5 @@
 ---
-date: "2026-04-21"
+date: "2026-04-25"
 type: ticker-knowledge
 ticker: PLTR
 sector: Tech
@@ -8,6 +8,6 @@ generated: true
 
 # PLTR — Learned Patterns
 
-Positive catalysts such as major AI contracts, strategic vision, and leadership in the AI sector have reliably triggered BUY signals for PLTR, with confidence scores often exceeding 90%. Conversely, negative factors like political risks, tax-related scrutiny, and underperformance relative to peers have triggered SELL signals, with confidence scores around 80%. The sector is dominated by themes of AI leadership and government modernization efforts, with recurring geopolitical risks tied to tax policies and cash flow stability. Analyst upgrades and contract wins typically score higher confidence, while competitive pressures and political risks lower confidence levels.
+Government contract wins, especially those expanding beyond defense into civilian agencies like the USDA or IRS, reliably trigger high-confidence BUY signals at 85-92% confidence, as they confirm stable long-cycle revenue. Sharp price declines of 7-20% combined with intact core government AI contract pipelines also produce BUY signals at 80-85% confidence, framing dips as buying opportunities. SELL signals at 80% confidence are consistently triggered by headline risk from divestment campaigns against major institutional holders like the Swiss National Bank, or by explicit analyst skepticism flagging fundamental growth narrative risks. Recurring geopolitical factors include presidential-level endorsements of government business expansion and national security applications like agricultural sovereignty, which amplify BUY conviction. Calibration note: analyst upgrade signals for PLTR historically under-perform predicted magnitude by roughly 40%, as the ticker's price action is more sensitive to direct contract catalysts than to sentiment-driven analyst calls.
 
-_Last updated: 2026-04-21_
+_Last updated: 2026-04-25_

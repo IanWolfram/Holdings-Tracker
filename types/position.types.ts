@@ -7,4 +7,5 @@ export interface Position {
   pricePaid: number;
   currentPrice: number;
   history?: number[];
+  purchaseDate?: number; // epoch timestamp in ms
 }

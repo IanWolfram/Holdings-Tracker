@@ -22,8 +22,6 @@ import {
 import type { Position } from "@/types/position.types";
 export { MOCK_POSITIONS } from "./position-list";
 import { MOCK_POSITIONS } from "./position-list";
-import { fetchCandlesPolygon } from "./polygon";
-
 function buildOAuth(): OAuth {
   return new OAuth({
     consumer: {
@@ -185,70 +183,6 @@ async function fetchPortfolio(accountIdKey: string): Promise<Position[]> {
   return positions;
 }
 
-function seededRand(seed: number): () => number {
-  let s = seed;
-  return () => {
-    s = (s * 1664525 + 1013904223) & 0xffffffff;
-    return (s >>> 0) / 0xffffffff;
-  };
-}
-
-function tickerSeed(ticker: string): number {
-  let h = 0;
-  for (let i = 0; i < ticker.length; i++) h = (Math.imul(31, h) + ticker.charCodeAt(i)) | 0;
-  return Math.abs(h);
-}
-
-function withSyntheticHistory(positions: Position[]): Position[] {
-  return positions.map(pos => {
-    if (pos.history && pos.history.length > 0) return pos;
-
-    const rand = seededRand(tickerSeed(pos.ticker));
-    const points = 90;
-    const history: number[] = [];
-    const current = pos.currentPrice;
-    const startingVal = current - (pos.quantity > 0 ? (pos.gainLoss / pos.quantity) : 0);
-    let val = startingVal;
-
-    for (let i = 0; i < points - 1; i++) {
-      history.push(val);
-      const trend = (current - val) / (points - i);
-      const noise = (rand() - 0.5) * (current * 0.012);
-      val += trend + noise;
-    }
-    history.push(current);
-
-    return { ...pos, history };
-  });
-}
-
-/**
- * Fetches real historical price history from Finnhub.
- * Falls back to synthetic if the API key is missing or the call fails.
- */
-async function withRealHistory(positions: Position[]): Promise<Position[]> {
-  const hasKey = !!process.env.POLYGON_API_KEY;
-
-  return Promise.all(
-    positions.map(async (pos) => {
-      if (pos.history && pos.history.length > 0) return pos;
-
-      if (hasKey) {
-        try {
-          const history = await fetchCandlesPolygon(pos.ticker, 90);
-          if (history && history.length > 0) {
-            return { ...pos, history };
-          }
-        } catch (err) {
-          // Non-fatal, fallback to synthetic
-        }
-      }
-
-      return withSyntheticHistory([pos])[0];
-    })
-  );
-}
-
 // Simple in-memory cache: accountIdKey + positions with 5-min TTL
 const cache = new Map<string, { data: unknown; expiresAt: number }>();
 
@@ -406,9 +340,8 @@ export async function getPositions(): Promise<Position[]> {
     return true;
   });
 
-  const withHistory = await withRealHistory(positions);
-  setCache(CACHE_KEY, withHistory);
-  return withHistory;
+  setCache(CACHE_KEY, positions);
+  return positions;
 }
 
 // ---------------------------------------------------------------------------
@@ -446,7 +379,7 @@ export async function getPositionsSafe(): Promise<Position[]> {
     }
   }
 
-  return withRealHistory(positions);
+  return positions;
 }
 
 /** Update .env.local with new tokens */

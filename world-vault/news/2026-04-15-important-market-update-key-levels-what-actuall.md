@@ -1,25 +1,26 @@
 ---
 date: "2026-04-15"
-ticker: NVDA
-sector: Unknown
+ticker: AAPL
+sector: Tech
 verdict: BUY
 confidence: 0.60
 relevance: 0.60
+verified: false
 country: US
 source: reddit
 url: "https://www.reddit.com/r/investing/comments/1sm62l4/important_market_update_key_levels_what_actually/"
 tags:
   - news
-  - nvda
+  - aapl
   - buy
   - world-brain
-  - unknown
+  - tech
 ---
 
 # Important Market Update: Key Levels + What Actually Matters
 
 **Verdict**: BUY (60% confidence)  
-**Relevance to [[NVDA]]**: 60%  
+**Relevance to [[AAPL]]**: 60%  
 **Geographic origin**: US  
 
 ## Summary
@@ -40,5 +41,5 @@ _No analysis available._
 
 ## Links
 - [Source Article](https://www.reddit.com/r/investing/comments/1sm62l4/important_market_update_key_levels_what_actually/)
-- [[NVDA]]
+- [[AAPL]]
 - [[US-news]]

@@ -1,10 +1,11 @@
 ---
 date: "2026-04-15"
 ticker: MSFT
-sector: Unknown
+sector: Tech
 verdict: HOLD
 confidence: 0.50
 relevance: 0.50
+verified: false
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1smi6ye/bill_ackman_was_right_we_just_experienced_the/"
@@ -13,7 +14,7 @@ tags:
   - msft
   - hold
   - world-brain
-  - unknown
+  - tech
 ---
 
 # Bill Ackman was right. We just experienced the best “quality boost” period of the era

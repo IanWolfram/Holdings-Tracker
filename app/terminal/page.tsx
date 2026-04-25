@@ -15,6 +15,7 @@ export default function Dashboard() {
     cashBalance,
     totalGainLoss,
     agentState,
+    predictions,
     refresh,
   } = useDashboardData();
 
@@ -34,6 +35,7 @@ export default function Dashboard() {
           totalCostBasis={positions.length > 0 ? positions.reduce((sum, p) => sum + p.pricePaid * p.quantity, 0) : undefined}
           totalGainLoss={totalGainLoss}
           cashBalance={cashBalance}
+          predictions={predictions}
         />
       </div>
       <div className="block md:hidden">

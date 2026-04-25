@@ -15,12 +15,37 @@ let crumbCache: { crumb: string; cookie: string; expiresAt: number } | null =
   null;
 let crumbInflight: Promise<{ crumb: string; cookie: string }> | null = null;
 const CRUMB_TTL_MS = 60 * 60 * 1000;
+const CRUMB_RATE_LIMIT_COOLDOWN_MS = 5 * 60 * 1000;
+let crumbRateLimitedUntil = 0;
+
+function makeCrumbRateLimitedError(sourceStatus?: number): Error {
+  const err = new Error(
+    sourceStatus
+      ? `Yahoo crumb rate-limited (HTTP ${sourceStatus})`
+      : "Yahoo crumb rate-limited"
+  );
+  err.name = "YahooCrumbRateLimitError";
+  return err;
+}
+
+export function isYahooCrumbRateLimitedError(err: unknown): boolean {
+  return err instanceof Error && err.name === "YahooCrumbRateLimitError";
+}
 
 async function fetchCrumb(): Promise<{ crumb: string; cookie: string }> {
+  if (Date.now() < crumbRateLimitedUntil) {
+    throw makeCrumbRateLimitedError();
+  }
+
   const consentRes = await fetch("https://finance.yahoo.com/", {
     headers: { ...YAHOO_HEADERS, Accept: "text/html" },
     redirect: "follow",
   });
+
+  if (consentRes.status === 429) {
+    crumbRateLimitedUntil = Date.now() + CRUMB_RATE_LIMIT_COOLDOWN_MS;
+    throw makeCrumbRateLimitedError(429);
+  }
 
   const rawCookies =
     (consentRes.headers as unknown as { getSetCookie?: () => string[] }).getSetCookie?.() ?? [];
@@ -30,6 +55,11 @@ async function fetchCrumb(): Promise<{ crumb: string; cookie: string }> {
     "https://query2.finance.yahoo.com/v1/test/getcrumb",
     { headers: { ...YAHOO_HEADERS, Cookie: cookieStr, Accept: "text/plain" } }
   );
+
+  if (crumbRes.status === 429) {
+    crumbRateLimitedUntil = Date.now() + CRUMB_RATE_LIMIT_COOLDOWN_MS;
+    throw makeCrumbRateLimitedError(429);
+  }
 
   if (!crumbRes.ok) {
     throw new Error(

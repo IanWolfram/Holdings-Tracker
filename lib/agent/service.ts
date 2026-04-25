@@ -3,18 +3,30 @@ import path from "path";
 import { getPositions } from "../etrade";
 import { fetchCompanyProfile } from "../company-profile";
 import { getServices } from "@/src/registry";
-import { analyzeStory, UnifiedAnalysis } from "../../world-brain/brain";
+import { analyzeStory, callMlxRaw, UnifiedAnalysis } from "../../world-brain/brain";
 import { getRecentVaultStories, runLearningPass } from "../../world-brain/learn";
+import {
+  resolveEligiblePredictions,
+  appendPrediction,
+  getRecentResolvedPredictions,
+} from "../../world-brain/predictions";
 import { ensureMlxServer } from "../mlx";
 import { writeStoryNote, writeDailySummary } from "../../world-brain/obsidian";
 import { WORLD_VAULT_PATH, resolveVaultPath } from "../constants";
+import { getQuote } from "../market-data";
+import { getActiveModel } from "../ai-config";
 import type { GeoStory, WorldData } from "@/types/geo.types";
 import type { ClassifiedStory } from "@/types/news.types";
+import type {
+  TickerPrediction,
+  PredictionDirection,
+} from "@/types/predictions";
 
 export interface AgentProgress {
   status: "idle" | "running" | "complete" | "error";
+  phase?: "resolving" | "analyzing" | "forecasting" | "learning";
   ticker?: string;
-  currentHeadline?: string;  // full headline currently under MLX analysis
+  currentHeadline?: string;
   articleIndex?: number;
   totalArticles?: number;
   message?: string;
@@ -54,6 +66,102 @@ export function cancelStockAgent(): void {
   if (currentProgress.status === "running") {
     isCancelled = true;
     currentProgress = { status: "idle", message: "Agent run cancelled." };
+  }
+}
+
+async function runForecast(
+  ticker: string,
+  currentPrice: number,
+  verdicts: TickerResult["verdicts"],
+  tickerContext: string | undefined,
+  vaultPath: string,
+  sector: string | undefined,
+  runAt: number
+): Promise<TickerPrediction | null> {
+  let forecasterPrompt = "";
+  try {
+    forecasterPrompt = fs
+      .readFileSync(path.join(process.cwd(), "world-brain", "agents", "FORECASTER.md"), "utf-8")
+      .trim();
+  } catch {
+    return null;
+  }
+  if (!forecasterPrompt) return null;
+
+  const catalysts = verdicts.slice(0, 5).map((v) => ({
+    headline: v.headline.slice(0, 100),
+    verdict: v.verdict,
+    confidence: v.analysis.confidence,
+  }));
+
+  const recentResolved = getRecentResolvedPredictions(vaultPath, ticker, 3);
+
+  const verdictsBlock = verdicts
+    .slice(0, 5)
+    .map(
+      (v) =>
+        `- ${v.verdict} (${Math.round(v.analysis.confidence * 100)}%) — "${v.headline.slice(0, 80)}"\n  Reason: ${(v.analysis.reason ?? "").slice(0, 120)}`
+    )
+    .join("\n");
+
+  const calibrationBlock =
+    recentResolved.length > 0
+      ? "\n\nYour recent resolved predictions for this ticker:\n" +
+        recentResolved
+          .map((p, i) => {
+            const sign = (p.actualPct ?? 0) >= 0 ? "+" : "";
+            return `${i + 1}. [${new Date(p.runAt).toISOString().slice(0, 10)}] Predicted ${p.direction} +/-${p.magnitudePct}% (conf ${Math.round(p.confidence * 100)}%) → ${p.outcome} (actual ${sign}${p.actualPct?.toFixed(1) ?? "?"}%)`;
+          })
+          .join("\n")
+      : "";
+
+  const userMessage =
+    `Ticker: ${ticker}\nCurrent price: $${currentPrice.toFixed(2)}\n` +
+    (sector ? `Sector: ${sector}\n` : "") +
+    `\nSession verdicts:\n${verdictsBlock}` +
+    (tickerContext ? `\n\nTicker Knowledge:\n${tickerContext.slice(0, 400)}` : "") +
+    calibrationBlock +
+    `\n\nOUTPUT ONLY THE JSON OBJECT. NO MARKDOWN. START WITH { END WITH }.`;
+
+  const raw = await callMlxRaw(forecasterPrompt, userMessage);
+  if (!raw) return null;
+
+  try {
+    const firstBrace = raw.indexOf("{");
+    const lastBrace = raw.lastIndexOf("}");
+    if (firstBrace === -1 || lastBrace === -1) return null;
+    const parsed = JSON.parse(raw.slice(firstBrace, lastBrace + 1)) as {
+      direction?: string;
+      magnitudePct?: number;
+      confidence?: number;
+      reasoning?: string;
+    };
+    if (!parsed.direction || !["UP", "DOWN", "FLAT"].includes(parsed.direction)) return null;
+
+    const active = getActiveModel();
+    return {
+      id: `${ticker}-${runAt}`,
+      ticker,
+      runAt,
+      priceAtPrediction: currentPrice,
+      direction: parsed.direction as PredictionDirection,
+      magnitudePct:
+        typeof parsed.magnitudePct === "number"
+          ? Math.max(0, Math.min(30, parsed.magnitudePct))
+          : 0,
+      horizonDays: 7,
+      confidence:
+        typeof parsed.confidence === "number"
+          ? Math.max(0, Math.min(1, parsed.confidence))
+          : 0.5,
+      reasoning: parsed.reasoning ?? "",
+      catalysts,
+      engine: active.id,
+      status: "pending",
+    };
+  } catch {
+    console.warn(`[agent] FORECASTER parse failed for ${ticker}`);
+    return null;
   }
 }
 
@@ -108,12 +216,28 @@ export async function runStockAgent(): Promise<AgentRunResult> {
       getServices().newsService.invalidateTicker(p.ticker);
     }
 
-    // 3. Analyze news per ticker
+    // 3a. Resolve any pending predictions whose horizon has passed
+    const quoteCache: Record<string, Awaited<ReturnType<typeof getQuote>>> = {};
+    if (WORLD_VAULT_PATH) {
+      currentProgress = { ...currentProgress, phase: "resolving", message: "Resolving prior predictions..." };
+      for (const pos of positions) {
+        try {
+          const quote = await getQuote(pos.ticker);
+          quoteCache[pos.ticker] = quote;
+          resolveEligiblePredictions(WORLD_VAULT_PATH, pos.ticker, quote?.currentPrice ?? null, startedAt);
+        } catch {
+          // non-fatal — prediction resolution never blocks analysis
+        }
+      }
+    }
+
+    // 3b. Analyze news per ticker
     for (const pos of positions) {
       if (isCancelled) break;
       
       currentProgress = {
         ...currentProgress,
+        phase: "analyzing",
         ticker: pos.ticker,
         currentHeadline: undefined,
         message: `Fetching news for ${pos.ticker}...`
@@ -121,7 +245,9 @@ export async function runStockAgent(): Promise<AgentRunResult> {
 
       // Use the same unified NewsService the dashboard uses — it has the cache and prior verdicts
       const articles = await getServices().newsService.getNewsForTicker(pos.ticker, profiles[pos.ticker]?.sector);
-      const top = articles.slice(0, 5);
+      // Filter to only articles not yet run through the brain, then cap at 5.
+      // Filtering before slicing ensures previously-analyzed articles don't block new ones.
+      const top = articles.filter(a => a.isAnalyzed !== true).slice(0, 10);
 
       // Load per-ticker learned context and few-shot examples from vault
       let tickerContext: string | undefined;
@@ -140,20 +266,11 @@ export async function runStockAgent(): Promise<AgentRunResult> {
       }
 
       const verdicts: TickerResult["verdicts"] = [];
-      
+
       for (let i = 0; i < top.length; i++) {
         if (isCancelled) break;
-        
-        const article = top[i];
-        
-        // Only process articles that haven't been through the MLX brain.
-        // keyword-classified articles have isAnalyzed: false; truly analyzed ones have isAnalyzed: true.
-        const isPending = article.isAnalyzed !== true;
 
-        if (!isPending) {
-           console.log(`[agent] Skipping ${article.headline} - already has verdict.`);
-           continue;
-        }
+        const article = top[i];
 
         currentProgress = {
           ...currentProgress,
@@ -219,6 +336,35 @@ export async function runStockAgent(): Promise<AgentRunResult> {
         }
       }
 
+      // Forecast: synthesize this ticker's verdicts into a 7-day directional prediction
+      if (WORLD_VAULT_PATH && verdicts.length > 0 && !isCancelled) {
+        currentProgress = {
+          ...currentProgress,
+          phase: "forecasting",
+          message: `Forecasting ${pos.ticker}...`,
+        };
+        try {
+          const quote = quoteCache[pos.ticker] ?? (await getQuote(pos.ticker));
+          if (quote?.currentPrice) {
+            const prediction = await runForecast(
+              pos.ticker,
+              quote.currentPrice,
+              verdicts,
+              tickerContext,
+              WORLD_VAULT_PATH,
+              profiles[pos.ticker]?.sector,
+              startedAt
+            );
+            if (prediction) {
+              appendPrediction(WORLD_VAULT_PATH, prediction);
+              console.log(`[agent] Forecast for ${pos.ticker}: ${prediction.direction} +/-${prediction.magnitudePct}% (conf ${Math.round(prediction.confidence * 100)}%)`);
+            }
+          }
+        } catch (err) {
+          console.error(`[agent] Forecast failed for ${pos.ticker} (non-fatal):`, err);
+        }
+      }
+
       tickerResults.push({ ticker: pos.ticker, verdicts });
     }
     
@@ -246,7 +392,7 @@ export async function runStockAgent(): Promise<AgentRunResult> {
 
     // Learning pass: synthesize session verdicts into per-ticker knowledge files and market-insights.md
     if (WORLD_VAULT_PATH) {
-      currentProgress = { ...currentProgress, message: "Synthesizing session insights into knowledge base..." };
+      currentProgress = { ...currentProgress, phase: "learning", message: "Synthesizing session insights into knowledge base..." };
       try {
         await runLearningPass(result, WORLD_VAULT_PATH, profiles);
       } catch (err) {

@@ -1,10 +1,11 @@
 ---
 date: "2026-04-12"
 ticker: JPM
-sector: Unknown
+sector: Banking
 verdict: BUY
 confidence: 0.90
 relevance: 0.90
+verified: false
 country: US
 source: reddit
 url: "https://www.reddit.com/r/investing/comments/1sj9njq/my_perspective_on_oil_prices_from_now_until_the/"
@@ -13,7 +14,7 @@ tags:
   - jpm
   - buy
   - world-brain
-  - unknown
+  - banking
 ---
 
 # My perspective on oil prices from now until the end of 2026. Information compiled from multiple reputable news sources

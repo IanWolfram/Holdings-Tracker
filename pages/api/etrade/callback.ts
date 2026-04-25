@@ -20,9 +20,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     );
 
     console.log("[etrade-callback] Success! Updating .env.local...");
-    await updateEtradeTokens(token, secret); // Wait, I need to check the variable name in getAccessToken return
-
-    // Re-viewing getAccessToken in lib/etrade.ts... it returns { token, tokenSecret }
     await updateEtradeTokens(token, tokenSecret);
 
     // Clear the temporary cookie

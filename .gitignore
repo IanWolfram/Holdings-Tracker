@@ -16,6 +16,9 @@ dist/
 .DS_Store
 .pm2/
 
+# AI engine config (contains API keys)
+.ai-config.json
+
 # Python
 .mlx_venv/
 __pycache__/

@@ -77,25 +77,9 @@ export default function ConnectionControls({
               <span className="hidden sm:inline">{isConnecting ? "connecting..." : "connect"}</span>
             </button>
             <TopBarDivider />
-            <span className="font-mono text-[10px] text-slate-400 hidden sm:inline">synced</span>
             {timeStr && (
               <span className="font-mono text-[11px] font-medium text-slate-200">{timeStr}</span>
             )}
-            <button
-              onClick={onRefresh}
-              disabled={refreshing}
-              className="ml-1 text-positive hover:text-white disabled:opacity-40 disabled:text-slate-500 transition-colors active:scale-95 duration-100 inline-flex"
-              title="Refresh Data"
-              aria-label="Refresh Data"
-            >
-              <span
-                className={`material-symbols-outlined text-[14px] ${
-                  refreshing ? "animate-spin" : ""
-                }`}
-              >
-                refresh
-              </span>
-            </button>
           </>
         )}
       </div>

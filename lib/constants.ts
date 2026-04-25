@@ -2,6 +2,8 @@
  * Application-wide constants and configuration values.
  */
 
+import path from "path";
+
 // Timeouts and Intervals
 export const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 export const NEWS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -11,7 +13,8 @@ export const WORLD_VAULT_PATH = process.env.WORLD_VAULT_PATH ?? null;
 
 export function resolveVaultPath(vaultPath: string | null | undefined): string | null {
   if (!vaultPath) return null;
-  return vaultPath.startsWith(".") ? require("path").join(process.cwd(), vaultPath) : vaultPath;
+  const basePath = process.env.PULSE_USER_DATA_PATH ?? process.cwd();
+  return vaultPath.startsWith(".") ? path.join(basePath, vaultPath) : vaultPath;
 }
 
 

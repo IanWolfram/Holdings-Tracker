@@ -15,7 +15,7 @@ function getSystemPrompt(): string {
   if (!systemPrompt) {
     const dir = path.join(process.cwd(), "world-brain");
     const agentsDir = path.join(dir, "agents");
-    
+
     const baseParts = [
       { name: "AGENT.md", path: path.join(agentsDir, "AGENT.md") },
       { name: "sector-rules.md", path: path.join(dir, "sector-rules.md") }
@@ -50,14 +50,10 @@ export interface UnifiedAnalysis {
 
 // ---------------------------------------------------------------------------
 // Helper: strip DeepSeek-R1 chain-of-thought blocks.
-// The model often omits the opening <think> tag, outputting raw thinking
-// text followed by </think>. Handle both cases.
 // ---------------------------------------------------------------------------
 
 function stripThink(raw: string): string {
-  // Case 1: proper <think>...</think> wrapper
   let stripped = raw.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
-  // Case 2: thinking content starts at position 0, only closing </think> present
   const closeIdx = stripped.lastIndexOf("</think>");
   if (closeIdx !== -1) {
     stripped = stripped.slice(closeIdx + "</think>".length).trim();
@@ -66,16 +62,53 @@ function stripThink(raw: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Main inference function — single Ollama call for both trading signal + geo
+// SSE streaming helper — shared by both MLX and DeepSeek paths
+// ---------------------------------------------------------------------------
+
+async function consumeStream(
+  res: Response,
+  onChunk?: (text: string) => void
+): Promise<string> {
+  const reader = res.body?.getReader();
+  if (!reader) throw new Error("No response body");
+  const decoder = new TextDecoder("utf-8");
+  let accumulated = "";
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (let line of lines) {
+      line = line.trim();
+      if (!line.startsWith("data: ")) continue;
+      const dataStr = line.slice(6).trim();
+      if (dataStr === "[DONE]" || !dataStr) continue;
+      try {
+        const parsed = JSON.parse(dataStr);
+        const content = parsed.choices?.[0]?.delta?.content;
+        if (content) {
+          accumulated += content;
+          onChunk?.(accumulated);
+        }
+      } catch { /* ignore partial chunks */ }
+    }
+  }
+  return accumulated;
+}
+
+// ---------------------------------------------------------------------------
+// Internal MLX implementation
 // ---------------------------------------------------------------------------
 
 import { withInferenceSemaphore } from "../lib/classifier";
 import { isAiHealthy } from "../lib/ai-health";
+import { getActiveModel, getModelKey } from "../lib/ai-config";
 import type { Verdict } from "@/types/news.types";
 
-// ... (system prompt logic remains same)
-
-export async function callMlxRaw(systemPromptText: string, userMessage: string): Promise<string> {
+async function callMlxRawInternal(systemPromptText: string, userMessage: string): Promise<string> {
   const baseUrl = process.env.MLX_BASE_URL ?? "http://localhost:8080/v1";
   const model = process.env.MLX_MODEL ?? "mlx-community/DeepSeek-R1-Distill-Qwen-14B-4bit";
 
@@ -99,37 +132,85 @@ export async function callMlxRaw(systemPromptText: string, userMessage: string):
         signal: AbortSignal.timeout(300_000),
       });
       if (!res.ok) throw new Error(`MLX HTTP ${res.status}`);
-      const reader = res.body?.getReader();
-      if (!reader) throw new Error("No response body");
-      const decoder = new TextDecoder("utf-8");
-      let localRaw = "";
-      let buffer = "";
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
-        for (let line of lines) {
-          line = line.trim();
-          if (!line.startsWith("data: ")) continue;
-          const dataStr = line.slice(6).trim();
-          if (dataStr === "[DONE]" || !dataStr) continue;
-          try {
-            const parsed = JSON.parse(dataStr);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) localRaw += content;
-          } catch { /* ignore partial chunks */ }
-        }
-      }
-      return localRaw;
+      return consumeStream(res);
     });
     return stripThink(raw);
   } catch (err) {
-    console.error("[brain] callMlxRaw error:", err);
+    console.error("[brain] callMlxRawInternal error:", err);
     return "";
   }
 }
+
+// ---------------------------------------------------------------------------
+// Internal DeepSeek API implementation
+// ---------------------------------------------------------------------------
+
+async function callDeepSeekRawInternal(
+  systemPromptText: string,
+  userMessage: string,
+  onChunk?: (text: string) => void,
+  modelOverride?: string,
+  apiKeyOverride?: string,
+  baseUrlOverride?: string
+): Promise<string> {
+  const apiKey = apiKeyOverride ?? process.env.DEEPSEEK_API_KEY;
+  if (!apiKey) {
+    console.warn("[brain] API model selected but no key configured.");
+    return "";
+  }
+
+  const model = modelOverride ?? "deepseek-chat";
+  const baseUrl = baseUrlOverride ?? "https://api.deepseek.com/v1";
+
+  try {
+    const res = await fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: systemPromptText },
+          { role: "user", content: userMessage },
+        ],
+        temperature: 0.3,
+        max_tokens: 1024,
+        stream: true,
+      }),
+      signal: AbortSignal.timeout(120_000),
+    });
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      throw new Error(`DeepSeek HTTP ${res.status}: ${errText}`);
+    }
+    const raw = await consumeStream(res, onChunk);
+    return stripThink(raw);
+  } catch (err) {
+    console.error("[brain] callDeepSeekRawInternal error:", err);
+    return "";
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Public router — callMlxRaw routes to whichever engine is active.
+// Called by learn.ts (ARCHIVIST + META-ANALYST subagents).
+// ---------------------------------------------------------------------------
+
+export async function callMlxRaw(systemPromptText: string, userMessage: string): Promise<string> {
+  const active = getActiveModel();
+  if (active.provider === "deepseek" || active.provider === "openai") {
+    const apiKey = getModelKey(active.id);
+    const baseUrl = active.provider === "openai" ? "https://api.openai.com/v1" : "https://api.deepseek.com/v1";
+    return callDeepSeekRawInternal(systemPromptText, userMessage, undefined, active.model, apiKey, baseUrl);
+  }
+  return callMlxRawInternal(systemPromptText, userMessage);
+}
+
+// ---------------------------------------------------------------------------
+// Main inference — analyzeStory routes based on active engine
+// ---------------------------------------------------------------------------
 
 export async function analyzeStory(
   ticker: string,
@@ -141,12 +222,20 @@ export async function analyzeStory(
   tickerContext?: string,
   recentVerdicts?: Array<{ headline: string; verdict: string; confidence: number; reason: string }>
 ): Promise<UnifiedAnalysis> {
-  const baseUrl = process.env.MLX_BASE_URL ?? "http://localhost:8080/v1";
-  const model = process.env.MLX_MODEL ?? "mlx-community/DeepSeek-R1-Distill-Qwen-14B-4bit";
+  const active = getActiveModel();
+  const activeApiKey = active.provider === "deepseek" ? getModelKey(active.id) : undefined;
 
-  if (!(await isAiHealthy("mlx", baseUrl))) {
-    console.warn(`[brain] MLX engine at ${baseUrl} is not responding.`);
-    return fallbackAnalysis();
+  if (active.provider === "deepseek" || active.provider === "openai") {
+    if (!activeApiKey) {
+      console.warn(`[brain] Model "${active.name}" has no API key — falling back.`);
+      return fallbackAnalysis();
+    }
+  } else {
+    const baseUrl = process.env.MLX_BASE_URL ?? "http://localhost:8080/v1";
+    if (!(await isAiHealthy("mlx", baseUrl))) {
+      console.warn(`[brain] MLX engine at ${baseUrl} is not responding.`);
+      return fallbackAnalysis();
+    }
   }
 
   const holdingsBlock = holdingTickers.length > 0
@@ -175,79 +264,41 @@ export async function analyzeStory(
 
   let raw = "";
   try {
-    raw = await withInferenceSemaphore(async () => {
-      const url = `${baseUrl}/chat/completions`;
-      const body = {
-        model,
-        messages: [
-          { role: "system", content: getSystemPrompt() },
-          { role: "user",   content: userMessage },
-        ],
-        temperature: 0.1,
-        max_tokens: 4096,
-        stream: true,
-      };
+    if (active.provider === "deepseek" || active.provider === "openai") {
+      const baseUrl = active.provider === "openai" ? "https://api.openai.com/v1" : "https://api.deepseek.com/v1";
+      raw = await callDeepSeekRawInternal(getSystemPrompt(), userMessage, onStream, active.model, activeApiKey, baseUrl);
+    } else {
+      raw = await withInferenceSemaphore(async () => {
+        const baseUrl = process.env.MLX_BASE_URL ?? "http://localhost:8080/v1";
+        const model = process.env.MLX_MODEL ?? "mlx-community/DeepSeek-R1-Distill-Qwen-14B-4bit";
 
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(300_000),
+        const res = await fetch(`${baseUrl}/chat/completions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: "system", content: getSystemPrompt() },
+              { role: "user", content: userMessage },
+            ],
+            temperature: 0.1,
+            max_tokens: 4096,
+            stream: true,
+          }),
+          signal: AbortSignal.timeout(300_000),
+        });
+        if (!res.ok) throw new Error(`MLX HTTP ${res.status}`);
+        return consumeStream(res, onStream);
       });
-
-      if (!res.ok) {
-        console.error(`[brain] MLX error ${res.status}`);
-        throw new Error(`MLX HTTP ${res.status}`);
-      }
-      
-      const reader = res.body?.getReader();
-      if (!reader) throw new Error("No response body");
-      const decoder = new TextDecoder("utf-8");
-      
-      let localRaw = "";
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
-        
-        for (let line of lines) {
-          line = line.trim();
-          if (line.startsWith("data: ")) {
-            const dataStr = line.slice(6).trim();
-            if (dataStr === "[DONE]") continue;
-            if (!dataStr) continue;
-            try {
-              const parsed = JSON.parse(dataStr);
-              const content = parsed.choices?.[0]?.delta?.content;
-              if (content) {
-                localRaw += content;
-                onStream?.(localRaw);
-              }
-            } catch (e) {
-              // Ignore partial JSON parsing errors
-            }
-          }
-        }
-      }
-      
-      return localRaw;
-    });
+    }
   } catch (err) {
-    console.error(`[brain] MLX unreachable:`, err);
+    console.error(`[brain] inference error:`, err);
     return fallbackAnalysis();
   }
 
   try {
-    // 1. Strip <think> tags (Chain of Thought) if present
     let cleaned = stripThink(raw);
 
-    // 2. Clear out any "Alright, let's break this down" or introductory conversational filler
-    // We look for the first '{' and the last '}' to isolate the JSON object
     const firstBrace = cleaned.indexOf("{");
     const lastBrace = cleaned.lastIndexOf("}");
 
@@ -255,16 +306,12 @@ export async function analyzeStory(
     if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
       jsonStr = cleaned.substring(firstBrace, lastBrace + 1);
     } else {
-      // Fallback to regex if substringing fails
       const fence = cleaned.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
       jsonStr = fence?.[1] ?? "";
     }
 
     if (!jsonStr) {
-      console.warn(`[brain] No JSON found in response for ${headline}. Full raw response follows:`);
-      console.warn(`────────────────────────────────────────────────────────────`);
-      console.warn(raw);
-      console.warn(`────────────────────────────────────────────────────────────`);
+      console.warn(`[brain] No JSON found in response for ${headline}.`);
       throw new Error("No JSON found in response");
     }
 

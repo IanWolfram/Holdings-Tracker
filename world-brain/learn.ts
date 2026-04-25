@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { callMlxRaw, invalidateSystemPromptCache } from "./brain";
+import { getRecentResolvedPredictions } from "./predictions";
 import type { AgentRunResult } from "../lib/agent/service";
 
 export interface VaultStory {
@@ -96,12 +97,28 @@ export async function buildTickerKnowledge(
     )
     .join("\n\n");
 
+  // Include resolved prediction history for self-calibration
+  let calibrationBlock = "";
+  if (vaultPath) {
+    const resolved = getRecentResolvedPredictions(vaultPath, ticker, 5);
+    if (resolved.length > 0) {
+      calibrationBlock =
+        `\n\nRecent prediction outcomes for ${ticker} (use for self-calibration):\n` +
+        resolved.map((p, i) => {
+          const sign = (p.actualPct ?? 0) >= 0 ? "+" : "";
+          return `${i + 1}. [${new Date(p.runAt).toISOString().slice(0, 10)}] Predicted ${p.direction} +/-${p.magnitudePct}% (conf ${Math.round(p.confidence * 100)}%) → ${p.outcome} (actual ${sign}${p.actualPct?.toFixed(1) ?? "?"}%)`;
+        }).join("\n") +
+        `\n\nIf accuracy reveals systematic over/under-confidence in a catalyst type, add a one-sentence calibration rule (e.g. "Analyst upgrade signals for this ticker historically under-perform predicted magnitude by ~40%").`;
+    }
+  }
+
   const userMessage =
     `You are synthesizing observed trading signal patterns for a financial AI system.\n\n` +
     `Ticker: ${ticker}\n` +
     (sector ? `Sector: ${sector}\n` : "") +
     `\nBelow are the last ${stories.length} analyzed news stories for ${ticker}, sorted most recent first:\n\n` +
     storyList +
+    calibrationBlock +
     `\n\nBased on these patterns, write a 3-5 sentence knowledge block covering:\n` +
     `1. What types of headlines have reliably triggered BUY signals for ${ticker}\n` +
     `2. What types of headlines have triggered SELL signals\n` +
@@ -169,14 +186,29 @@ export async function runMetaReflection(
     `Session totals: ${sessionResult.totalBuys} BUY / ${sessionResult.totalSells} SELL / ${sessionResult.totalHolds} HOLD\n\n` +
     `Per-ticker breakdown:\n${perTickerSummary}`;
 
+  // Inject the most recent prior session's insights so META-ANALYST can compare
+  let priorInsightsBlock = "";
+  try {
+    const insightsPath = path.join(process.cwd(), "world-brain", "market-insights.md");
+    if (fs.existsSync(insightsPath)) {
+      const raw = fs.readFileSync(insightsPath, "utf-8");
+      const sections = raw.split(/\n## Session Insights — /).filter(Boolean);
+      const lastSection = sections[sections.length - 1];
+      if (lastSection && !lastSection.startsWith(today)) {
+        priorInsightsBlock = `\n\nPrevious session insights (for comparison — do not repeat, only reference if relevant):\n${lastSection.replace(/\n---\s*$/, "").trim()}`;
+      }
+    }
+  } catch { /* prior insights are optional */ }
+
   const userMessage =
     `Synthesize cross-ticker and macro patterns from today's analysis session.\n\n` +
     sessionSummary +
-    `\n\nWrite 3-6 sentences identifying:\n` +
-    `(1) Any macro or geopolitical themes driving signals across multiple tickers today\n` +
-    `(2) Cross-sector correlations observed\n` +
-    `(3) Signal calibration notes (what confidence levels appeared for which catalyst types)\n` +
-    `(4) Any anomalies or contradictions worth flagging for future sessions\n\n` +
+    priorInsightsBlock +
+    `\n\nWrite 3-6 sentences addressing:\n` +
+    `(1) The dominant macro or geopolitical theme driving signals across multiple tickers today\n` +
+    `(2) Cross-sector correlations — which sectors moved together or in opposition\n` +
+    `(3) Signal calibration — what confidence levels appeared for which catalyst types, and whether today's calibration shifted from prior sessions\n` +
+    `(4) The single most important anomaly or contradiction to monitor — make a specific, testable prediction if possible\n\n` +
     `Output only plain prose. No headers, no lists, no JSON.`;
 
   const reflection = await callMlxRaw(getSubagentPrompt("META-ANALYST.md"), userMessage);
@@ -186,8 +218,19 @@ export async function runMetaReflection(
   }
 
   const insightsPath = path.join(process.cwd(), "world-brain", "market-insights.md");
-  const section = `\n## Session Insights — ${today}\n\n${reflection}\n\n---\n`;
-  fs.appendFileSync(insightsPath, section, "utf-8");
+  const header = `## Session Insights — ${today}`;
+  const newSection = `\n${header}\n\n${reflection}\n\n---\n`;
+  const existing = fs.existsSync(insightsPath) ? fs.readFileSync(insightsPath, "utf-8") : "";
+
+  // Replace today's entry if it already exists, otherwise append
+  const sectionRegex = new RegExp(
+    `\\n?## Session Insights — ${today}\\n[\\s\\S]*?(?=\\n## Session Insights —|$)`
+  );
+  const updated = sectionRegex.test(existing)
+    ? existing.replace(sectionRegex, newSection)
+    : existing + newSection;
+
+  fs.writeFileSync(insightsPath, updated, "utf-8");
   console.log("[learn] Market insights updated.");
 
   invalidateSystemPromptCache();

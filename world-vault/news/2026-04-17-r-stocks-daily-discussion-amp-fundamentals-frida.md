@@ -1,10 +1,11 @@
 ---
 date: "2026-04-17"
 ticker: AAPL
-sector: Unknown
+sector: Tech
 verdict: BUY
 confidence: 0.70
 relevance: 0.70
+verified: false
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1snw0vk/rstocks_daily_discussion_fundamentals_friday_apr/"
@@ -13,7 +14,7 @@ tags:
   - aapl
   - buy
   - world-brain
-  - unknown
+  - tech
 ---
 
 # r/Stocks Daily Discussion &amp; Fundamentals Friday Apr 17, 2026

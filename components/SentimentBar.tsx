@@ -86,7 +86,7 @@ export default function SentimentBar({
             </span>
           </span>
           <span className={`font-mono text-[11px] font-bold tracking-[0.1em] whitespace-nowrap shrink-0 ${verdictColor}`}>
-            {verdictLabel} · {dominantPct}%
+            {dominantPct}%
           </span>
         </div>
       )}

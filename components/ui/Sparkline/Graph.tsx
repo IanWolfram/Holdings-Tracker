@@ -6,7 +6,7 @@ import { XAxis } from "./XAxis";
 /**
  * Graph component - Main coordinator for the visualization
  */
-export function Graph({ data, width = 60, height = 24 }: GraphProps) {
+export function Graph({ data, width = 60, height = 24, purchaseDate }: GraphProps) {
   if (!data || data.length < 2) {
     return (
       <div style={{ width, height }} className="flex items-center justify-center">
@@ -19,7 +19,7 @@ export function Graph({ data, width = 60, height = 24 }: GraphProps) {
   const max = Math.max(...data);
   const range = max - min || 1;
   const isPositive = data[data.length - 1] >= data[0];
-  
+
   const pl = 4;
   const pr = 4;
   const py = 6;
@@ -28,6 +28,15 @@ export function Graph({ data, width = 60, height = 24 }: GraphProps) {
     (height - py * 2) - ((val - min) / range) * (height - py * 2) + py;
   const toX = (i: number) =>
     (i / (data.length - 1)) * (width - pl - pr) + pl;
+
+  // Calculate purchase date line position
+  let purchaseDateX: number | null = null;
+  if (purchaseDate) {
+    const now = Date.now();
+    const daysOld = (now - purchaseDate) / (1000 * 60 * 60 * 24);
+    const dataPointsBack = Math.min(Math.max(daysOld, 0), data.length - 1);
+    purchaseDateX = toX(dataPointsBack);
+  }
 
   const points = data.map((val, i) => ({ x: toX(i), y: toY(val) }));
 
@@ -88,6 +97,16 @@ export function Graph({ data, width = 60, height = 24 }: GraphProps) {
           strokeWidth={0.5}
           strokeDasharray="2,2"
         />
+
+        {/* Purchase Date Line */}
+        {purchaseDateX !== null && (
+          <line
+            x1={purchaseDateX} y1={py} x2={purchaseDateX} y2={height - py}
+            stroke="rgba(255,255,255,0.6)"
+            strokeWidth={1.2}
+            strokeDasharray="3,3"
+          />
+        )}
 
         {/* SMA dashed line */}
         {smaPoints.length >= 2 && (

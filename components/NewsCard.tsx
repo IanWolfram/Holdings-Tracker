@@ -3,8 +3,7 @@
 import type { ClassifiedStory } from "@/types/news.types";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
-import { useId, useRef, useState } from "react";
-import { useDeepAnalysis } from "@/hooks/useDeepAnalysis";
+import { useId, useState } from "react";
 import {
   CARD_RADIUS,
   REVEAL_EASE,
@@ -30,35 +29,18 @@ const VERDICT_BG: Record<string, string> = {
 export default function NewsCard({
   story,
   isAnalyzed = false,
-  onAnalyze
 }: {
   story: ClassifiedStory;
   isAnalyzed?: boolean;
-  onAnalyze?: (ticker: string, headline: string, summary: string) => void;
 }) {
   const rawId = useId();
   const id = rawId.replace(/:/g, "");
   const [hovered, setHovered] = useState(false);
-  const [analyzeHovered, setAnalyzeHovered] = useState(false);
-  const analyzeLeaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { analyzing, deepAnalysis, canAnalyze: deepCanAnalyze, handleAnalyze } = useDeepAnalysis({
-    story,
-    onAnalyze,
-  });
-  const canAnalyze = !isAnalyzed && deepCanAnalyze;
 
-  const onAnalyzeEnter = () => {
-    if (analyzeLeaveTimer.current) clearTimeout(analyzeLeaveTimer.current);
-    setAnalyzeHovered(true);
-  };
-  const onAnalyzeLeave = () => {
-    analyzeLeaveTimer.current = setTimeout(() => setAnalyzeHovered(false), 120);
-  };
-
-  const activeVerdict = deepAnalysis?.verdict ?? story.verdict;
-  const activeConfidence = deepAnalysis?.confidence ?? story.confidence;
-  const activeReason = deepAnalysis?.reason ?? story.reason;
-  const activeIsAnalyzed = isAnalyzed || !!deepAnalysis;
+  const activeVerdict = story.verdict;
+  const activeConfidence = story.confidence;
+  const activeReason = story.reason;
+  const activeIsAnalyzed = isAnalyzed;
 
   const color = VERDICT_COLOR[activeVerdict] ?? "#64748b";
   const verdictBg = VERDICT_BG[activeVerdict] ?? "rgba(100,116,139,0.08)";
@@ -155,14 +137,7 @@ export default function NewsCard({
           {/* AI panel — expands on card hover */}
           <NewsCardAiPanel
             hovered={hovered}
-            analyzing={analyzing}
-            analyzeHovered={analyzeHovered}
-            onAnalyzeEnter={onAnalyzeEnter}
-            onAnalyzeLeave={onAnalyzeLeave}
-            onAnalyzeClick={handleAnalyze}
             color={color}
-            canAnalyze={canAnalyze}
-            deepAnalysis={deepAnalysis}
             activeIsAnalyzed={activeIsAnalyzed}
             activeVerdict={activeVerdict}
             verdictBg={verdictBg}

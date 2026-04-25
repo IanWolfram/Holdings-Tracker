@@ -1,10 +1,12 @@
 "use client";
 
+import { useMemo } from "react";
 import TopBar from "@/components/TopBar";
 import PositionCard from "@/components/PositionCard";
 import type { Position } from "@/types/position.types";
 import type { ClassifiedStory, CongressTrade } from "@/types/news.types";
 import type { AgentProgress } from "@/lib/agent/service";
+import type { TickerPrediction } from "@/types/predictions";
 import EmptyState from "@/components/EmptyState";
 
 interface DesktopDashboardProps {
@@ -20,6 +22,7 @@ interface DesktopDashboardProps {
   totalCostBasis?: number;
   totalGainLoss?: number;
   cashBalance?: number;
+  predictions?: Record<string, TickerPrediction[]>;
 }
 
 export default function DesktopDashboard({
@@ -35,10 +38,31 @@ export default function DesktopDashboard({
   totalCostBasis,
   totalGainLoss,
   cashBalance,
+  predictions = {},
 }: DesktopDashboardProps) {
+  const predictionsByTicker = useMemo(() => {
+    const out: Record<string, {
+      current: TickerPrediction | null;
+      resolvedStats: { total: number; correct: number };
+    }> = {};
+    for (const [ticker, preds] of Object.entries(predictions)) {
+      const sorted = [...preds].sort((a, b) => b.runAt - a.runAt);
+      const current = sorted[0] ?? null;
+      const resolved = preds.filter((p) => p.status === "resolved");
+      out[ticker] = {
+        current,
+        resolvedStats: {
+          total: resolved.length,
+          correct: resolved.filter((p) => p.outcome === "CORRECT").length,
+        },
+      };
+    }
+    return out;
+  }, [predictions]);
+
   return (
     <div className="min-h-screen flex flex-col bg-surface">
-      <TopBar lastUpdated={lastUpdated} refreshing={refreshing} onRefresh={onRefresh} totalValue={totalValue} totalCostBasis={totalCostBasis} totalGainLoss={totalGainLoss} cashBalance={cashBalance} />
+      <TopBar lastUpdated={lastUpdated} refreshing={refreshing} onRefresh={onRefresh} totalValue={totalValue} totalCostBasis={totalCostBasis} totalGainLoss={totalGainLoss} _cashBalance={cashBalance} />
       <main className="p-6 space-y-8">
         {positions.length === 0 && !refreshing && (
           <EmptyState
@@ -62,6 +86,8 @@ export default function DesktopDashboard({
               congressTrades={congressTrades[pos.ticker] ?? []}
               loading={loadingNews[pos.ticker] ?? false}
               agentState={agentState}
+              prediction={predictionsByTicker[pos.ticker]?.current}
+              resolvedStats={predictionsByTicker[pos.ticker]?.resolvedStats}
             />
           ))}
         </div>

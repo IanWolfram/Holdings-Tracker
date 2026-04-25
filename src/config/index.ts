@@ -56,6 +56,9 @@ export function buildConfig(): AppConfig {
     finnhub: {
       apiKey: process.env.FINNHUB_API_KEY,
     },
+    twitter: {
+      bearerToken: process.env.TWITTER_BEARER_TOKEN,
+    },
     newsapi: {
       apiKey: process.env.NEWSAPI_API_KEY,
     },

@@ -1,33 +1,35 @@
 ---
 date: "2026-04-13"
-ticker: RXD
-sector: Financial
-verdict: BUY
-confidence: 0.60
-relevance: 0.60
-country: unknown
-source: finnhub
+ticker: RBL
+sector: Unknown
+verdict: SELL
+confidence: 0.88
+relevance: 0.88
+verified: false
+country: US
+source: twitter
 url: "#"
 tags:
   - news
-  - rxd
-  - buy
+  - rbl
+  - sell
   - world-brain
-  - financial
+  - unknown
 ---
 
-# Pfizer and Merck post better-than-expected results, healthcare index rebounds 1.8%
+# RBL misses Q2 revenue estimates by 8%, cites softer-than-expected ad market.
 
-**Verdict**: BUY (60% confidence)  
-**Relevance to [[RXD]]**: 60%  
-**Geographic origin**: Unknown  
+**Verdict**: SELL (88% confidence)  
+**Relevance to [[RBL]]**: 88%  
+**Geographic origin**: US  
 
 ## Summary
-Strong pharma earnings drove XLV higher, which is a headwind for inverse positions.
+RBL misses Q2 revenue estimates by 8%, cites softer-than-expected ad market.
 
 ## AI Analysis
-_No analysis available._
+The 8% revenue miss confirms market weakness, justifying a sell signal despite general optimism.
 
 ## Links
 - [Source Article](#)
-- [[RXD]]
+- [[RBL]]
+- [[US-news]]

@@ -1,11 +1,14 @@
 {
   "name": "holdings-tracker",
   "version": "0.1.0",
+  "main": "electron/main.js",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "electron:dev": "concurrently \"next dev -p 3571\" \"wait-on http://localhost:3571 && electron .\"",
+    "electron:build": "next build && electron-builder -c electron-builder.config.js",
     "lint": "eslint . --max-warnings=50",
     "etrade:auth": "node scripts/etrade-auth.mjs",
     "eta": "npm run etrade:auth",
@@ -46,7 +49,11 @@
     "@eslint/eslintrc": "^3.3.5",
     "@typescript-eslint/eslint-plugin": "^8.58.2",
     "@typescript-eslint/parser": "^8.58.2",
+    "concurrently": "^9.2.1",
+    "electron": "^41.3.0",
+    "electron-builder": "^26.8.1",
     "eslint-plugin-react-hooks": "^7.1.0",
-    "typescript-eslint": "^8.58.2"
+    "typescript-eslint": "^8.58.2",
+    "wait-on": "^9.0.5"
   }
 }

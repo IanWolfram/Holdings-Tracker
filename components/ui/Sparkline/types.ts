@@ -7,6 +7,7 @@ export interface GraphProps {
   data: number[];
   width?: number;
   height?: number;
+  purchaseDate?: number; // epoch timestamp in ms
 }
 
 export interface SparklinePathProps {

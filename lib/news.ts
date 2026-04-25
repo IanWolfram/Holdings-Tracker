@@ -25,10 +25,10 @@ function loadMockVerdicts(): Record<string, ClassifiedStory[]> | null {
 // Load once per process
 const MOCK_VERDICTS = loadMockVerdicts();
 
-const THIRTY_DAYS_S = 30 * 24 * 60 * 60; // seconds
+const NEWS_WINDOW_S = 14 * 24 * 60 * 60; // seconds
 
-function withinThirtyDays(stories: ClassifiedStory[]): ClassifiedStory[] {
-  const cutoff = Math.floor(Date.now() / 1000) - THIRTY_DAYS_S;
+function withinNewsWindow(stories: ClassifiedStory[]): ClassifiedStory[] {
+  const cutoff = Math.floor(Date.now() / 1000) - NEWS_WINDOW_S;
   return stories.filter((s) => s.datetime >= cutoff);
 }
 
@@ -72,7 +72,7 @@ export async function getNewsForTicker(
   if (totalRealStories === 0) {
     // Use pre-classified verdicts if available (run scripts/review-verdicts.ts --save to generate)
     if (MOCK_VERDICTS?.[ticker]) {
-      const data = withinThirtyDays(MOCK_VERDICTS[ticker]);
+      const data = withinNewsWindow(MOCK_VERDICTS[ticker]);
       cache.set(ticker, { data, expiresAt: Date.now() + NEWS_CACHE_TTL_MS });
       return data;
     }
@@ -84,12 +84,12 @@ export async function getNewsForTicker(
       const cls = await classifyNews(s.ticker, s.headline, s.summary ?? "", s.url);
       classified.push({ ...s, verdict: cls.verdict, confidence: cls.confidence, reason: cls.reason, classifiedAt: cls.classifiedAt });
     }
-    const filtered = withinThirtyDays(classified);
+    const filtered = withinNewsWindow(classified);
     cache.set(ticker, { data: filtered, expiresAt: Date.now() + NEWS_CACHE_TTL_MS });
     return filtered;
   }
 
-  const cutoff = Math.floor(Date.now() / 1000) - THIRTY_DAYS_S;
+  const cutoff = Math.floor(Date.now() / 1000) - NEWS_WINDOW_S;
 
   const stories = [
     ...finnhubArticles.map((a) => ({
@@ -134,7 +134,7 @@ export async function getNewsForTicker(
   );
 
   // Sort newest first, drop anything older than 30 days
-  const recent = withinThirtyDays(classified).sort((a, b) => b.datetime - a.datetime);
+  const recent = withinNewsWindow(classified).sort((a, b) => b.datetime - a.datetime);
 
   cache.set(ticker, { data: recent, expiresAt: Date.now() + NEWS_CACHE_TTL_MS });
   return recent;

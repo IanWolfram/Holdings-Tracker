@@ -3,6 +3,7 @@ import { POLL_INTERVAL_MS } from "@/lib/constants";
 import type { Position } from "@/types/position.types";
 import type { ClassifiedStory, CongressTrade } from "@/types/news.types";
 import type { AgentProgress } from "@/lib/agent/service";
+import type { TickerPrediction } from "@/types/predictions";
 
 const CONGRESS_POLL_MS = 60_000;
 const AGENT_POLL_MS_ACTIVE = 2_000;
@@ -18,6 +19,7 @@ export function useDashboardData() {
   const [cashBalance, setCashBalance] = useState<number | undefined>(undefined);
   const [totalGainLoss, setTotalGainLoss] = useState<number | undefined>(undefined);
   const [agentState, setAgentState] = useState<AgentProgress>({ status: "idle" });
+  const [predictions, setPredictions] = useState<Record<string, TickerPrediction[]>>({});
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const congressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -25,6 +27,17 @@ export function useDashboardData() {
   const agentPollRateRef = useRef<number>(AGENT_POLL_MS_IDLE);
   const heldTickersRef = useRef<string[]>([]);
   const prevAgentStatusRef = useRef<string>("idle");
+
+  const fetchPredictions = useCallback(async () => {
+    try {
+      const res = await fetch("/api/predictions");
+      if (!res.ok) return;
+      const { predictions: data } = await res.json();
+      setPredictions(data);
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const fetchNews = useCallback(async (tickers: string[]) => {
     setLoadingNews(Object.fromEntries(tickers.map((ticker) => [ticker, true])));
@@ -92,7 +105,7 @@ export function useDashboardData() {
       }
       const tickers = data.map((position) => position.ticker);
       heldTickersRef.current = tickers;
-      await Promise.all([fetchNews(tickers), fetchCongress(tickers)]);
+      await Promise.all([fetchNews(tickers), fetchCongress(tickers), fetchPredictions()]);
     } catch (err) {
       console.error("[dashboard] refresh error:", err);
     } finally {
@@ -102,9 +115,10 @@ export function useDashboardData() {
 
   const mergeAgentResults = useCallback((progress: AgentProgress) => {
     if (!progress.results) return;
+    const agentResults = progress.results;
     setNews((prev) => {
       const updated = { ...prev };
-      for (const { ticker, verdicts } of progress.results.tickerResults) {
+      for (const { ticker, verdicts } of agentResults.tickerResults) {
         if (!updated[ticker]) continue;
         updated[ticker] = updated[ticker].map((story) => {
           const match = verdicts.find((verdict) => verdict.url === story.url || verdict.headline === story.headline);
@@ -134,7 +148,10 @@ export function useDashboardData() {
       prevAgentStatusRef.current = data.status;
 
       setAgentState(data);
-      if (justCompleted) mergeAgentResults(data);
+      if (justCompleted) {
+        mergeAgentResults(data);
+        fetchPredictions();
+      }
 
       const desiredRate = data.status === "running" ? AGENT_POLL_MS_ACTIVE : AGENT_POLL_MS_IDLE;
       if (desiredRate !== agentPollRateRef.current) {
@@ -145,7 +162,7 @@ export function useDashboardData() {
     } catch {
       // ignore
     }
-  }, [mergeAgentResults]);
+  }, [mergeAgentResults, fetchPredictions]);
 
   useEffect(() => {
     refresh();
@@ -182,6 +199,7 @@ export function useDashboardData() {
     cashBalance,
     totalGainLoss,
     agentState,
+    predictions,
     refresh,
   };
 }

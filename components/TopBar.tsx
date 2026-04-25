@@ -1,7 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+
+function SearchParamsWatcher({
+  pathname,
+  setSuccessVisible,
+}: {
+  pathname: string;
+  setSuccessVisible: (v: boolean) => void;
+}) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  useEffect(() => {
+    if (!searchParams?.get("etrade_success")) return;
+    setSuccessVisible(true);
+    const timer = setTimeout(() => {
+      setSuccessVisible(false);
+      const newParams = new URLSearchParams(searchParams.toString());
+      newParams.delete("etrade_success");
+      router.replace(`${pathname}?${newParams.toString()}`);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [searchParams, pathname, router, setSuccessVisible]);
+  return null;
+}
 import {
   MARKET_STATE_LABEL,
   MARKET_STATE_DOT,
@@ -36,25 +59,8 @@ export default function TopBar({
     totalValue !== undefined && totalCostBasis !== undefined && totalCostBasis > 0
       ? ((totalValue - totalCostBasis) / totalCostBasis) * 100
       : undefined;
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const router = useRouter();
+  const pathname = usePathname() ?? "/";
   const [successVisible, setSuccessVisible] = useState(false);
-
-  useEffect(() => {
-    if (!searchParams) return;
-    if (searchParams.get("etrade_success") === "true") {
-      setSuccessVisible(true);
-      const timer = setTimeout(() => {
-        setSuccessVisible(false);
-        // Clean up the URL
-        const newParams = new URLSearchParams(searchParams.toString());
-        newParams.delete("etrade_success");
-        router.replace(`${pathname}?${newParams.toString()}`);
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [searchParams, pathname, router]);
 
   const timeStr = lastUpdated
     ? lastUpdated.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
@@ -84,6 +90,9 @@ export default function TopBar({
 
   useEffect(() => {
     checkStatus();
+    // Poll every 30 seconds to detect token expiration
+    const id = setInterval(checkStatus, 30000);
+    return () => clearInterval(id);
   }, []);
 
   // Poll status more frequently while connecting
@@ -96,6 +105,9 @@ export default function TopBar({
 
   return (
     <header className="bg-[#1e2023] border-b border-white/5 sticky top-0 z-50">
+      <Suspense fallback={null}>
+        <SearchParamsWatcher pathname={pathname} setSuccessVisible={setSuccessVisible} />
+      </Suspense>
       <div className="flex justify-between items-center w-full px-6 py-0">
         {/* Brand + Nav */}
         <div className="flex items-center gap-12">

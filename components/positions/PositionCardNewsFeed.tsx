@@ -10,6 +10,8 @@ import EmptyState from "@/components/EmptyState";
 import SourceBadge from "@/components/positions/SourceBadge";
 import CongressHeader from "@/components/positions/CongressHeader";
 import GlassContainer from "@/components/ui/LiquidGlass/GlassContainer";
+import PredictionStrip from "@/components/positions/PredictionStrip";
+import type { TickerPrediction } from "@/types/predictions";
 
 interface PositionCardNewsFeedProps {
   loading: boolean;
@@ -21,6 +23,8 @@ interface PositionCardNewsFeedProps {
   sourceOrder: readonly string[];
   sourcePriority: Record<string, number>;
   agentState?: AgentProgress;
+  prediction?: TickerPrediction | null;
+  resolvedStats?: { total: number; correct: number };
 }
 
 export default function PositionCardNewsFeed({
@@ -33,8 +37,16 @@ export default function PositionCardNewsFeed({
   sourceOrder,
   sourcePriority,
   agentState,
+  prediction,
+  resolvedStats,
 }: PositionCardNewsFeedProps) {
   return (
+    <>
+      <PredictionStrip
+        prediction={prediction ?? null}
+        resolvedCount={resolvedStats?.total ?? 0}
+        correctCount={resolvedStats?.correct ?? 0}
+      />
     <GlassContainer className="flex-1 p-3 border-t border-white/[0.05]">
       {loading && !hasContent && (
         <EmptyState
@@ -138,5 +150,6 @@ export default function PositionCardNewsFeed({
         </div>
       )}
     </GlassContainer>
+    </>
   );
 }

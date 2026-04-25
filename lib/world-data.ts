@@ -88,10 +88,11 @@ export async function getWorldData(positions: Position[]): Promise<WorldData> {
 
   // ── 3. Write individual story notes to Obsidian vault ────────────────────
   if (WORLD_VAULT_PATH && allGeoStories.length > 0) {
+    const vaultPath = WORLD_VAULT_PATH;
     await Promise.all(
       allGeoStories.map((story) => {
         const sector = profiles[story.ticker]?.sector;
-        return writeStoryNote(story, WORLD_VAULT_PATH, sector);
+        return writeStoryNote(story, vaultPath, sector ?? undefined);
       })
     );
   }
@@ -230,7 +231,7 @@ async function runBackgroundEnrichment(
             confidence: story.confidence,
             reason: story.reason,
             source: story.source,
-            originCountryCode: story.originCountryCode,
+            originCountryCode: story.originCountryCode ?? undefined,
             relevanceScore: story.relevanceScore ?? story.confidence,
           });
           continue;

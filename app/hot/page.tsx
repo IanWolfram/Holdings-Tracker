@@ -12,6 +12,7 @@ export default function HotPage() {
   const {
     hotTickers,
     congressTrades,
+    lastSeenAt,
     expandedTicker,
     tickerNews,
     loadingNews,

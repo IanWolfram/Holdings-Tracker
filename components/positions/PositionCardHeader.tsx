@@ -18,6 +18,7 @@ interface PositionCardHeaderProps {
   currentPrice: number;
   pricePaid: number;
   history?: number[];
+  purchaseDate?: number;
   gainPositive: boolean;
   gainPct: number;
   todayDelta: TodayDelta | null;
@@ -68,6 +69,7 @@ export default function PositionCardHeader({
   currentPrice,
   pricePaid,
   history,
+  purchaseDate,
   gainPositive,
   gainPct,
   todayDelta,
@@ -108,7 +110,7 @@ export default function PositionCardHeader({
             </span>
           </div>
           <div className="shrink-0">
-            <Sparkline data={history || []} width={120} height={44} />
+            <Sparkline data={history || []} width={120} height={44} purchaseDate={purchaseDate} />
           </div>
         </div>
       </div>
