@@ -163,9 +163,74 @@ body {
   backdrop-filter: blur(var(--glass-blur)) saturate(180%) brightness(1.1) contrast(0.9);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%) brightness(1.1) contrast(0.9);
   border: 1px solid var(--color-glass-border);
-  box-shadow: 
+  box-shadow:
     0 10px 40px -10px rgba(0, 0, 0, 0.5),
     inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* ── Per-card glass edge (applied to every GlassView, even inside a GlassContainer)
+   Creates the look of a discrete glass slab via:
+   - self-illuminated top-down gradient (works on flat backgrounds)
+   - directional bevel (light from top-left)
+   - top specular rim + bottom counter-highlight
+   - soft outer shadow for stack separation ── */
+.glass-edge {
+  /* Heavier frosted tint stacked over a self-illuminated top-down gradient.
+     The solid tint guarantees visibility on flat backgrounds; the backdrop-filter
+     blurs anything that IS behind (sparklines, neighboring cards, etc). */
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.08) 0%,
+      rgba(255, 255, 255, 0.03) 60%,
+      rgba(0, 0, 0, 0.08) 100%
+    ),
+    rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(24px) saturate(180%) brightness(1.12) contrast(0.95);
+  -webkit-backdrop-filter: blur(24px) saturate(180%) brightness(1.12) contrast(0.95);
+  box-shadow:
+    /* lift the slab off whatever's behind it */
+    0 10px 28px -10px rgba(0, 0, 0, 0.7),
+    0 1px 0 0 rgba(0, 0, 0, 0.45),
+    /* directional bevel: bright light from top-left */
+    inset 1px 1px 0 0 rgba(255, 255, 255, 0.18),
+    /* depth on the opposite rim */
+    inset -1px -1px 0 0 rgba(0, 0, 0, 0.45);
+}
+
+.glass-edge::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 8%;
+  right: 8%;
+  height: 1px;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 100%
+  );
+  z-index: 1;
+}
+
+.glass-edge::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 15%;
+  right: 15%;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.10) 50%,
+    transparent 100%
+  );
+  z-index: 1;
 }
 
 .glass-prominent {

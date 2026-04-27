@@ -9,6 +9,7 @@ import {
   resolveEligiblePredictions,
   appendPrediction,
   getRecentResolvedPredictions,
+  loadPredictions,
 } from "../../world-brain/predictions";
 import { ensureMlxServer } from "../mlx";
 import { writeStoryNote, writeDailySummary } from "../../world-brain/obsidian";
@@ -346,18 +347,26 @@ export async function runStockAgent(): Promise<AgentRunResult> {
         try {
           const quote = quoteCache[pos.ticker] ?? (await getQuote(pos.ticker));
           if (quote?.currentPrice) {
-            const prediction = await runForecast(
-              pos.ticker,
-              quote.currentPrice,
-              verdicts,
-              tickerContext,
-              WORLD_VAULT_PATH,
-              profiles[pos.ticker]?.sector,
-              startedAt
-            );
-            if (prediction) {
-              appendPrediction(WORLD_VAULT_PATH, prediction);
-              console.log(`[agent] Forecast for ${pos.ticker}: ${prediction.direction} +/-${prediction.magnitudePct}% (conf ${Math.round(prediction.confidence * 100)}%)`);
+            // Only forecast once per 7-day window per ticker
+            const existing = loadPredictions(WORLD_VAULT_PATH, pos.ticker);
+            const oneWeekAgo = startedAt - 7 * 86_400_000;
+            const recentPrediction = existing.find((p) => p.runAt >= oneWeekAgo);
+            if (recentPrediction) {
+              console.log(`[agent] Skipping forecast for ${pos.ticker} — already predicted on ${new Date(recentPrediction.runAt).toDateString()}`);
+            } else {
+              const prediction = await runForecast(
+                pos.ticker,
+                quote.currentPrice,
+                verdicts,
+                tickerContext,
+                WORLD_VAULT_PATH,
+                profiles[pos.ticker]?.sector,
+                startedAt
+              );
+              if (prediction) {
+                appendPrediction(WORLD_VAULT_PATH, prediction);
+                console.log(`[agent] Forecast for ${pos.ticker}: ${prediction.direction} +/-${prediction.magnitudePct}% (conf ${Math.round(prediction.confidence * 100)}%)`);
+              }
             }
           }
         } catch (err) {

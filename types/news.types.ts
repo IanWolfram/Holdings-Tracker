@@ -20,6 +20,7 @@ export interface ClassifiedStory extends Classification {
   author?: string;
   source: "finnhub" | "twitter" | "reddit" | "newsapi";
   isAnalyzed?: boolean;     // True if hardware-native DeepSeek analysis was performed
+  duplicates?: ClassifiedStory[]; // Same-event stories collapsed under this canonical
 }
 
 export interface CongressTrade {

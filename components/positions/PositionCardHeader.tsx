@@ -47,13 +47,13 @@ function Stat({ label, value, valueClass = "text-white", sub, align = "left" }: 
 
   return (
     <div className={`flex flex-col gap-1 ${alignClass}`}>
-      <span className="font-mono text-[9px] font-bold text-slate-500 tracking-[0.2em] uppercase">
+      <span className="font-mono text-[8px] font-bold text-slate-500 tracking-[0.15em] uppercase">
         {label}
       </span>
-      <span className={`font-mono text-[14px] font-bold leading-none tracking-tight ${valueClass}`}>
+      <span className={`font-mono text-[12px] font-bold leading-none tracking-tight ${valueClass}`}>
         {value}
       </span>
-      <span className="font-mono text-[9.5px] font-medium text-slate-400 leading-snug break-words" title={sub}>
+      <span className="font-mono text-[8.5px] font-medium text-slate-400 leading-snug break-words" title={sub}>
         {sub}
       </span>
     </div>
@@ -81,12 +81,12 @@ export default function PositionCardHeader({
 }: PositionCardHeaderProps) {
   return (
     <div className={`ticker-header-glow ${glowClass}`}>
-      <div className="p-4 pb-3">
-        <div className="grid grid-cols-[auto_1fr_auto] gap-3.5 items-start">
-          <div className="flex flex-col items-center gap-1.5 shrink-0">
-            <CompanyLogo ticker={ticker} size={44} radius={10} />
+      <div className="p-3 pb-2">
+        <div className="grid grid-cols-[auto_1fr_auto] gap-2.5 items-start">
+          <div className="flex flex-col items-center gap-1 shrink-0">
+            <CompanyLogo ticker={ticker} size={36} radius={8} />
             <span
-              className={`font-mono text-[11px] font-black tracking-tight ${
+              className={`font-mono text-[10px] font-black tracking-tight ${
                 gainPositive ? "text-positive" : "text-negative"
               }`}
             >
@@ -94,48 +94,46 @@ export default function PositionCardHeader({
             </span>
           </div>
           <div className="min-w-0 flex flex-col gap-0.5">
-            <div className="flex items-center gap-2">
-              <h1 className="font-mono text-[22px] font-black text-white tracking-tighter leading-none shrink-0">
-                {ticker}
-              </h1>
-            </div>
+            <h1 className="font-mono text-[18px] font-black text-white tracking-tighter leading-none">
+              {ticker}
+            </h1>
             <p
-              className="text-[10px] text-slate-400 font-medium leading-tight truncate max-w-full"
+              className="text-[9px] text-slate-400 font-medium leading-tight truncate max-w-full"
               title={description}
             >
               {description}
             </p>
-            <span className="font-mono text-[10px] text-slate-500 font-medium">
-              {formatCurrency(currentPrice)}&thinsp;<span className="opacity-50 text-[9px]">/ SH</span>
+            <span className="font-mono text-[9px] text-slate-500 font-medium">
+              {formatCurrency(currentPrice)}&thinsp;<span className="opacity-50 text-[8px]">/ SH</span>
             </span>
           </div>
           <div className="shrink-0">
-            <Sparkline data={history || []} width={120} height={44} purchaseDate={purchaseDate} />
+            <Sparkline data={history || []} width={90} height={36} purchaseDate={purchaseDate} />
           </div>
         </div>
       </div>
 
       <div className="flex border-t border-white/[0.06]">
-        <div className="flex-1 py-3 px-2 flex items-center justify-center">
+        <div className="flex-1 py-2 px-1.5 flex items-center justify-center">
           <Stat
-            label="Market Val"
+            label="Mkt Val"
             value={formatCurrency(marketValue)}
-            sub={`${quantity} sh · ${formatCurrency(currentPrice)}`}
+            sub={`${quantity} sh`}
             align="center"
           />
         </div>
         <div className="w-px bg-white/[0.06]" />
-        <div className="flex-1 py-3 px-2 flex items-center justify-center">
+        <div className="flex-1 py-2 px-1.5 flex items-center justify-center">
           <Stat
-            label="Unrealized"
+            label="P/L"
             value={formatGainLoss(gainLoss)}
             valueClass={gainPositive ? "text-positive" : "text-negative"}
-            sub={`Bought at ${formatCurrency(pricePaid)} / SH`}
+            sub={`@ ${formatCurrency(pricePaid)}`}
             align="center"
           />
         </div>
         <div className="w-px bg-white/[0.06]" />
-        <div className="flex-1 py-3 px-2 flex items-center justify-center">
+        <div className="flex-1 py-2 px-1.5 flex items-center justify-center">
           <Stat
             label="Today"
             value={todayDelta ? `${todayDelta.diff >= 0 ? "+" : ""}${formatCurrency(todayDelta.diff)}` : "—"}
@@ -146,13 +144,13 @@ export default function PositionCardHeader({
                   : "text-negative"
                 : "text-slate-400"
             }
-            sub={todayDelta ? `${formatPercent(todayDelta.pct)}` : "no intraday"}
+            sub={todayDelta ? `${formatPercent(todayDelta.pct)}` : "—"}
             align="center"
           />
         </div>
       </div>
 
-      <div className="px-4 py-3 border-t border-white/[0.05] bg-black/[0.35]">
+      <div className="px-3 py-2 border-t border-white/[0.05] bg-black/[0.35]">
         <SentimentBar buy={buy} hold={hold} sell={sell} avgConfidence={avgConfidence} />
       </div>
     </div>

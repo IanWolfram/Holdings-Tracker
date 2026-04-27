@@ -86,7 +86,7 @@ export default function GlassView({
         layout={layout}
         layoutId={layoutId}
         className={clsx(
-          "relative overflow-visible",
+          "relative overflow-visible glass-edge",
           !hasContext && (variant === "regular" ? "glass-material" : "glass-prominent"),
           className
         )}

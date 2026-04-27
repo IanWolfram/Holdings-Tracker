@@ -24,6 +24,7 @@ interface PositionCardNewsFeedProps {
   sourcePriority: Record<string, number>;
   agentState?: AgentProgress;
   prediction?: TickerPrediction | null;
+  allPredictions?: TickerPrediction[];
   resolvedStats?: { total: number; correct: number };
 }
 
@@ -38,12 +39,14 @@ export default function PositionCardNewsFeed({
   sourcePriority,
   agentState,
   prediction,
+  allPredictions,
   resolvedStats,
 }: PositionCardNewsFeedProps) {
   return (
     <>
       <PredictionStrip
         prediction={prediction ?? null}
+        allPredictions={allPredictions ?? []}
         resolvedCount={resolvedStats?.total ?? 0}
         correctCount={resolvedStats?.correct ?? 0}
       />
@@ -115,7 +118,7 @@ export default function PositionCardNewsFeed({
             return (
               <NewsCollapsible
                 key={source}
-                badge={<SourceBadge source={source} />}
+                badge={<SourceBadge source={source} iconOnly />}
                 count={group.length}
               >
                 {group.map((story) => (
@@ -135,7 +138,7 @@ export default function PositionCardNewsFeed({
               return (
                 <NewsCollapsible
                   key={source}
-                  badge={<SourceBadge source={source} />}
+                  badge={<SourceBadge source={source} iconOnly />}
                   count={group.length}
                 >
                   {group.map((story) => (

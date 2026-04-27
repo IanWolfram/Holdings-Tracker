@@ -43,14 +43,16 @@ export default function DesktopDashboard({
   const predictionsByTicker = useMemo(() => {
     const out: Record<string, {
       current: TickerPrediction | null;
+      all: TickerPrediction[];
       resolvedStats: { total: number; correct: number };
     }> = {};
     for (const [ticker, preds] of Object.entries(predictions)) {
       const sorted = [...preds].sort((a, b) => b.runAt - a.runAt);
-      const current = sorted[0] ?? null;
+      const current = sorted.find((p) => p.status === "pending") ?? null;
       const resolved = preds.filter((p) => p.status === "resolved");
       out[ticker] = {
         current,
+        all: sorted,
         resolvedStats: {
           total: resolved.length,
           correct: resolved.filter((p) => p.outcome === "CORRECT").length,
@@ -63,7 +65,7 @@ export default function DesktopDashboard({
   return (
     <div className="min-h-screen flex flex-col bg-surface">
       <TopBar lastUpdated={lastUpdated} refreshing={refreshing} onRefresh={onRefresh} totalValue={totalValue} totalCostBasis={totalCostBasis} totalGainLoss={totalGainLoss} _cashBalance={cashBalance} />
-      <main className="p-6 space-y-8">
+      <main className="p-4 space-y-6">
         {positions.length === 0 && !refreshing && (
           <EmptyState
             icon="candlestick_chart"
@@ -77,7 +79,7 @@ export default function DesktopDashboard({
             }}
           />
         )}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
           {positions.map((pos) => (
             <PositionCard
               key={pos.ticker}
@@ -87,6 +89,7 @@ export default function DesktopDashboard({
               loading={loadingNews[pos.ticker] ?? false}
               agentState={agentState}
               prediction={predictionsByTicker[pos.ticker]?.current}
+              allPredictions={predictionsByTicker[pos.ticker]?.all}
               resolvedStats={predictionsByTicker[pos.ticker]?.resolvedStats}
             />
           ))}

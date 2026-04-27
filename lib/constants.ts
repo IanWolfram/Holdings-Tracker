@@ -21,6 +21,10 @@ export function resolveVaultPath(vaultPath: string | null | undefined): string |
 // UI Configuration
 export const NEWS_PREVIEW_COUNT = 3;
 
+// Duplicate / same-event story detection
+export const DUPLICATE_SIMILARITY_THRESHOLD = 0.55;
+export const DUPLICATE_MIN_TOKENS = 4;
+
 // Animation & Physics
 export const GLASS_SPRING_CONFIG = {
   stiffness: 100,

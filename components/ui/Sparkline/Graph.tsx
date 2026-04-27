@@ -54,28 +54,6 @@ export function Graph({ data, width = 60, height = 24, purchaseDate }: GraphProp
 
   return (
     <div className="relative group/spark flex flex-col gap-1" style={{ width }}>
-      {/* Legend — offset right by half the Y-axis padding to center over the plot area */}
-      <div className="flex items-center justify-center" style={{ paddingLeft: pl - pr }}>
-      <div className="flex items-center gap-3 border border-white/10 px-2 py-1">
-        <div className="flex items-center gap-1">
-          <svg width="10" height="6">
-            <circle cx="5" cy="3" r="2" fill={priceColor} />
-          </svg>
-          <span style={{ fontSize: 5, fontFamily: "monospace", color: "rgba(255,255,255,0.5)", fontWeight: "bold", letterSpacing: "0.05em" }}>
-            PRICE
-          </span>
-        </div>
-        <div className="flex items-center gap-1">
-          <svg width="10" height="6">
-            <circle cx="5" cy="3" r="2" fill="rgba(148,163,184,0.7)" />
-          </svg>
-          <span style={{ fontSize: 5, fontFamily: "monospace", color: "rgba(255,255,255,0.35)", fontWeight: "bold", letterSpacing: "0.05em" }}>
-            SMA
-          </span>
-        </div>
-      </div>
-      </div>
-
       <svg width={width} height={height} className="overflow-visible select-none">
         <defs>
           <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">

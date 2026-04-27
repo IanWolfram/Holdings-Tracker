@@ -23,6 +23,7 @@ interface Props {
   frosted?: boolean;
   agentState?: AgentProgress;
   prediction?: TickerPrediction | null;
+  allPredictions?: TickerPrediction[];
   resolvedStats?: { total: number; correct: number };
 }
 
@@ -41,6 +42,7 @@ export default function PositionCard({
   frosted,
   agentState,
   prediction,
+  allPredictions,
   resolvedStats,
 }: Props) {
   const articleRef = useRef<HTMLDivElement>(null);
@@ -156,6 +158,7 @@ export default function PositionCard({
           sourcePriority={SOURCE_PRIORITY}
           agentState={agentState}
           prediction={prediction}
+          allPredictions={allPredictions}
           resolvedStats={resolvedStats}
         />
       </div>

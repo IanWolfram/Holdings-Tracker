@@ -1,5 +1,5 @@
 ---
-date: "2026-04-25"
+date: "2026-04-26"
 type: ticker-knowledge
 ticker: PLTR
 sector: Tech
@@ -8,6 +8,6 @@ generated: true
 
 # PLTR — Learned Patterns
 
-Government contract wins, especially those expanding beyond defense into civilian agencies like the USDA or IRS, reliably trigger high-confidence BUY signals at 85-92% confidence, as they confirm stable long-cycle revenue. Sharp price declines of 7-20% combined with intact core government AI contract pipelines also produce BUY signals at 80-85% confidence, framing dips as buying opportunities. SELL signals at 80% confidence are consistently triggered by headline risk from divestment campaigns against major institutional holders like the Swiss National Bank, or by explicit analyst skepticism flagging fundamental growth narrative risks. Recurring geopolitical factors include presidential-level endorsements of government business expansion and national security applications like agricultural sovereignty, which amplify BUY conviction. Calibration note: analyst upgrade signals for PLTR historically under-perform predicted magnitude by roughly 40%, as the ticker's price action is more sensitive to direct contract catalysts than to sentiment-driven analyst calls.
+Government contract wins, especially those involving new civilian agencies like the USDA or IRS, and Pentagon program-of-record designations are the highest-conviction BUY catalysts for PLTR, consistently producing signals above 85% confidence. Dip-buying opportunities triggered by sharp single-day or YTD declines of 7-20% also generate reliable BUY signals at 72-85% confidence, provided the core government contract pipeline remains intact. SELL signals are triggered exclusively by regulatory or reputational risk events, such as divestment campaigns by institutional holders like the Swiss National Bank, which score 80% confidence and directly threaten the government revenue narrative. Geopolitical and sector themes are dominated by U.S. government expansion into civilian AI applications and defense modernization, while political noise around founder Peter Thiel or generic AI sector comparisons produce only HOLD signals at 20-50% confidence. Analyst upgrade signals for this ticker historically under-perform predicted magnitude by roughly 40%, as the 2025 prediction of a 4.2% move was exceeded by an actual 20.8% gain, indicating that government contract catalysts drive outsized moves relative to analyst sentiment.
 
-_Last updated: 2026-04-25_
+_Last updated: 2026-04-26_

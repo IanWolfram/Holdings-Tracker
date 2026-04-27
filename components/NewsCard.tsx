@@ -2,12 +2,12 @@
 
 import type { ClassifiedStory } from "@/types/news.types";
 import { formatDistanceToNow } from "date-fns";
-import { motion } from "framer-motion";
-import { useId, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   CARD_RADIUS,
   REVEAL_EASE,
-  GROW_DURATION,
+  HOVER_EXPAND_DELAY,
   getSourceColor,
 } from "@/lib/utils/newsCardAnimations";
 import NewsCardAiPanel from "@/components/news/NewsCardAiPanel";
@@ -36,6 +36,34 @@ export default function NewsCard({
   const rawId = useId();
   const id = rawId.replace(/:/g, "");
   const [hovered, setHovered] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [showDuplicates, setShowDuplicates] = useState(false);
+  const expandTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const duplicates = story.duplicates ?? [];
+
+  useEffect(() => {
+    return () => {
+      if (expandTimerRef.current) clearTimeout(expandTimerRef.current);
+    };
+  }, []);
+
+  const handleMouseEnter = () => {
+    setHovered(true);
+    if (expandTimerRef.current) clearTimeout(expandTimerRef.current);
+    expandTimerRef.current = setTimeout(() => {
+      setExpanded(true);
+      expandTimerRef.current = null;
+    }, HOVER_EXPAND_DELAY * 1000);
+  };
+
+  const handleMouseLeave = () => {
+    if (expandTimerRef.current) {
+      clearTimeout(expandTimerRef.current);
+      expandTimerRef.current = null;
+    }
+    setHovered(false);
+    setExpanded(false);
+  };
 
   const activeVerdict = story.verdict;
   const activeConfidence = story.confidence;
@@ -67,8 +95,8 @@ export default function NewsCard({
       <div
         className="p-2 relative"
         data-hovered={hovered ? "true" : undefined}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         {/* Corner brackets */}
         <span className="news-cap news-cap-top-left" />
@@ -76,18 +104,18 @@ export default function NewsCard({
         <span className="news-cap news-cap-bottom-left" />
         <span className="news-cap news-cap-bottom-right" />
 
-        {/* Animated edge fills */}
+        {/* Animated edge fills — also act as a 1s hover timer that fills to the edges before the AI panel expands */}
         <motion.span
           className="news-edge news-edge-top"
           initial={false}
           animate={{ scaleX: hovered ? 1 : 0, opacity: hovered ? 1 : 0.4 }}
-          transition={{ duration: GROW_DURATION, ease: REVEAL_EASE }}
+          transition={{ duration: hovered ? HOVER_EXPAND_DELAY : 0.2, ease: "linear" }}
         />
         <motion.span
           className="news-edge news-edge-bottom"
           initial={false}
           animate={{ scaleX: hovered ? 1 : 0, opacity: hovered ? 1 : 0.4 }}
-          transition={{ duration: GROW_DURATION, ease: REVEAL_EASE, delay: 0.04 }}
+          transition={{ duration: hovered ? HOVER_EXPAND_DELAY : 0.2, ease: "linear" }}
         />
 
         {/* Headline + footer */}
@@ -106,6 +134,25 @@ export default function NewsCard({
                 <XBadge author={story.author} />
               )}
               {timeAgo && <span>{timeAgo}</span>}
+              {duplicates.length > 0 && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDuplicates((v) => !v);
+                  }}
+                  aria-expanded={showDuplicates}
+                  aria-label={`${duplicates.length} similar coverage stories`}
+                  className="ml-1 px-1.5 py-[1px] rounded-full text-[9.5px] font-bold tracking-wide tabular-nums transition-colors hover:bg-white/[0.06]"
+                  style={{
+                    color: sourceColor,
+                    backgroundColor: "rgba(255,255,255,0.04)",
+                    border: `1px solid ${sourceColor}33`,
+                  }}
+                >
+                  +{duplicates.length} similar
+                </button>
+              )}
             </div>
 
             {/* Footer arrow — ↗ on hover */}
@@ -127,16 +174,16 @@ export default function NewsCard({
                   strokeLinejoin="round"
                   style={{
                     opacity: hovered ? 1 : 0.4,
-                    filter: hovered ? "drop-shadow(0 0 2px currentColor)" : "none",
+                    filter: hovered ? `drop-shadow(0 0 2px ${sourceColor})` : "none",
                   }}
                 />
               </svg>
             </motion.div>
           </div>
 
-          {/* AI panel — expands on card hover */}
+          {/* AI panel — expands after a 1s hover, gated by the edge timer */}
           <NewsCardAiPanel
-            hovered={hovered}
+            hovered={expanded}
             color={color}
             activeIsAnalyzed={activeIsAnalyzed}
             activeVerdict={activeVerdict}
@@ -144,6 +191,62 @@ export default function NewsCard({
             confidence={confidence}
             activeReason={activeReason}
           />
+
+          <AnimatePresence initial={false}>
+            {showDuplicates && duplicates.length > 0 && (
+              <motion.div
+                key="duplicates"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.25, ease: REVEAL_EASE }}
+                className="overflow-hidden"
+              >
+                <div
+                  className="mt-2 pt-2 space-y-1.5 border-t"
+                  style={{ borderColor: "rgba(255,255,255,0.06)" }}
+                >
+                  <div className="text-[9.5px] font-bold uppercase tracking-wider text-slate-500">
+                    Similar coverage
+                  </div>
+                  {duplicates.map((d) => {
+                    const dIsSeconds = d.datetime && d.datetime < 10000000000;
+                    const dMs = dIsSeconds ? d.datetime * 1000 : d.datetime;
+                    const dAgo = d.datetime
+                      ? formatDistanceToNow(new Date(dMs), { addSuffix: true })
+                      : "";
+                    return (
+                      <button
+                        key={`${d.source}-${d.url}-${d.datetime}`}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(d.url, "_blank");
+                        }}
+                        className="w-full text-left flex items-center gap-1.5 px-1.5 py-1 rounded-md hover:bg-white/[0.04] transition-colors"
+                      >
+                        {d.source === "finnhub" ? (
+                          <FinnhubBadge />
+                        ) : d.source === "reddit" ? (
+                          <RedditBadge author={d.author} />
+                        ) : (
+                          <XBadge author={d.author} />
+                        )}
+                        <span className="flex-1 text-[11px] text-slate-300 line-clamp-1">
+                          {d.headline}
+                        </span>
+                        {dAgo && (
+                          <span className="text-[10px] text-slate-500 shrink-0 tabular-nums">
+                            {dAgo}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </GlassView>

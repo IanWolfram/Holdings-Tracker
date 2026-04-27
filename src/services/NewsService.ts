@@ -7,6 +7,7 @@ import type { ClassifiedStory } from "@/types/news.types";
 import { MOCK_NEWS, MOCK_PENDING } from "@/lib/mock-news";
 import { getCompanyName } from "@/lib/company-names";
 import { NEWS_CACHE_TTL_MS } from "@/lib/constants";
+import { dedupeStories } from "@/lib/utils/dedupeStories";
 
 const NEWS_WINDOW_S = 14 * 24 * 60 * 60;
 
@@ -79,7 +80,8 @@ export class NewsService {
 
     if (totalRealStories === 0) {
       if (MOCK_VERDICTS?.[ticker]) {
-        const data = withinNewsWindow(MOCK_VERDICTS[ticker]);
+        const deduped = dedupeStories(MOCK_VERDICTS[ticker], companyName);
+        const data = withinNewsWindow(deduped);
         this.cache.set(ticker, data, NEWS_CACHE_TTL_MS);
         return data;
       }
@@ -92,7 +94,8 @@ export class NewsService {
         classified.push({ ...s, ...cls });
       }
       const pending = MOCK_PENDING[ticker] || [];
-      const filtered = withinNewsWindow(classified);
+      const deduped = dedupeStories(classified, companyName);
+      const filtered = withinNewsWindow(deduped);
       const allResult = [...pending, ...filtered];
       this.cache.set(ticker, allResult, NEWS_CACHE_TTL_MS);
       return allResult;
@@ -114,7 +117,8 @@ export class NewsService {
     }
 
     const pending = MOCK_PENDING[ticker] || [];
-    const recent = withinNewsWindow(classified).sort((a, b) => b.datetime - a.datetime);
+    const deduped = dedupeStories(classified, companyName);
+    const recent = withinNewsWindow(deduped).sort((a, b) => b.datetime - a.datetime);
     const allRecent = [...pending, ...recent];
     
     this.cache.set(ticker, allRecent, NEWS_CACHE_TTL_MS);
