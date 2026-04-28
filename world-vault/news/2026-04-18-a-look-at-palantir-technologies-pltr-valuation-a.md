@@ -8,6 +8,8 @@ relevance: 0.50
 country: US
 source: finnhub
 url: "https://finnhub.io/api/news?id=e02143677f1a4f71a009a178df2b0a641ebd2b11164a5113dbc55d83f1633c6c"
+catalystTypes:
+  - other
 tags:
   - news
   - pltr

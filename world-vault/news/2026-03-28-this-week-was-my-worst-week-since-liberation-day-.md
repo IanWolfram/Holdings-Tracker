@@ -9,6 +9,8 @@ verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1s5xb4t/this_week_was_my_worst_week_since_liberation_day/"
+catalystTypes:
+  - other
 tags:
   - news
   - hood

@@ -7,6 +7,8 @@ relevance: 0.60
 country: unknown
 source: finnhub
 url: "https://finnhub.io/api/news?id=0f75ecd9b320add63bb24163f74254e71c15f4c51bc678a0b5c74c590b0f7495"
+catalystTypes:
+  - technical
 tags:
   - news
   - chkp

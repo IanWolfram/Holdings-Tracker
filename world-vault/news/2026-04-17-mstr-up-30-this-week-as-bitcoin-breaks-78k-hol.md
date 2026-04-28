@@ -8,6 +8,8 @@ relevance: 0.50
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1sodqgw/mstr_up_30_this_week_as_bitcoin_breaks_78k/"
+catalystTypes:
+  - other
 tags:
   - news
   - hood

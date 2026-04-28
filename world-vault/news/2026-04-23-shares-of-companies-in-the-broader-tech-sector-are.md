@@ -9,6 +9,8 @@ verified: true
 country: US
 source: finnhub
 url: "https://finnhub.io/api/news?id=07505da7f757ef9cdebcfe124aae296dc659a8a9b64b138d963c6b84396a86fb"
+catalystTypes:
+  - other
 tags:
   - news
   - mdb

@@ -9,6 +9,8 @@ verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1s3fv0y/hood_announces_15bn_share_buyback/"
+catalystTypes:
+  - other
 tags:
   - news
   - hood

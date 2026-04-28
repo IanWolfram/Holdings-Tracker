@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { callMlxRaw, invalidateSystemPromptCache } from "./brain";
 import { getRecentResolvedPredictions } from "./predictions";
+import { runGraphPass } from "./graph";
 import type { AgentRunResult } from "../lib/agent/service";
 
 export interface VaultStory {
@@ -41,6 +42,11 @@ function parseFrontmatter(content: string): Record<string, string> {
   return result;
 }
 
+// Stories with decay below this threshold are treated as stale and excluded
+// from the few-shot context the brain sees on each new analysis. Roughly
+// equivalent to "older than ~3 weeks": exp(-21/7) ≈ 0.05.
+const STALE_DECAY_THRESHOLD = 0.05;
+
 export function getRecentVaultStories(
   ticker: string,
   vaultPath: string,
@@ -54,6 +60,7 @@ export function getRecentVaultStories(
       .reverse();
 
     const results: VaultStory[] = [];
+    const nowMs = Date.now();
     for (const file of files) {
       if (results.length >= limit) break;
       try {
@@ -61,6 +68,21 @@ export function getRecentVaultStories(
         const fm = parseFrontmatter(content);
         if (fm.ticker?.toUpperCase() !== ticker.toUpperCase()) continue;
         if (!fm.verdict || !["BUY", "SELL", "HOLD"].includes(fm.verdict)) continue;
+
+        // Prefer the stored decayScore (written by obsidian.ts); fall back to
+        // computing from the date so notes written before Phase 4 still filter.
+        let decayScore = parseFloat(fm.decayScore ?? "");
+        if (!Number.isFinite(decayScore)) {
+          const dateStr = fm.date ?? file.slice(0, 10);
+          const ts = Date.parse(`${dateStr}T16:00:00Z`);
+          if (Number.isFinite(ts)) {
+            const ageDays = Math.max(0, (nowMs - ts) / 86_400_000);
+            decayScore = Math.exp(-ageDays / 7);
+          } else {
+            decayScore = 1;
+          }
+        }
+        if (decayScore < STALE_DECAY_THRESHOLD) continue;
 
         const analysisMatch = content.match(/## AI Analysis\n([\s\S]*?)(?:\n##|$)/);
         const reason = (analysisMatch?.[1]?.trim() ?? "").replace(/_No analysis available\._/g, "").trim();
@@ -251,5 +273,9 @@ export async function runLearningPass(
   }
 
   await runMetaReflection(sessionResult, vaultPath, profiles);
+
+  const tickers = sessionResult.tickerResults.map((tr) => tr.ticker);
+  await runGraphPass(vaultPath, profiles, tickers);
+
   console.log("[learn] Learning pass complete.");
 }

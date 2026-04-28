@@ -9,6 +9,8 @@ verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1sqlhy6/relatively_ethical_stocks/"
+catalystTypes:
+  - other
 tags:
   - news
   - pltr

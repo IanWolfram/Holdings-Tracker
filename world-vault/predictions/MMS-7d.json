@@ -1,0 +1,66 @@
+[
+  {
+    "id": "backfill-MMS-2026-04-14-e01eeaeb2e42",
+    "ticker": "MMS",
+    "runAt": 1776182400000,
+    "priceAtPrediction": 68.2,
+    "direction": "DOWN",
+    "magnitudePct": 5.2,
+    "horizonDays": 7,
+    "confidence": 0.6,
+    "reasoning": "Backfilled from historical vault note.",
+    "catalysts": [
+      {
+        "headline": "TTEC Trades Way Cheaper Than the Industry: Is It a Value-Trap?",
+        "verdict": "SELL",
+        "confidence": 0.6,
+        "catalystTypes": [
+          "technical"
+        ]
+      }
+    ],
+    "catalystTypes": [
+      "technical"
+    ],
+    "engine": "backfill-v1",
+    "status": "resolved",
+    "sourceUrl": "https://finnhub.io/api/news?id=6ca4dfcc3a8a2e1132c32bdc682b7b6977782a34aa92bb5eb40ccaf450c956f6",
+    "synthetic": true,
+    "resolvedAt": 1776787200000,
+    "priceAtResolution": 67.92,
+    "actualPct": -0.41,
+    "outcome": "INCORRECT"
+  },
+  {
+    "id": "backfill-MMS-2026-04-17-ab7fe41d2257",
+    "ticker": "MMS",
+    "runAt": 1776441600000,
+    "priceAtPrediction": 69.17,
+    "direction": "FLAT",
+    "magnitudePct": 0,
+    "horizonDays": 7,
+    "confidence": 0.5,
+    "reasoning": "Backfilled from historical vault note.",
+    "catalysts": [
+      {
+        "headline": "Best Value Stocks to Buy for April 17th",
+        "verdict": "HOLD",
+        "confidence": 0.5,
+        "catalystTypes": [
+          "other"
+        ]
+      }
+    ],
+    "catalystTypes": [
+      "other"
+    ],
+    "engine": "backfill-v1",
+    "status": "resolved",
+    "sourceUrl": "https://finnhub.io/api/news?id=22a5b8ef2df594ddf82ecfbed06b6901be228e73b05bf26776fb79820ae9548e",
+    "synthetic": true,
+    "resolvedAt": 1777046400000,
+    "priceAtResolution": 65.47,
+    "actualPct": -5.35,
+    "outcome": "INCORRECT"
+  }
+]

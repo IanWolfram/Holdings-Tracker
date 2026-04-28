@@ -9,6 +9,8 @@ verified: false
 country: US
 source: finnhub
 url: "https://finnhub.io/api/news?id=5f5c16587046fd118740332e88b771cf1368a842a47f6ae8a2ca7e3ffce85a34"
+catalystTypes:
+  - other
 tags:
   - news
   - hood

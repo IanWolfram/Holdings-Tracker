@@ -10,15 +10,32 @@ import {
   appendPrediction,
   getRecentResolvedPredictions,
   loadPredictions,
+  SUPPORTED_HORIZONS,
 } from "../../world-brain/predictions";
+import { updateCalibration } from "../../world-brain/calibration";
+import { classifyCatalystTypes } from "../../world-brain/catalyst-classifier";
 import { ensureMlxServer } from "../mlx";
-import { writeStoryNote, writeDailySummary } from "../../world-brain/obsidian";
+import {
+  writeStoryNote,
+  writeDailySummary,
+  writeMacroSnapshot,
+  writeEventsSnapshot,
+} from "../../world-brain/obsidian";
 import { WORLD_VAULT_PATH, resolveVaultPath } from "../constants";
-import { getQuote } from "../market-data";
+import { getQuote as getCoreQuote } from "../market-data";
+import { getQuote as getMarketQuote } from "../marketdata/prices";
+import { getMacroSnapshot, type MacroSnapshot } from "../marketdata/macro";
+import {
+  getEventsSnapshot,
+  getUpcomingEarnings,
+  type EventsSnapshot,
+} from "../marketdata/events";
+import { runAlertsPass } from "../../world-brain/alerts";
 import { getActiveModel } from "../ai-config";
 import type { GeoStory, WorldData } from "@/types/geo.types";
 import type { ClassifiedStory } from "@/types/news.types";
 import type {
+  CatalystType,
   TickerPrediction,
   PredictionDirection,
 } from "@/types/predictions";
@@ -70,6 +87,24 @@ export function cancelStockAgent(): void {
   }
 }
 
+function formatNumber(value: number | null, decimals = 2): string {
+  if (value === null || !Number.isFinite(value)) return "n/a";
+  return value.toFixed(decimals);
+}
+
+function summarizeMacroForPrompt(snapshot?: MacroSnapshot | null): string {
+  if (!snapshot) return "";
+  return [
+    "\n\nMarket State:",
+    `VIX: ${formatNumber(snapshot.vix)} | 10Y: ${formatNumber(snapshot.tenY)}% | DXY: ${formatNumber(snapshot.dxy)} | Regime: ${snapshot.regime}`,
+    snapshot.summary,
+  ].join("\n");
+}
+
+function uniqueCatalystTypes(types: CatalystType[]): CatalystType[] {
+  return [...new Set(types)];
+}
+
 async function runForecast(
   ticker: string,
   currentPrice: number,
@@ -77,7 +112,10 @@ async function runForecast(
   tickerContext: string | undefined,
   vaultPath: string,
   sector: string | undefined,
-  runAt: number
+  runAt: number,
+  macroSnapshot: MacroSnapshot | null,
+  horizonDays: number,
+  daysUntilEarnings?: number | null
 ): Promise<TickerPrediction | null> {
   let forecasterPrompt = "";
   try {
@@ -93,9 +131,19 @@ async function runForecast(
     headline: v.headline.slice(0, 100),
     verdict: v.verdict,
     confidence: v.analysis.confidence,
+    catalystTypes: classifyCatalystTypes({
+      headline: v.headline,
+      reason: v.analysis.reason,
+      verdict: v.verdict,
+    }),
   }));
+  const predictionCatalystTypes = uniqueCatalystTypes(
+    catalysts.flatMap((catalyst) => catalyst.catalystTypes ?? [])
+  );
 
-  const recentResolved = getRecentResolvedPredictions(vaultPath, ticker, 3);
+  // Self-calibration block uses outcomes from the same horizon — a 30-day
+  // forecaster should learn from prior 30-day outcomes, not 7-day ones.
+  const recentResolved = getRecentResolvedPredictions(vaultPath, ticker, 3, horizonDays);
 
   const verdictsBlock = verdicts
     .slice(0, 5)
@@ -107,7 +155,7 @@ async function runForecast(
 
   const calibrationBlock =
     recentResolved.length > 0
-      ? "\n\nYour recent resolved predictions for this ticker:\n" +
+      ? `\n\nYour recent resolved ${horizonDays}d predictions for this ticker:\n` +
         recentResolved
           .map((p, i) => {
             const sign = (p.actualPct ?? 0) >= 0 ? "+" : "";
@@ -116,13 +164,21 @@ async function runForecast(
           .join("\n")
       : "";
 
+  const earningsHint =
+    typeof daysUntilEarnings === "number" && daysUntilEarnings >= 0 && daysUntilEarnings <= 7
+      ? `\nEarnings in ${daysUntilEarnings} day${daysUntilEarnings === 1 ? "" : "s"} — widen magnitude bands and treat this window as higher-variance. Bias confidence down unless catalysts are unambiguous.`
+      : "";
+
   const userMessage =
     `Ticker: ${ticker}\nCurrent price: $${currentPrice.toFixed(2)}\n` +
+    `Target horizon: ${horizonDays} day${horizonDays === 1 ? "" : "s"}\n` +
     (sector ? `Sector: ${sector}\n` : "") +
+    summarizeMacroForPrompt(macroSnapshot) +
+    earningsHint +
     `\nSession verdicts:\n${verdictsBlock}` +
     (tickerContext ? `\n\nTicker Knowledge:\n${tickerContext.slice(0, 400)}` : "") +
     calibrationBlock +
-    `\n\nOUTPUT ONLY THE JSON OBJECT. NO MARKDOWN. START WITH { END WITH }.`;
+    `\n\nForecast for the ${horizonDays}-day horizon. OUTPUT ONLY THE JSON OBJECT. NO MARKDOWN. START WITH { END WITH }.`;
 
   const raw = await callMlxRaw(forecasterPrompt, userMessage);
   if (!raw) return null;
@@ -141,7 +197,7 @@ async function runForecast(
 
     const active = getActiveModel();
     return {
-      id: `${ticker}-${runAt}`,
+      id: `${ticker}-${horizonDays}d-${runAt}`,
       ticker,
       runAt,
       priceAtPrediction: currentPrice,
@@ -150,18 +206,20 @@ async function runForecast(
         typeof parsed.magnitudePct === "number"
           ? Math.max(0, Math.min(30, parsed.magnitudePct))
           : 0,
-      horizonDays: 7,
+      horizonDays,
       confidence:
         typeof parsed.confidence === "number"
           ? Math.max(0, Math.min(1, parsed.confidence))
           : 0.5,
       reasoning: parsed.reasoning ?? "",
       catalysts,
+      catalystTypes:
+        predictionCatalystTypes.length > 0 ? predictionCatalystTypes : ["other"],
       engine: active.id,
       status: "pending",
     };
   } catch {
-    console.warn(`[agent] FORECASTER parse failed for ${ticker}`);
+    console.warn(`[agent] FORECASTER parse failed for ${ticker} @ ${horizonDays}d`);
     return null;
   }
 }
@@ -205,6 +263,40 @@ export async function runStockAgent(): Promise<AgentRunResult> {
       ),
     ];
 
+    let macroSnapshot: MacroSnapshot | null = null;
+    let eventsSnapshot: EventsSnapshot | null = null;
+    const runDate = new Date(startedAt).toISOString().split("T")[0];
+
+    currentProgress = { ...currentProgress, message: "Loading macro and event context..." };
+    try {
+      macroSnapshot = await getMacroSnapshot();
+    } catch {
+      macroSnapshot = null;
+    }
+    try {
+      eventsSnapshot = await getEventsSnapshot(holdingTickers, new Date(startedAt));
+    } catch {
+      eventsSnapshot = null;
+    }
+
+    if (WORLD_VAULT_PATH) {
+      if (macroSnapshot) {
+        writeMacroSnapshot(runDate, macroSnapshot, WORLD_VAULT_PATH);
+      }
+      if (eventsSnapshot) {
+        writeEventsSnapshot(runDate, eventsSnapshot, WORLD_VAULT_PATH);
+      }
+    }
+
+    // Pre-earnings boost: fetch a single 14-day earnings window so each ticker
+    // forecast can flag "earnings imminent" without re-querying Finnhub per call.
+    let upcomingEarnings = new Map<string, number>();
+    try {
+      upcomingEarnings = await getUpcomingEarnings(holdingTickers, new Date(startedAt), 14);
+    } catch {
+      upcomingEarnings = new Map();
+    }
+
     const tickerResults: TickerResult[] = [];
     const allGeoStories: GeoStory[] = [];
     let totalBuys = 0;
@@ -218,16 +310,32 @@ export async function runStockAgent(): Promise<AgentRunResult> {
     }
 
     // 3a. Resolve any pending predictions whose horizon has passed
-    const quoteCache: Record<string, Awaited<ReturnType<typeof getQuote>>> = {};
+    const quoteCache: Partial<Record<string, Awaited<ReturnType<typeof getCoreQuote>>>> = {};
+    const marketQuoteCache: Partial<Record<string, Awaited<ReturnType<typeof getMarketQuote>>>> = {};
+    let resolvedCount = 0;
     if (WORLD_VAULT_PATH) {
       currentProgress = { ...currentProgress, phase: "resolving", message: "Resolving prior predictions..." };
       for (const pos of positions) {
         try {
-          const quote = await getQuote(pos.ticker);
+          const quote = await getCoreQuote(pos.ticker);
           quoteCache[pos.ticker] = quote;
-          resolveEligiblePredictions(WORLD_VAULT_PATH, pos.ticker, quote?.currentPrice ?? null, startedAt);
+          const resolved = resolveEligiblePredictions(
+            WORLD_VAULT_PATH,
+            pos.ticker,
+            quote?.currentPrice ?? null,
+            startedAt
+          );
+          resolvedCount += resolved.resolved;
         } catch {
           // non-fatal — prediction resolution never blocks analysis
+        }
+      }
+
+      if (resolvedCount > 0) {
+        try {
+          updateCalibration(WORLD_VAULT_PATH);
+        } catch (err) {
+          console.error("[agent] Calibration update failed (non-fatal):", err);
         }
       }
     }
@@ -266,6 +374,15 @@ export async function runStockAgent(): Promise<AgentRunResult> {
         if (stories.length > 0) recentVerdicts = stories;
       }
 
+      if (marketQuoteCache[pos.ticker] === undefined) {
+        try {
+          marketQuoteCache[pos.ticker] = await getMarketQuote(pos.ticker);
+        } catch {
+          marketQuoteCache[pos.ticker] = null;
+        }
+      }
+      const tickerMarketQuote = marketQuoteCache[pos.ticker];
+
       const verdicts: TickerResult["verdicts"] = [];
 
       for (let i = 0; i < top.length; i++) {
@@ -293,8 +410,37 @@ export async function runStockAgent(): Promise<AgentRunResult> {
             currentProgress.streamText = chunk;
           },
           tickerContext,
-          recentVerdicts
+          recentVerdicts,
+          {
+            macro: macroSnapshot
+              ? {
+                  vix: macroSnapshot.vix,
+                  tenY: macroSnapshot.tenY,
+                  dxy: macroSnapshot.dxy,
+                  regime: macroSnapshot.regime,
+                  summary: macroSnapshot.summary,
+                }
+              : undefined,
+            tickerState: tickerMarketQuote
+              ? {
+                  price: tickerMarketQuote.price,
+                  change1d: tickerMarketQuote.change1d,
+                  change5d: tickerMarketQuote.change5d,
+                  change30d: tickerMarketQuote.change30d,
+                  return52wHigh: tickerMarketQuote.return52wHigh,
+                  rsi14: tickerMarketQuote.rsi14,
+                  atr14: tickerMarketQuote.atr14,
+                }
+              : undefined,
+          }
         );
+
+        const catalystTypes = classifyCatalystTypes({
+          headline: article.headline,
+          summary: article.summary ?? "",
+          reason: analysis.reason,
+          verdict: analysis.verdict,
+        });
 
         verdicts.push({
           verdict: analysis.verdict,
@@ -322,6 +468,7 @@ export async function runStockAgent(): Promise<AgentRunResult> {
             originCountryCode: analysis.originCountryCode ?? profile?.countryCode,
             relevanceScore: analysis.relevanceScore,
             isAnalyzed: Boolean(analysis.reason), // false if MLX returned a fallback (empty reason)
+            catalystTypes,
           };
           allGeoStories.push(geoStory);
           writeStoryNote(geoStory, WORLD_VAULT_PATH, profile?.sector);
@@ -331,13 +478,16 @@ export async function runStockAgent(): Promise<AgentRunResult> {
             verdict: analysis.verdict as ClassifiedStory["verdict"],
             confidence: analysis.confidence,
             reason: analysis.reason ?? undefined,
+            catalystTypes,
             isAnalyzed: true,
             classifiedAt: new Date().toISOString(),
           });
         }
       }
 
-      // Forecast: synthesize this ticker's verdicts into a 7-day directional prediction
+      // Forecast: synthesize this ticker's verdicts into directional predictions
+      // at multiple horizons (1d, 7d, 30d). Each horizon is gated independently
+      // so a 9am 1d forecast doesn't block the same day's 7d/30d forecasts.
       if (WORLD_VAULT_PATH && verdicts.length > 0 && !isCancelled) {
         currentProgress = {
           ...currentProgress,
@@ -345,27 +495,43 @@ export async function runStockAgent(): Promise<AgentRunResult> {
           message: `Forecasting ${pos.ticker}...`,
         };
         try {
-          const quote = quoteCache[pos.ticker] ?? (await getQuote(pos.ticker));
-          if (quote?.currentPrice) {
-            // Only forecast once per 7-day window per ticker
-            const existing = loadPredictions(WORLD_VAULT_PATH, pos.ticker);
-            const oneWeekAgo = startedAt - 7 * 86_400_000;
-            const recentPrediction = existing.find((p) => p.runAt >= oneWeekAgo);
-            if (recentPrediction) {
-              console.log(`[agent] Skipping forecast for ${pos.ticker} — already predicted on ${new Date(recentPrediction.runAt).toDateString()}`);
-            } else {
+          const quote = quoteCache[pos.ticker] ?? (await getCoreQuote(pos.ticker));
+          const tickerMarketQuote = marketQuoteCache[pos.ticker] ?? null;
+          const currentPrice = quote?.currentPrice ?? tickerMarketQuote?.price ?? null;
+          if (currentPrice !== null) {
+            // All three horizons refresh on a daily cadence so new information
+            // updates the 30d view before its full window elapses; the horizon
+            // only controls when an outstanding prediction is *resolved* against
+            // realized price, not how often a new one is issued.
+            const dailyCutoff = startedAt - 86_400_000;
+            for (const horizon of SUPPORTED_HORIZONS) {
+              if (isCancelled) break;
+              const existing = loadPredictions(WORLD_VAULT_PATH, pos.ticker, horizon);
+              const recentPrediction = existing.find((p) => p.runAt >= dailyCutoff);
+              if (recentPrediction) {
+                console.log(
+                  `[agent] Skipping ${horizon}d forecast for ${pos.ticker} — predicted on ${new Date(recentPrediction.runAt).toDateString()}`
+                );
+                continue;
+              }
+              const daysUntilEarnings = upcomingEarnings.get(pos.ticker.toUpperCase());
               const prediction = await runForecast(
                 pos.ticker,
-                quote.currentPrice,
+                currentPrice,
                 verdicts,
                 tickerContext,
                 WORLD_VAULT_PATH,
                 profiles[pos.ticker]?.sector,
-                startedAt
+                startedAt,
+                macroSnapshot,
+                horizon,
+                daysUntilEarnings
               );
               if (prediction) {
                 appendPrediction(WORLD_VAULT_PATH, prediction);
-                console.log(`[agent] Forecast for ${pos.ticker}: ${prediction.direction} +/-${prediction.magnitudePct}% (conf ${Math.round(prediction.confidence * 100)}%)`);
+                console.log(
+                  `[agent] ${horizon}d forecast for ${pos.ticker}: ${prediction.direction} +/-${prediction.magnitudePct}% (conf ${Math.round(prediction.confidence * 100)}%)`
+                );
               }
             }
           }
@@ -406,6 +572,18 @@ export async function runStockAgent(): Promise<AgentRunResult> {
         await runLearningPass(result, WORLD_VAULT_PATH, profiles);
       } catch (err) {
         console.error("[agent] Learning pass failed (non-fatal):", err);
+      }
+
+      // Alerts pass runs AFTER the learning pass so sector breadth / correlation
+      // artifacts are fresh when we compute contradictions, anomalies, and sizing.
+      try {
+        await runAlertsPass({
+          vaultPath: WORLD_VAULT_PATH,
+          date: runDate,
+          tickerResults: result.tickerResults,
+        });
+      } catch (err) {
+        console.error("[agent] Alerts pass failed (non-fatal):", err);
       }
     }
 

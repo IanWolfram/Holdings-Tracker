@@ -9,6 +9,8 @@ verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1sjzxgc/are_you_buying_software_stocks_now_that_theyve/"
+catalystTypes:
+  - other
 tags:
   - news
   - pltr

@@ -9,6 +9,8 @@ verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/investing/comments/1sv8njk/should_i_add_spmo_or_voo_to_round_out_my_portfolio/"
+catalystTypes:
+  - other
 tags:
   - news
   - pltr

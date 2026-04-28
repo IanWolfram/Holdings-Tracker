@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { cloneElement, isValidElement, useRef, useState } from "react";
 import {
   AnimatePresence,
   motion,
@@ -31,6 +31,10 @@ export default function NewsCollapsible({
   const [expanded, setExpanded] = useState(
     defaultExpanded || (!fullyCollapsible && count <= 1),
   );
+  // Tracks whether cursor is anywhere within the combined card + stack area.
+  // Passed as `pinned` to children[0] so the top news card's AI panel doesn't
+  // collapse the moment the user moves down toward the stack hit zone.
+  const [wrapperHovered, setWrapperHovered] = useState(false);
 
   const stackRef = useRef<HTMLDivElement>(null);
   const hoverProgress = useMotionValue(0);
@@ -116,9 +120,22 @@ export default function NewsCollapsible({
       <div
         className="relative"
         style={{ paddingBottom: expanded ? 0 : baseStackPad }}
+        onMouseEnter={() => setWrapperHovered(true)}
+        onMouseLeave={() => setWrapperHovered(false)}
       >
-        {/* Top card only shown when collapsed — expands into the scrollbox */}
-        {!expanded && <div style={{ zIndex: 10, position: "relative" }}>{children[0]}</div>}
+        {/* Top card only shown when collapsed — expands into the scrollbox.
+            Cloned with `pinned` so its AI panel stays expanded while the cursor
+            is anywhere in the wrapper (including the bottom stack hit zone). */}
+        {!expanded && (
+          <div style={{ zIndex: 10, position: "relative" }}>
+            {isValidElement(children[0])
+              ? cloneElement(
+                  children[0] as React.ReactElement<{ pinned?: boolean }>,
+                  { pinned: wrapperHovered },
+                )
+              : children[0]}
+          </div>
+        )}
 
         {/* Ghost stack — sits BEHIND the top card. translateY shifts on hover
             create a fan-out reveal. Static padding is preserved so layout
@@ -219,48 +236,52 @@ export default function NewsCollapsible({
             transition={{ duration: 0.32, ease: EASE }}
             className="overflow-hidden"
           >
-            <button
-              onClick={() => setExpanded(false)}
-              aria-label="Collapse stack"
-              className="w-full mb-1.5 py-0.5 flex items-center justify-center rounded-md hover:bg-white/[0.03] transition-colors group/col"
-            >
-              <span className="material-symbols-outlined text-[14px] text-slate-600 group-hover/col:text-slate-400 transition-colors">
-                expand_less
-              </span>
-            </button>
             <div className="relative">
+              {/* Scrollbox — content fades out at the top/bottom via mask-image
+                  so cards scroll away smoothly instead of being hard-cut. */}
               <div
                 className="overflow-y-auto overscroll-contain [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
-                style={{ maxHeight: 256, msOverflowStyle: "none" }}
+                style={{
+                  maxHeight: 256,
+                  msOverflowStyle: "none",
+                  maskImage:
+                    "linear-gradient(to bottom, transparent 0, black 28px, black calc(100% - 16px), transparent 100%)",
+                  WebkitMaskImage:
+                    "linear-gradient(to bottom, transparent 0, black 28px, black calc(100% - 16px), transparent 100%)",
+                }}
               >
-                <div className="space-y-2 py-3">{children}</div>
+                <div className="space-y-2 pt-7 pb-4">{children}</div>
               </div>
 
-              {/* Glass header — backdrop-blurs cards as they scroll up under it */}
-              <div
-                className="absolute top-0 left-0 right-0 h-6 pointer-events-none"
+              {/* Glass header — contains collapse arrow; cards fade behind it */}
+              <button
+                onClick={() => setExpanded(false)}
+                aria-label="Collapse stack"
+                className="absolute top-0 left-0 right-0 h-6 flex items-center justify-center rounded-t-[8px] z-10 group/col transition-colors hover:bg-white/[0.04]"
                 style={{
-                  zIndex: 5,
-                  backdropFilter: "blur(10px)",
-                  WebkitBackdropFilter: "blur(10px)",
-                  maskImage:
-                    "linear-gradient(to bottom, black 0%, black 40%, transparent 100%)",
-                  WebkitMaskImage:
-                    "linear-gradient(to bottom, black 0%, black 40%, transparent 100%)",
+                  backdropFilter: "blur(14px) saturate(160%)",
+                  WebkitBackdropFilter: "blur(14px) saturate(160%)",
+                  background:
+                    "linear-gradient(to bottom, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)",
+                  boxShadow:
+                    "inset 0 -1px 0 0 rgba(255,255,255,0.06)",
                 }}
-              />
+              >
+                <span className="material-symbols-outlined text-[14px] text-slate-500 group-hover/col:text-slate-300 transition-colors">
+                  expand_less
+                </span>
+              </button>
 
-              {/* Glass footer — backdrop-blurs cards as they scroll down under it */}
+              {/* Glass footer — purely decorative; mirrors the header */}
               <div
-                className="absolute bottom-0 left-0 right-0 h-6 pointer-events-none"
+                className="absolute bottom-0 left-0 right-0 h-4 pointer-events-none rounded-b-[8px] z-10"
                 style={{
-                  zIndex: 5,
-                  backdropFilter: "blur(10px)",
-                  WebkitBackdropFilter: "blur(10px)",
-                  maskImage:
-                    "linear-gradient(to top, black 0%, black 40%, transparent 100%)",
-                  WebkitMaskImage:
-                    "linear-gradient(to top, black 0%, black 40%, transparent 100%)",
+                  backdropFilter: "blur(10px) saturate(160%)",
+                  WebkitBackdropFilter: "blur(10px) saturate(160%)",
+                  background:
+                    "linear-gradient(to top, rgba(255,255,255,0.03) 0%, transparent 100%)",
+                  boxShadow:
+                    "inset 0 1px 0 0 rgba(255,255,255,0.05)",
                 }}
               />
             </div>

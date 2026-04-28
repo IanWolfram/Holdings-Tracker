@@ -9,6 +9,8 @@ verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1slslq0/pltr_actually_becoming_a_real_ai_company_but/"
+catalystTypes:
+  - other
 tags:
   - news
   - pltr

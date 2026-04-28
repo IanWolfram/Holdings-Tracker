@@ -9,6 +9,9 @@ verified: true
 country: US
 source: finnhub
 url: "https://finnhub.io/api/news?id=e84439dcf2344f8830ad4f6e4bad0bfc78c328890664ab7418438de032d2ad6f"
+catalystTypes:
+  - govt-contract
+  - regulatory
 tags:
   - news
   - hood

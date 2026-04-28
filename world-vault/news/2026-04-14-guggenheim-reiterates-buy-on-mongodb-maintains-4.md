@@ -7,6 +7,8 @@ relevance: 0.60
 country: unknown
 source: finnhub
 url: "https://finnhub.io/api/news?id=26837096c4326501cf706b485bc61af659751c0e9f8c77419845c82871595d3c"
+catalystTypes:
+  - analyst-upgrade
 tags:
   - news
   - mdb

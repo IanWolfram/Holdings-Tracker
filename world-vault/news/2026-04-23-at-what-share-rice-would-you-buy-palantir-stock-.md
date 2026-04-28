@@ -9,6 +9,8 @@ verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/investing/comments/1stw33f/at_what_share_rice_would_you_buy_palantir_stock/"
+catalystTypes:
+  - other
 tags:
   - news
   - pltr

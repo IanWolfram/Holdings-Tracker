@@ -9,6 +9,8 @@ verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1s6kxyy/the_inflation_argument_is_so_wrong/"
+catalystTypes:
+  - macro
 tags:
   - news
   - pltr

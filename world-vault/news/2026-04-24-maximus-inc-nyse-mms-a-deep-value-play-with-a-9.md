@@ -9,6 +9,8 @@ verified: true
 country: US
 source: finnhub
 url: "https://finnhub.io/api/news?id=b12599a71b90ef5ebfa3ef7cbd88f6bdeb58073397c5fa1b089d5d1f1ffa2649"
+catalystTypes:
+  - govt-contract
 tags:
   - news
   - mms

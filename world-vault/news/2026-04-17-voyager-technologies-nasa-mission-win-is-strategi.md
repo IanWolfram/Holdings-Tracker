@@ -7,6 +7,8 @@ relevance: 0.50
 country: unknown
 source: finnhub
 url: "https://finnhub.io/api/news?id=dfc8b9ab25cf36fe9c5dc2f81be67df05b80f81fc6e4d18ccb6ea071de92454c"
+catalystTypes:
+  - govt-contract
 tags:
   - news
   - pltr

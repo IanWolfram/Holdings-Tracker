@@ -9,6 +9,8 @@ verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/investing/comments/1skjie2/first_time_investor_need_advice/"
+catalystTypes:
+  - other
 tags:
   - news
   - hood

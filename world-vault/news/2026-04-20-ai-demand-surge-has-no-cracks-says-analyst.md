@@ -9,6 +9,8 @@ verified: true
 country: US
 source: finnhub
 url: "https://finnhub.io/api/news?id=1533847aca1d4e4fc630cba3c6c7981fd6f571acc8f7e50cfe6776e8bfad42ee"
+catalystTypes:
+  - other
 tags:
   - news
   - pltr

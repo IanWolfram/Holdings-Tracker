@@ -8,6 +8,9 @@ relevance: 0.50
 country: US
 source: finnhub
 url: "https://finnhub.io/api/news?id=eafcc55b6900a4169fb34168a6a3e099f9ad33f3fcc6c99016ae7d7bb344ce54"
+catalystTypes:
+  - leadership
+  - product-launch
 tags:
   - news
   - hood

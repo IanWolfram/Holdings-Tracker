@@ -9,6 +9,8 @@ verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1st4emr/major_saas_earnings_calendar_april_june/"
+catalystTypes:
+  - other
 tags:
   - news
   - mdb

@@ -9,6 +9,8 @@ verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1s2gmcl/robinhood_looking_good_at_these_levels/"
+catalystTypes:
+  - other
 tags:
   - news
   - hood

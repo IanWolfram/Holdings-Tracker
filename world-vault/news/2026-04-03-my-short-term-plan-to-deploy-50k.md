@@ -9,6 +9,8 @@ verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1sbhcyq/my_short_term_plan_to_deploy_50k/"
+catalystTypes:
+  - other
 tags:
   - news
   - hood

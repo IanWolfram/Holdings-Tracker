@@ -1,5 +1,7 @@
 "use client";
 
+import type { SentimentDirection } from "@/lib/utils/sentiment";
+
 /**
  * Tri-state sentiment bar + numeric legend.
  *
@@ -9,6 +11,8 @@
  *   2. Numeric legend exposes sample size so glance-readers can tell
  *      "1 BUY vs 0 SELL" from "11 BUY vs 9 SELL".
  *   3. Optional avgConfidence surfaces model certainty.
+ *   4. Optional sentimentScore/sentimentDirection supports a
+ *      confidence-weighted conviction model for the headline percent.
  */
 
 interface Props {
@@ -17,19 +21,25 @@ interface Props {
   sell: number;
   /** 0–100 — average confidence across stories. Optional. */
   avgConfidence?: number;
+  /** 0–100 conviction score from weighted sentiment model. Optional. */
+  sentimentScore?: number;
+  /** Weighted model direction. Optional fallback to count-based direction. */
+  sentimentDirection?: SentimentDirection;
   /** Show the header row (label + verdict pill). Default true. */
   showHeader?: boolean;
-  /** Custom header label. Default "AI Sentiment". */
+  /** Custom header label. Default "AI Conviction". */
   label?: string;
 }
 
-type Verdict = "bull" | "bear" | "flat";
-
-function verdictFrom(buy: number, sell: number, hold: number): Verdict {
+function verdictFrom(buy: number, sell: number, hold: number): SentimentDirection {
   if (buy === 0 && sell === 0 && hold === 0) return "flat";
   if (buy > sell) return "bull";
   if (sell > buy) return "bear";
   return "flat";
+}
+
+function clampPercent(value: number): number {
+  return Math.max(0, Math.min(100, value));
 }
 
 export default function SentimentBar({
@@ -37,8 +47,10 @@ export default function SentimentBar({
   hold,
   sell,
   avgConfidence,
+  sentimentScore,
+  sentimentDirection,
   showHeader = true,
-  label = "AI Sentiment",
+  label = "AI Conviction",
 }: Props) {
   const total = buy + hold + sell;
   const safe = total || 1;
@@ -46,16 +58,20 @@ export default function SentimentBar({
   const holdPct = (hold / safe) * 100;
   const sellPct = (sell / safe) * 100;
 
-  const verdict = verdictFrom(buy, sell, hold);
-  const dominantPct =
-    verdict === "bull"
+  const fallbackVerdict = verdictFrom(buy, sell, hold);
+  const fallbackPct =
+    fallbackVerdict === "bull"
       ? Math.round(buyPct)
-      : verdict === "bear"
+      : fallbackVerdict === "bear"
       ? Math.round(sellPct)
       : Math.round(holdPct);
 
-  const verdictLabel =
-    verdict === "bull" ? "▲ BULLISH" : verdict === "bear" ? "▼ BEARISH" : "▪ NEUTRAL";
+  const verdict = sentimentDirection ?? fallbackVerdict;
+  const displayPct =
+    typeof sentimentScore === "number"
+      ? Math.round(clampPercent(sentimentScore))
+      : fallbackPct;
+
   const verdictColor =
     verdict === "bull"
       ? "text-positive"
@@ -85,8 +101,11 @@ export default function SentimentBar({
               <span className="text-slate-600 font-medium">{total} {total === 1 ? "story" : "stories"}</span>
             </span>
           </span>
-          <span className={`font-mono text-[11px] font-bold tracking-[0.1em] whitespace-nowrap shrink-0 ${verdictColor}`}>
-            {dominantPct}%
+          <span 
+            className={`font-mono text-[11px] font-bold tracking-[0.1em] whitespace-nowrap shrink-0 cursor-help ${verdictColor}`}
+            title={"Conviction Score:\n\n• Polarity (Buy vs Sell weight)\n• Neutral Drag (penalizes high HOLD share)\n• Reliability (increases with sample size)"}
+          >
+            {displayPct}%
           </span>
         </div>
       )}

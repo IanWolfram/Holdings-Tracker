@@ -7,6 +7,8 @@ relevance: 0.60
 country: unknown
 source: finnhub
 url: "https://finnhub.io/api/news?id=b52440dbbb5c3652c85ab22913b8e39852f053b0389f0f9e6c007a32f7d7ee29"
+catalystTypes:
+  - technical
 tags:
   - news
   - hood

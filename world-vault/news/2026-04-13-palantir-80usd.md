@@ -9,6 +9,8 @@ verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1skjzub/palantir_80usd/"
+catalystTypes:
+  - other
 tags:
   - news
   - pltr

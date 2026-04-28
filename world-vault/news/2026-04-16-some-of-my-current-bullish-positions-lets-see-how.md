@@ -9,6 +9,8 @@ verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1smusir/some_of_my_current_bullish_positions_lets_see_how/"
+catalystTypes:
+  - other
 tags:
   - news
   - hood

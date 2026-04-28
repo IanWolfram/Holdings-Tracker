@@ -70,3 +70,52 @@ export async function fetchCandlesPolygon(
     }
   });
 }
+
+export interface PolygonOHLCBar {
+  date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export async function fetchOHLCPolygon(
+  ticker: string,
+  days: number = 730
+): Promise<PolygonOHLCBar[]> {
+  const apiKey = process.env.POLYGON_API_KEY;
+  if (!apiKey) throw new Error("POLYGON_API_KEY not set");
+
+  const toDate = new Date();
+  const fromDate = new Date();
+  fromDate.setDate(toDate.getDate() - days);
+
+  const to = toDate.toISOString().split("T")[0];
+  const from = fromDate.toISOString().split("T")[0];
+
+  const url = `https://api.polygon.io/v2/aggs/ticker/${ticker}/range/1/day/${from}/${to}?adjusted=true&sort=asc&limit=50000&apiKey=${apiKey}`;
+
+  return enqueuePolygon(async () => {
+    const res = await fetchWithRetry(url);
+    if (!res.ok) throw new Error(`Polygon HTTP ${res.status}`);
+
+    const data = (await res.json()) as {
+      status?: string;
+      results?: Array<{ t: number; o: number; h: number; l: number; c: number; v: number }>;
+    };
+
+    if (!(data.status === "OK" || data.status === "DELAYED") || !Array.isArray(data.results)) {
+      throw new Error(`Polygon status ${data.status ?? "unknown"}`);
+    }
+
+    return data.results.map((r) => ({
+      date: new Date(r.t).toISOString().slice(0, 10),
+      open: r.o,
+      high: r.h,
+      low: r.l,
+      close: r.c,
+      volume: r.v ?? 0,
+    }));
+  });
+}

@@ -1,0 +1,156 @@
+{
+  "updatedAt": "2026-04-28T02:47:23.373Z",
+  "totalResolved": 66,
+  "byTicker": {
+    "CHKP": {
+      "n": 3,
+      "correct": 1,
+      "partial": 0,
+      "incorrect": 2,
+      "winRate": 0.3333,
+      "avgConfidence": 0.6667
+    },
+    "HOOD": {
+      "n": 31,
+      "correct": 3,
+      "partial": 0,
+      "incorrect": 28,
+      "winRate": 0.0968,
+      "avgConfidence": 0.5194
+    },
+    "MDB": {
+      "n": 1,
+      "correct": 1,
+      "partial": 0,
+      "incorrect": 0,
+      "winRate": 1,
+      "avgConfidence": 0.6
+    },
+    "MMS": {
+      "n": 2,
+      "correct": 0,
+      "partial": 0,
+      "incorrect": 2,
+      "winRate": 0,
+      "avgConfidence": 0.55
+    },
+    "PLTR": {
+      "n": 29,
+      "correct": 1,
+      "partial": 0,
+      "incorrect": 28,
+      "winRate": 0.0345,
+      "avgConfidence": 0.5193
+    }
+  },
+  "byCatalyst": {
+    "technical": {
+      "n": 9,
+      "correct": 1,
+      "partial": 0,
+      "incorrect": 8,
+      "winRate": 0.1111,
+      "avgConfidence": 0.6444
+    },
+    "other": {
+      "n": 50,
+      "correct": 3,
+      "partial": 0,
+      "incorrect": 47,
+      "winRate": 0.06,
+      "avgConfidence": 0.5052
+    },
+    "regulatory": {
+      "n": 2,
+      "correct": 1,
+      "partial": 0,
+      "incorrect": 1,
+      "winRate": 0.5,
+      "avgConfidence": 0.6
+    },
+    "leadership": {
+      "n": 2,
+      "correct": 0,
+      "partial": 0,
+      "incorrect": 2,
+      "winRate": 0,
+      "avgConfidence": 0.5
+    },
+    "product-launch": {
+      "n": 2,
+      "correct": 0,
+      "partial": 0,
+      "incorrect": 2,
+      "winRate": 0,
+      "avgConfidence": 0.5
+    },
+    "analyst-upgrade": {
+      "n": 1,
+      "correct": 1,
+      "partial": 0,
+      "incorrect": 0,
+      "winRate": 1,
+      "avgConfidence": 0.6
+    },
+    "macro": {
+      "n": 1,
+      "correct": 0,
+      "partial": 0,
+      "incorrect": 1,
+      "winRate": 0,
+      "avgConfidence": 0.5
+    },
+    "govt-contract": {
+      "n": 1,
+      "correct": 0,
+      "partial": 0,
+      "incorrect": 1,
+      "winRate": 0,
+      "avgConfidence": 0.5
+    }
+  },
+  "byConfidenceBucket": {
+    "0.6-0.7": {
+      "n": 8,
+      "correct": 1,
+      "partial": 0,
+      "incorrect": 7,
+      "winRate": 0.125,
+      "avgConfidence": 0.6
+    },
+    "0.5-0.6": {
+      "n": 54,
+      "correct": 2,
+      "partial": 0,
+      "incorrect": 52,
+      "winRate": 0.037,
+      "avgConfidence": 0.5
+    },
+    "0.9-1.0": {
+      "n": 1,
+      "correct": 1,
+      "partial": 0,
+      "incorrect": 0,
+      "winRate": 1,
+      "avgConfidence": 0.9
+    },
+    "0.7-0.8": {
+      "n": 3,
+      "correct": 2,
+      "partial": 0,
+      "incorrect": 1,
+      "winRate": 0.6667,
+      "avgConfidence": 0.72
+    }
+  },
+  "byHorizon": {
+    "7d": {
+      "n": 66,
+      "correct": 6,
+      "partial": 0,
+      "incorrect": 60,
+      "winRate": 0.0909,
+      "avgConfidence": 0.5282
+    }
+  }
+}

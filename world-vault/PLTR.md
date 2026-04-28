@@ -1,5 +1,5 @@
 ---
-date: "2026-04-26"
+date: "2026-04-27"
 type: ticker-knowledge
 ticker: PLTR
 sector: Tech
@@ -8,6 +8,6 @@ generated: true
 
 # PLTR — Learned Patterns
 
-Government contract wins, especially those involving new civilian agencies like the USDA or IRS, and Pentagon program-of-record designations are the highest-conviction BUY catalysts for PLTR, consistently producing signals above 85% confidence. Dip-buying opportunities triggered by sharp single-day or YTD declines of 7-20% also generate reliable BUY signals at 72-85% confidence, provided the core government contract pipeline remains intact. SELL signals are triggered exclusively by regulatory or reputational risk events, such as divestment campaigns by institutional holders like the Swiss National Bank, which score 80% confidence and directly threaten the government revenue narrative. Geopolitical and sector themes are dominated by U.S. government expansion into civilian AI applications and defense modernization, while political noise around founder Peter Thiel or generic AI sector comparisons produce only HOLD signals at 20-50% confidence. Analyst upgrade signals for this ticker historically under-perform predicted magnitude by roughly 40%, as the 2025 prediction of a 4.2% move was exceeded by an actual 20.8% gain, indicating that government contract catalysts drive outsized moves relative to analyst sentiment.
+Government contract wins, especially those expanding PLTR's reach into civilian agencies like the USDA or IRS, and Pentagon program of record confirmations reliably trigger high-confidence BUY signals at 85-92% confidence. SELL signals at 80% confidence are consistently triggered by high-profile short-seller theses (e.g., Michael Burry) and institutional divestment campaigns (e.g., SNB pressure) that amplify regulatory or reputational risk around government surveillance contracts. Recurring macro factors include the AI defense narrative and government spending cycles, where any headline linking PLTR to presidential-level government expansion or non-defense agency adoption acts as a strong positive catalyst. Calibration note: analyst upgrade signals and dip-buying narratives following sharp price drops (e.g., 7% or 20% declines) historically score 72-85% confidence but have under-performed predicted magnitude by approximately 40% when lacking a concurrent hard catalyst like a contract win.
 
-_Last updated: 2026-04-26_
+_Last updated: 2026-04-27_

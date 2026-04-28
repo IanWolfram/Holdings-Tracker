@@ -9,6 +9,8 @@ verified: true
 country: US
 source: finnhub
 url: "https://finnhub.io/api/news?id=7b8d8887c4c56a31623ab146395f8a26a264a37a74961c42e8fe5a98f7a95701"
+catalystTypes:
+  - technical
 tags:
   - news
   - chkp

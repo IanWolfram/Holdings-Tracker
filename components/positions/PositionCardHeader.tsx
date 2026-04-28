@@ -2,6 +2,7 @@ import React from "react";
 import Sparkline from "@/components/ui/Sparkline";
 import CompanyLogo from "@/components/ui/CompanyLogo";
 import SentimentBar from "@/components/SentimentBar";
+import type { SentimentDirection } from "@/lib/utils/sentiment";
 import { formatCurrency, formatPercent, formatGainLoss } from "@/lib/utils/format";
 
 interface TodayDelta {
@@ -26,6 +27,8 @@ interface PositionCardHeaderProps {
   hold: number;
   sell: number;
   avgConfidence?: number;
+  sentimentScore?: number;
+  sentimentDirection?: SentimentDirection;
   glowClass: string;
 }
 
@@ -77,6 +80,8 @@ export default function PositionCardHeader({
   hold,
   sell,
   avgConfidence,
+  sentimentScore,
+  sentimentDirection,
   glowClass,
 }: PositionCardHeaderProps) {
   return (
@@ -151,7 +156,14 @@ export default function PositionCardHeader({
       </div>
 
       <div className="px-3 py-2 border-t border-white/[0.05] bg-black/[0.35]">
-        <SentimentBar buy={buy} hold={hold} sell={sell} avgConfidence={avgConfidence} />
+        <SentimentBar
+          buy={buy}
+          hold={hold}
+          sell={sell}
+          avgConfidence={avgConfidence}
+          sentimentScore={sentimentScore}
+          sentimentDirection={sentimentDirection}
+        />
       </div>
     </div>
   );

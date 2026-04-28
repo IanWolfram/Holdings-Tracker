@@ -9,6 +9,8 @@ verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/investing/comments/1si4zyk/those_of_you_who_hold_palantir_are_you_getting/"
+catalystTypes:
+  - other
 tags:
   - news
   - pltr

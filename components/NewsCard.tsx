@@ -29,9 +29,11 @@ const VERDICT_BG: Record<string, string> = {
 export default function NewsCard({
   story,
   isAnalyzed = false,
+  pinned = false,
 }: {
   story: ClassifiedStory;
   isAnalyzed?: boolean;
+  pinned?: boolean;
 }) {
   const rawId = useId();
   const id = rawId.replace(/:/g, "");
@@ -39,6 +41,7 @@ export default function NewsCard({
   const [expanded, setExpanded] = useState(false);
   const [showDuplicates, setShowDuplicates] = useState(false);
   const expandTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const innerHoveredRef = useRef(false);
   const duplicates = story.duplicates ?? [];
 
   useEffect(() => {
@@ -47,7 +50,16 @@ export default function NewsCard({
     };
   }, []);
 
+  // When the parent un-pins (cursor left the combined card+stack area),
+  // collapse if the cursor isn't directly on the card either.
+  useEffect(() => {
+    if (!pinned && !innerHoveredRef.current) {
+      setExpanded(false);
+    }
+  }, [pinned]);
+
   const handleMouseEnter = () => {
+    innerHoveredRef.current = true;
     setHovered(true);
     if (expandTimerRef.current) clearTimeout(expandTimerRef.current);
     expandTimerRef.current = setTimeout(() => {
@@ -57,11 +69,18 @@ export default function NewsCard({
   };
 
   const handleMouseLeave = () => {
+    innerHoveredRef.current = false;
     if (expandTimerRef.current) {
       clearTimeout(expandTimerRef.current);
       expandTimerRef.current = null;
     }
+    // Always drop the visual hover state — the edge-fill timer should reverse
+    // the moment the cursor leaves the card, even if the AI panel stays pinned
+    // because the cursor moved down onto the bottom stack.
     setHovered(false);
+    // Pin only the expansion: if already expanded, keep the AI panel up while
+    // the parent reports the cursor is still in the combined wrapper.
+    if (pinned) return;
     setExpanded(false);
   };
 

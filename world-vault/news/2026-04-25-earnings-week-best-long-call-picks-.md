@@ -9,6 +9,8 @@ verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1svj6mp/earnings_week_best_long_call_picks/"
+catalystTypes:
+  - other
 tags:
   - news
   - hood

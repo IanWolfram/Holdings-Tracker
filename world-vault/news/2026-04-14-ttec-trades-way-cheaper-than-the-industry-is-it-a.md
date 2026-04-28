@@ -7,6 +7,8 @@ relevance: 0.60
 country: unknown
 source: finnhub
 url: "https://finnhub.io/api/news?id=6ca4dfcc3a8a2e1132c32bdc682b7b6977782a34aa92bb5eb40ccaf450c956f6"
+catalystTypes:
+  - technical
 tags:
   - news
   - mms

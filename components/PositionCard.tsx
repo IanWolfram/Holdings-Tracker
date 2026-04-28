@@ -6,6 +6,7 @@ import GlassView from "./ui/LiquidGlass/GlassView";
 import PositionCardHeader from "./positions/PositionCardHeader";
 import PositionCardNewsFeed from "./positions/PositionCardNewsFeed";
 import { groupStoriesBySource } from "@/lib/utils/stories";
+import { calculateSentimentMetrics } from "@/lib/utils/sentiment";
 import type { Position } from "@/types/position.types";
 import type { ClassifiedStory, CongressTrade } from "@/types/news.types";
 import type { AgentProgress } from "@/lib/agent/service";
@@ -64,9 +65,8 @@ export default function PositionCard({
   const buy = stories.filter((s) => s.verdict === "BUY").length;
   const sell = stories.filter((s) => s.verdict === "SELL").length;
   const hold = stories.filter((s) => s.verdict === "HOLD").length;
-  const avgConfidence = stories.length
-    ? (stories.reduce((acc, s) => acc + (s.confidence ?? 0), 0) / stories.length) * 100
-    : undefined;
+  const sentimentMetrics = useMemo(() => calculateSentimentMetrics(stories), [stories]);
+  const avgConfidence = sentimentMetrics.avgConfidence;
 
   const gainPositive = gainLoss >= 0;
   const gainPct = pricePaid > 0 ? ((currentPrice - pricePaid) / pricePaid) * 100 : 0;
@@ -144,6 +144,8 @@ export default function PositionCard({
           hold={hold}
           sell={sell}
           avgConfidence={avgConfidence}
+          sentimentScore={sentimentMetrics.score}
+          sentimentDirection={sentimentMetrics.direction}
           glowClass={glowClass(buy, sell, loading)}
         />
 

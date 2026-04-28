@@ -9,6 +9,8 @@ verified: true
 country: AR
 source: finnhub
 url: "https://finnhub.io/api/news?id=3d6e58e99950aeb60d15ddc02d27f146daaea7364dee62b8594d60b6926e8c3a"
+catalystTypes:
+  - govt-contract
 tags:
   - news
   - pltr

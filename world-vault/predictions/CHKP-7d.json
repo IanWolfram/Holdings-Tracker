@@ -1,0 +1,118 @@
+[
+  {
+    "id": "backfill-CHKP-2026-04-14-372f1e7455bf",
+    "ticker": "CHKP",
+    "runAt": 1776182400000,
+    "priceAtPrediction": 134.78,
+    "direction": "DOWN",
+    "magnitudePct": 5.2,
+    "horizonDays": 7,
+    "confidence": 0.6,
+    "reasoning": "Backfilled from historical vault note.",
+    "catalysts": [
+      {
+        "headline": "BWG Global Downgrades Check Point Software Tech to Negative",
+        "verdict": "SELL",
+        "confidence": 0.6,
+        "catalystTypes": [
+          "technical"
+        ]
+      }
+    ],
+    "catalystTypes": [
+      "technical"
+    ],
+    "engine": "backfill-v1",
+    "status": "resolved",
+    "sourceUrl": "https://finnhub.io/api/news?id=0f75ecd9b320add63bb24163f74254e71c15f4c51bc678a0b5c74c590b0f7495",
+    "synthetic": true,
+    "resolvedAt": 1776787200000,
+    "priceAtResolution": 140.08,
+    "actualPct": 3.93,
+    "outcome": "INCORRECT"
+  },
+  {
+    "id": "backfill-CHKP-2026-04-14-9918efe0cdb4",
+    "ticker": "CHKP",
+    "runAt": 1776182400000,
+    "priceAtPrediction": 134.78,
+    "direction": "FLAT",
+    "magnitudePct": 0,
+    "horizonDays": 7,
+    "confidence": 0.5,
+    "reasoning": "Backfilled from historical vault note.",
+    "catalysts": [
+      {
+        "headline": "Mizuho Maintains Neutral on Check Point Software Tech, Lowers Price Target to $165",
+        "verdict": "HOLD",
+        "confidence": 0.5,
+        "catalystTypes": [
+          "other"
+        ]
+      }
+    ],
+    "catalystTypes": [
+      "other"
+    ],
+    "engine": "backfill-v1",
+    "status": "resolved",
+    "sourceUrl": "https://finnhub.io/api/news?id=bea771aea629d8086acf05f5277836aedb352a8bd1760e9e49687b01825ffd9b",
+    "synthetic": true,
+    "resolvedAt": 1776787200000,
+    "priceAtResolution": 140.08,
+    "actualPct": 3.93,
+    "outcome": "INCORRECT"
+  },
+  {
+    "id": "backfill-CHKP-2026-04-14-48b00e948c15",
+    "ticker": "CHKP",
+    "runAt": 1776182400000,
+    "priceAtPrediction": 134.78,
+    "direction": "UP",
+    "magnitudePct": 7.3,
+    "horizonDays": 7,
+    "confidence": 0.9,
+    "reasoning": "Backfilled from historical vault note.",
+    "catalysts": [
+      {
+        "headline": "Riskfield: The Growth Story Is Even Better Today",
+        "verdict": "BUY",
+        "confidence": 0.9,
+        "catalystTypes": [
+          "technical"
+        ]
+      }
+    ],
+    "catalystTypes": [
+      "technical"
+    ],
+    "engine": "backfill-v1",
+    "status": "resolved",
+    "sourceUrl": "https://finnhub.io/api/news?id=be52e356c3188c4cfead79c387ceb9dff8e38dc099cd64809f29fcc6f94e8feb",
+    "synthetic": true,
+    "resolvedAt": 1776787200000,
+    "priceAtResolution": 140.08,
+    "actualPct": 3.93,
+    "outcome": "CORRECT"
+  },
+  {
+    "id": "CHKP-1777086488382",
+    "ticker": "CHKP",
+    "runAt": 1777086488382,
+    "priceAtPrediction": 134.67,
+    "direction": "FLAT",
+    "magnitudePct": 0,
+    "horizonDays": 7,
+    "confidence": 0.7,
+    "reasoning": "Only one BUY verdict at 0.82 confidence, which is below the threshold of two high-confidence signals needed for an UP forecast. No SELL catalysts present. Ticker patterns show strong BUY signals require independent validation or strategic partnerships, not a maintained rating with a lowered target. Forecast FLAT with moderate confidence.",
+    "catalysts": [
+      {
+        "headline": "Truist Securities Maintains Buy on Check Point Software Tech, Lowers Price Target to $175",
+        "verdict": "BUY",
+        "confidence": 0.82
+      }
+    ],
+    "engine": "deepseek_1776977666998",
+    "status": "pending"
+  }
+]

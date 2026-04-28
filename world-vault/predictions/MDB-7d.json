@@ -1,0 +1,34 @@
+[
+  {
+    "id": "backfill-MDB-2026-04-14-5d19519a0e3d",
+    "ticker": "MDB",
+    "runAt": 1776182400000,
+    "priceAtPrediction": 233.6,
+    "direction": "UP",
+    "magnitudePct": 5.2,
+    "horizonDays": 7,
+    "confidence": 0.6,
+    "reasoning": "Backfilled from historical vault note.",
+    "catalysts": [
+      {
+        "headline": "Guggenheim Reiterates Buy on MongoDB, Maintains $475 Price Target",
+        "verdict": "BUY",
+        "confidence": 0.6,
+        "catalystTypes": [
+          "analyst-upgrade"
+        ]
+      }
+    ],
+    "catalystTypes": [
+      "analyst-upgrade"
+    ],
+    "engine": "backfill-v1",
+    "status": "resolved",
+    "sourceUrl": "https://finnhub.io/api/news?id=26837096c4326501cf706b485bc61af659751c0e9f8c77419845c82871595d3c",
+    "synthetic": true,
+    "resolvedAt": 1776787200000,
+    "priceAtResolution": 261.43,
+    "actualPct": 11.91,
+    "outcome": "CORRECT"
+  }
+]

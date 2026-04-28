@@ -9,6 +9,9 @@ verified: true
 country: US
 source: finnhub
 url: "https://finnhub.io/api/news?id=b0317730de9b89faa8acef74601ba1b1bfddede808e2672de795e7fd74ba010d"
+catalystTypes:
+  - analyst-upgrade
+  - analyst-downgrade
 tags:
   - news
   - pltr

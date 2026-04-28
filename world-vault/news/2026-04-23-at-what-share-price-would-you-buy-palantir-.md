@@ -9,6 +9,8 @@ verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1stw23h/at_what_share_price_would_you_buy_palantir/"
+catalystTypes:
+  - govt-contract
 tags:
   - news
   - pltr

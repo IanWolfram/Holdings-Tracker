@@ -9,6 +9,8 @@ verified: true
 country: US
 source: finnhub
 url: "https://finnhub.io/api/news?id=bc183d7723d7e2d59f5834e02bb376b0cdd2a7386ff7192426d2dd53b5a70dd4"
+catalystTypes:
+  - govt-contract
 tags:
   - news
   - pltr

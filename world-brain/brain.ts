@@ -32,7 +32,12 @@ function getSystemPrompt(): string {
       }
     } catch { /* file doesn't exist yet — that's fine */ }
 
-    systemPrompt = baseParts.join("\n\n---\n\n") + insightsBlock;
+    const runtimeContextGuide =
+      "\n\n---\n\n## Runtime Context Usage\n" +
+      "When the user message includes Market State or Focal Ticker State blocks, incorporate those signals into confidence calibration and reasoning.\n" +
+      "Treat macro context as a modifier, not an automatic override.";
+
+    systemPrompt = baseParts.join("\n\n---\n\n") + insightsBlock + runtimeContextGuide;
   }
   return systemPrompt;
 }
@@ -46,6 +51,29 @@ export interface UnifiedAnalysis {
   originCountryCode: string | null;
   relevanceScore: number;
   geoSummary: string;
+}
+
+export interface StoryMacroContext {
+  vix: number | null;
+  tenY: number | null;
+  dxy: number | null;
+  regime: string;
+  summary?: string;
+}
+
+export interface StoryTickerStateContext {
+  price: number;
+  change1d: number | null;
+  change5d: number | null;
+  change30d: number | null;
+  return52wHigh: number | null;
+  rsi14: number | null;
+  atr14: number | null;
+}
+
+export interface StoryMarketContext {
+  macro?: StoryMacroContext;
+  tickerState?: StoryTickerStateContext;
 }
 
 // ---------------------------------------------------------------------------
@@ -106,7 +134,134 @@ async function consumeStream(
 import { withInferenceSemaphore } from "../lib/classifier";
 import { isAiHealthy } from "../lib/ai-health";
 import { getActiveModel, getModelKey } from "../lib/ai-config";
+import { WORLD_VAULT_PATH, resolveVaultPath } from "../lib/constants";
+import { buildCalibrationBlock } from "./calibration";
 import type { Verdict } from "@/types/news.types";
+
+// ---------------------------------------------------------------------------
+// Correlated holdings — read _graph/correlations.json and surface top peers.
+// ---------------------------------------------------------------------------
+
+interface CorrelationReportShape {
+  matrix?: Record<string, Record<string, number>>;
+  tickers?: string[];
+}
+
+let correlationCache: { data: CorrelationReportShape | null; mtimeMs: number } | null = null;
+
+function loadCorrelationReport(): CorrelationReportShape | null {
+  if (!WORLD_VAULT_PATH) return null;
+  const resolved = resolveVaultPath(WORLD_VAULT_PATH);
+  if (!resolved) return null;
+  const corrPath = path.join(resolved, "_graph", "correlations.json");
+  let stat: fs.Stats;
+  try {
+    stat = fs.statSync(corrPath);
+  } catch {
+    return null;
+  }
+  if (correlationCache && correlationCache.mtimeMs === stat.mtimeMs) {
+    return correlationCache.data;
+  }
+  try {
+    const parsed = JSON.parse(fs.readFileSync(corrPath, "utf-8")) as CorrelationReportShape;
+    correlationCache = { data: parsed, mtimeMs: stat.mtimeMs };
+    return parsed;
+  } catch {
+    correlationCache = { data: null, mtimeMs: stat.mtimeMs };
+    return null;
+  }
+}
+
+function findRecentVerdictForTicker(
+  ticker: string
+): { verdict: string; confidence: number; date: string } | null {
+  if (!WORLD_VAULT_PATH) return null;
+  const resolved = resolveVaultPath(WORLD_VAULT_PATH);
+  if (!resolved) return null;
+  const newsDir = path.join(resolved, "news");
+  let entries: string[];
+  try {
+    entries = fs.readdirSync(newsDir).filter((f) => f.endsWith(".md")).sort().reverse();
+  } catch {
+    return null;
+  }
+  const upper = ticker.toUpperCase();
+  for (const file of entries.slice(0, 200)) {
+    try {
+      const content = fs.readFileSync(path.join(newsDir, file), "utf-8");
+      const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
+      if (!fmMatch) continue;
+      const fm: Record<string, string> = {};
+      for (const line of fmMatch[1].split("\n")) {
+        const idx = line.indexOf(":");
+        if (idx === -1) continue;
+        fm[line.slice(0, idx).trim()] = line
+          .slice(idx + 1)
+          .trim()
+          .replace(/^["']|["']$/g, "");
+      }
+      if (fm.ticker?.toUpperCase() !== upper) continue;
+      if (!fm.verdict || !["BUY", "SELL", "HOLD"].includes(fm.verdict)) continue;
+      const confidence = parseFloat(fm.confidence ?? "0.5") || 0.5;
+      return { verdict: fm.verdict, confidence, date: fm.date ?? file.slice(0, 10) };
+    } catch {
+      /* skip unreadable */
+    }
+  }
+  return null;
+}
+
+interface CorrelatedPeer {
+  ticker: string;
+  corr: number;
+  verdict?: string;
+  confidence?: number;
+  date?: string;
+}
+
+function buildCorrelatedHoldingsBlock(focalTicker: string, holdingTickers: string[]): string {
+  const report = loadCorrelationReport();
+  if (!report?.matrix) return "";
+  const focal = focalTicker.toUpperCase();
+  const focalRow = report.matrix[focal];
+  if (!focalRow) return "";
+
+  const candidates: CorrelatedPeer[] = [];
+  const holdingSet = new Set(holdingTickers.map((t) => t.toUpperCase()));
+  for (const [peer, corr] of Object.entries(focalRow)) {
+    if (peer === focal) continue;
+    if (typeof corr !== "number" || !Number.isFinite(corr)) continue;
+    if (Math.abs(corr) < 0.4) continue;
+    if (holdingSet.size > 0 && !holdingSet.has(peer)) continue;
+    candidates.push({ ticker: peer, corr });
+  }
+  if (candidates.length === 0) return "";
+
+  candidates.sort((a, b) => Math.abs(b.corr) - Math.abs(a.corr));
+  const top = candidates.slice(0, 3);
+  for (const peer of top) {
+    const recent = findRecentVerdictForTicker(peer.ticker);
+    if (recent) {
+      peer.verdict = recent.verdict;
+      peer.confidence = recent.confidence;
+      peer.date = recent.date;
+    }
+  }
+
+  const lines = ["## Correlated Holdings"];
+  for (const p of top) {
+    const verdictBit = p.verdict
+      ? `last verdict ${p.verdict} ${Math.round((p.confidence ?? 0) * 100)}% (${p.date ?? "n/a"})`
+      : "no recent verdict in vault";
+    lines.push(`- ${p.ticker} (corr ${p.corr.toFixed(2)}) — ${verdictBit}`);
+  }
+  return `\n\n${lines.join("\n")}`;
+}
+
+export function invalidateCorrelationCache(): void {
+  correlationCache = null;
+}
 
 async function callMlxRawInternal(systemPromptText: string, userMessage: string): Promise<string> {
   const baseUrl = process.env.MLX_BASE_URL ?? "http://localhost:8080/v1";
@@ -208,6 +363,46 @@ export async function callMlxRaw(systemPromptText: string, userMessage: string):
   return callMlxRawInternal(systemPromptText, userMessage);
 }
 
+function formatSignedPercent(value: number | null): string {
+  if (value === null || !Number.isFinite(value)) return "n/a";
+  const sign = value >= 0 ? "+" : "";
+  return `${sign}${value.toFixed(2)}%`;
+}
+
+function formatNumber(value: number | null, decimals = 2): string {
+  if (value === null || !Number.isFinite(value)) return "n/a";
+  return value.toFixed(decimals);
+}
+
+function buildMarketContextBlock(context?: StoryMarketContext): string {
+  if (!context) return "";
+
+  const lines: string[] = [];
+  if (context.macro) {
+    lines.push("## Market State");
+    lines.push(
+      `VIX: ${formatNumber(context.macro.vix)} | 10Y: ${formatNumber(context.macro.tenY)}% | DXY: ${formatNumber(context.macro.dxy)} | Regime: ${context.macro.regime}`
+    );
+    if (context.macro.summary) {
+      lines.push(`Macro note: ${context.macro.summary}`);
+    }
+  }
+
+  if (context.tickerState) {
+    if (lines.length > 0) lines.push("");
+    lines.push("## Focal Ticker State");
+    lines.push(
+      `Price: $${context.tickerState.price.toFixed(2)} | 1d: ${formatSignedPercent(context.tickerState.change1d)} | 5d: ${formatSignedPercent(context.tickerState.change5d)} | 30d: ${formatSignedPercent(context.tickerState.change30d)}`
+    );
+    lines.push(
+      `From 52w high: ${formatSignedPercent(context.tickerState.return52wHigh)} | RSI14: ${formatNumber(context.tickerState.rsi14)} | ATR14: ${formatNumber(context.tickerState.atr14, 4)}`
+    );
+  }
+
+  if (lines.length === 0) return "";
+  return `\n\n${lines.join("\n")}`;
+}
+
 // ---------------------------------------------------------------------------
 // Main inference — analyzeStory routes based on active engine
 // ---------------------------------------------------------------------------
@@ -220,7 +415,8 @@ export async function analyzeStory(
   holdingSectors: string[] = [],
   onStream?: (text: string) => void,
   tickerContext?: string,
-  recentVerdicts?: Array<{ headline: string; verdict: string; confidence: number; reason: string }>
+  recentVerdicts?: Array<{ headline: string; verdict: string; confidence: number; reason: string }>,
+  marketContext?: StoryMarketContext
 ): Promise<UnifiedAnalysis> {
   const active = getActiveModel();
   const activeApiKey = active.provider === "deepseek" ? getModelKey(active.id) : undefined;
@@ -253,14 +449,33 @@ export async function analyzeStory(
       ).join("\n")
     : "";
 
+  const marketContextBlock = buildMarketContextBlock(marketContext);
+  const calibrationBlock = WORLD_VAULT_PATH
+    ? buildCalibrationBlock(ticker, WORLD_VAULT_PATH)
+    : "";
+  const correlatedBlock = buildCorrelatedHoldingsBlock(ticker, holdingTickers);
+
   const userMessage =
     `${holdingsBlock}\n\n` +
     `Focal ticker: ${ticker}` +
     tickerContextBlock +
     fewShotBlock +
+    marketContextBlock +
+    calibrationBlock +
+    correlatedBlock +
     `\n\nHeadline: ${headline}\n` +
     `Summary: ${summary || "(no summary)"}\n\n` +
     `OUTPUT ONLY THE JSON OBJECT. NO MARKDOWN. NO EXPLANATION. START WITH { AND END WITH }.`;
+
+  // Token-budget logging — log when prompt gets uncomfortably large.
+  // Rough heuristic: ~4 chars/token. 8k context model → ~32k char budget;
+  // log when user message alone exceeds 6k tokens (~24k chars / 75% of floor).
+  const approxTokens = Math.round(userMessage.length / 4);
+  if (approxTokens > 6_000) {
+    console.warn(
+      `[brain] Large user message for ${ticker}: ${userMessage.length} chars (~${approxTokens} tokens). Consider truncating context blocks.`
+    );
+  }
 
   let raw = "";
   try {

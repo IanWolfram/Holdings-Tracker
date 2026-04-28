@@ -1,3 +1,5 @@
+import type { CatalystType } from "./predictions";
+
 export type Verdict = "BUY" | "SELL" | "HOLD";
 
 export interface Classification {
@@ -6,6 +8,7 @@ export interface Classification {
   reason?: string;
   relevanceScore?: number;
   originCountryCode?: string | null;
+  catalystTypes?: CatalystType[];
   classifiedAt: string;
   isAnalyzed?: boolean;
   fromVault?: boolean;
@@ -20,6 +23,7 @@ export interface ClassifiedStory extends Classification {
   author?: string;
   source: "finnhub" | "twitter" | "reddit" | "newsapi";
   isAnalyzed?: boolean;     // True if hardware-native DeepSeek analysis was performed
+  catalystTypes?: CatalystType[];
   duplicates?: ClassifiedStory[]; // Same-event stories collapsed under this canonical
 }
 

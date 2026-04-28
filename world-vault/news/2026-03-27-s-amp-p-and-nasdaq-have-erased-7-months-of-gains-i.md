@@ -9,6 +9,8 @@ verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1s5cjf5/sp_and_nasdaq_have_erased_7_months_of_gains_in_3/"
+catalystTypes:
+  - other
 tags:
   - news
   - pltr

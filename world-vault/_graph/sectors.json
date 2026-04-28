@@ -1,0 +1,43 @@
+{
+  "updatedAt": "2026-04-27T19:35:36.315Z",
+  "bySector": {
+    "Financial Services": {
+      "tickers": [
+        "HOOD"
+      ],
+      "todayCount": 4,
+      "todayBuyPct": 0.25,
+      "rolling7dCount": 90,
+      "rolling7dBuyPct": 0.3889,
+      "rolling30dCount": 127,
+      "rolling30dBuyPct": 0.3071,
+      "momentum": "neutral"
+    },
+    "Tech": {
+      "tickers": [
+        "CHKP",
+        "MDB",
+        "PLTR"
+      ],
+      "todayCount": 5,
+      "todayBuyPct": 0.2,
+      "rolling7dCount": 132,
+      "rolling7dBuyPct": 0.3106,
+      "rolling30dCount": 174,
+      "rolling30dBuyPct": 0.2586,
+      "momentum": "neutral"
+    },
+    "Professional Services": {
+      "tickers": [
+        "MMS"
+      ],
+      "todayCount": 0,
+      "todayBuyPct": 0,
+      "rolling7dCount": 5,
+      "rolling7dBuyPct": 0.4,
+      "rolling30dCount": 8,
+      "rolling30dBuyPct": 0.25,
+      "momentum": "neutral"
+    }
+  }
+}

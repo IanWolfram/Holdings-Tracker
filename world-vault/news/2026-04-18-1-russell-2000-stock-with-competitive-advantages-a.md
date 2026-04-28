@@ -9,6 +9,8 @@ verified: true
 country: US
 source: finnhub
 url: "https://finnhub.io/api/news?id=3e1b93b6a5a8ea12dc8c215d6bacfa386ce3cc385dcece92b10aad81b382e68e"
+catalystTypes:
+  - other
 tags:
   - news
   - mms

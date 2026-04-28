@@ -9,6 +9,8 @@ verified: true
 country: US
 source: finnhub
 url: "https://finnhub.io/api/news?id=ee22d7192dedb2029f1b419874db1b1160ac4f6d6333f151189c2b7f23531127"
+catalystTypes:
+  - govt-contract
 tags:
   - news
   - chkp

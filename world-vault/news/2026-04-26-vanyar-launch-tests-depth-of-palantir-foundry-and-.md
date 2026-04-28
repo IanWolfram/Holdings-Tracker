@@ -9,6 +9,8 @@ verified: true
 country: SG
 source: finnhub
 url: "https://finnhub.io/api/news?id=bfcec4836fcaf76d87f1c540723e48ebecc730328f9d27381407241ca7103fe8"
+catalystTypes:
+  - product-launch
 tags:
   - news
   - pltr

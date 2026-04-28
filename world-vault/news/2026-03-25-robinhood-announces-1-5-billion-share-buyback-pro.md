@@ -9,6 +9,8 @@ verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/investing/comments/1s372d0/robinhood_announces_15_billion_share_buyback/"
+catalystTypes:
+  - other
 tags:
   - news
   - hood

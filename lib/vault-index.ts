@@ -36,6 +36,23 @@ function parseFrontmatter(content: string): Record<string, string> {
   return fm;
 }
 
+function parseCatalystTypes(content: string): Classification["catalystTypes"] {
+  const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
+  if (!fmMatch) return undefined;
+
+  const blockMatch = fmMatch[1].match(/\bcatalystTypes\s*:\s*\n((?:\s*-\s*[^\n]+\n?)*)/);
+  if (!blockMatch) return undefined;
+
+  const values = blockMatch[1]
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("-"))
+    .map((line) => line.replace(/^-\s*/, "").trim())
+    .filter(Boolean);
+
+  return values.length > 0 ? (values as Classification["catalystTypes"]) : undefined;
+}
+
 /**
  * Scans the World Vault and builds an in-memory index of news stories by URL.
  */
@@ -61,6 +78,7 @@ export async function getVaultIndex(vaultPath: string): Promise<Map<string, Vaul
       
       const url = fm.url;
       if (url) {
+        const catalystTypes = parseCatalystTypes(content);
         let reason = fm.reason;
         if (!reason) {
           const analysisMatch = content.match(/## AI Analysis\n([\s\S]*?)(?:\n##|$)/);
@@ -73,6 +91,7 @@ export async function getVaultIndex(vaultPath: string): Promise<Map<string, Vaul
           reason: reason || undefined,
           relevanceScore: parseFloat(fm.relevance || "0"),
           originCountryCode: fm.country || null,
+          catalystTypes,
           classifiedAt: fm.date || new Date().toISOString(),
           isAnalyzed: fm.verified === "true",
           fromVault: true,

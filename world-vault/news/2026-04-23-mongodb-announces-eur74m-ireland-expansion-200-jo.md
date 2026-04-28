@@ -9,6 +9,8 @@ verified: true
 country: IE
 source: finnhub
 url: "https://finnhub.io/api/news?id=5ebaa52b5767542d686c60f1b8e7453b93948feac5ff831d869fe61df739757c"
+catalystTypes:
+  - technical
 tags:
   - news
   - mdb

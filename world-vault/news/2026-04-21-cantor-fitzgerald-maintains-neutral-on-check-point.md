@@ -9,6 +9,8 @@ verified: true
 country: US
 source: finnhub
 url: "https://finnhub.io/api/news?id=12ac05e0bcabbf70259eaea5aa0de37f18cb98b4b351f5b352ce9835ffd9b907"
+catalystTypes:
+  - analyst-downgrade
 tags:
   - news
   - chkp

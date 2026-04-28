@@ -1,0 +1,14 @@
+{
+  "updatedAt": "2026-04-28T02:59:25.275Z",
+  "entries": {
+    "PLTR": {
+      "ticker": "PLTR",
+      "base": 1,
+      "directionConfidence": 0,
+      "historicalAccuracy": 0.0345,
+      "portfolioCorrelation": 0.547,
+      "suggestedAllocation": 0,
+      "rationale": "no directional 7d prediction available — sizing collapses to 0"
+    }
+  }
+}

@@ -9,6 +9,8 @@ verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1sq0iap/index_funds_feel_like_a_black_box_lately/"
+catalystTypes:
+  - other
 tags:
   - news
   - hood

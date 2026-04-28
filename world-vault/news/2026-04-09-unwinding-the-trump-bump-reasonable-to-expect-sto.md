@@ -9,6 +9,8 @@ verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1sgrbia/unwinding_the_trump_bump_reasonable_to_expect/"
+catalystTypes:
+  - other
 tags:
   - news
   - pltr

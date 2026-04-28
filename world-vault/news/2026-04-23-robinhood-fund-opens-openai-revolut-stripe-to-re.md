@@ -9,6 +9,8 @@ verified: true
 country: SG
 source: finnhub
 url: "https://finnhub.io/api/news?id=1898ad126f42c24e77409a7bd2aecfaca860e4c6298a05969525ebcc1898303e"
+catalystTypes:
+  - regulatory
 tags:
   - news
   - hood

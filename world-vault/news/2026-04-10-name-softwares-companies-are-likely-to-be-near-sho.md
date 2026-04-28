@@ -9,6 +9,8 @@ verified: true
 country: US
 source: reddit
 url: "https://www.reddit.com/r/stocks/comments/1shyly5/name_softwares_companies_are_likely_to_be_near/"
+catalystTypes:
+  - other
 tags:
   - news
   - pltr

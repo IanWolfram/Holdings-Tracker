@@ -9,6 +9,9 @@ verified: true
 country: CH
 source: finnhub
 url: "https://finnhub.io/api/news?id=0c213ef16a9f4e3206169cc8f51a4922cc23c76078fcc51910692dfb416d5239"
+catalystTypes:
+  - govt-contract
+  - regulatory
 tags:
   - news
   - pltr
