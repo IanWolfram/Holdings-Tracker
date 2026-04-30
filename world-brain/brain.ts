@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { resolveVaultPath } from "../lib/constants";
 
 // ---------------------------------------------------------------------------
 // Agent context — split into system prompt and rules for /api/chat
@@ -11,7 +12,7 @@ export function invalidateSystemPromptCache(): void {
   systemPrompt = null;
 }
 
-function getSystemPrompt(): string {
+export function getSystemPrompt(): string {
   if (!systemPrompt) {
     const dir = path.join(process.cwd(), "world-brain");
     const agentsDir = path.join(dir, "agents");
@@ -24,13 +25,40 @@ function getSystemPrompt(): string {
       })
       .filter(Boolean);
 
+    // Load the N most recent session insights from the vault (_insights/ dir)
+    // instead of the old monolithic market-insights.md, to keep the prompt lean.
     let insightsBlock = "";
     try {
-      const raw = fs.readFileSync(path.join(dir, "market-insights.md"), "utf-8");
-      if (raw.trim()) {
-        insightsBlock = `\n\n---\n\n## Accumulated Market Intelligence\n\n${raw.trim()}`;
+      const vaultPath = process.env.WORLD_VAULT_PATH;
+      if (vaultPath) {
+        const resolved = resolveVaultPath(vaultPath);
+        if (resolved) {
+          const insightsDir = path.join(resolved, "_insights");
+          if (fs.existsSync(insightsDir)) {
+            const files = fs
+              .readdirSync(insightsDir)
+              .filter((f: string) => f.endsWith(".md"))
+              .sort()
+              .reverse()
+              .slice(0, 3); // only the 3 most recent sessions
+            const snippets = files
+              .map((f: string) => {
+                try {
+                  const raw = fs.readFileSync(path.join(insightsDir, f), "utf-8");
+                  // Strip frontmatter
+                  return raw.replace(/^---[\s\S]*?---\n/, "").trim();
+                } catch { return ""; }
+              })
+              .filter(Boolean);
+            if (snippets.length > 0) {
+              insightsBlock =
+                `\n\n---\n\n## Recent Session Insights (last ${snippets.length} sessions)\n\n` +
+                snippets.join("\n\n---\n\n");
+            }
+          }
+        }
       }
-    } catch { /* file doesn't exist yet — that's fine */ }
+    } catch { /* insights are optional */ }
 
     const runtimeContextGuide =
       "\n\n---\n\n## Runtime Context Usage\n" +
@@ -131,12 +159,12 @@ async function consumeStream(
 // Internal MLX implementation
 // ---------------------------------------------------------------------------
 
-import { withInferenceSemaphore } from "../lib/classifier";
-import { isAiHealthy } from "../lib/ai-health";
-import { getActiveModel, getModelKey } from "../lib/ai-config";
-import { WORLD_VAULT_PATH, resolveVaultPath } from "../lib/constants";
-import { buildCalibrationBlock } from "./calibration";
 import type { Verdict } from "@/types/news.types";
+import { getActiveModel, getModelKey } from "../lib/ai-config";
+import { isAiHealthy } from "../lib/ai-health";
+import { withInferenceSemaphore } from "../lib/classifier";
+import { WORLD_VAULT_PATH } from "../lib/constants";
+import { buildCalibrationBlock } from "./calibration";
 
 // ---------------------------------------------------------------------------
 // Correlated holdings — read _graph/correlations.json and surface top peers.
@@ -512,7 +540,7 @@ export async function analyzeStory(
   }
 
   try {
-    let cleaned = stripThink(raw);
+    const cleaned = stripThink(raw);
 
     const firstBrace = cleaned.indexOf("{");
     const lastBrace = cleaned.lastIndexOf("}");

@@ -10,9 +10,11 @@ import type { AgentProgress } from "@/lib/agent/service";
 export default function PendingNewsCard({
   story,
   agentState,
+  compact = process.env.NEXT_PUBLIC_UI_MODE === "compact",
 }: {
   story: ClassifiedStory;
   agentState?: AgentProgress;
+  compact?: boolean;
 }) {
   const [progress, setProgress] = useState(0);
   const mockAnimStartedRef = useRef(false);
@@ -48,7 +50,6 @@ export default function PendingNewsCard({
       if (p < 100) {
         frame = requestAnimationFrame(animate);
       }
-      // In mock mode there's no real "complete" event; just hold at 100
     };
 
     frame = requestAnimationFrame(animate);
@@ -60,7 +61,6 @@ export default function PendingNewsCard({
     if (isMock || story.isAnalyzed) return;
 
     if (isBeingAnalyzed) {
-      // Slowly fill to 85% over ~20s so the user sees genuine motion
       const duration = 20_000;
       const start = Date.now();
       let frame: number;
@@ -92,11 +92,22 @@ export default function PendingNewsCard({
     return "Run Agent ↑";
   })();
 
+  const statusColor = isBeingAnalyzed ? "#00FF88" : isTickerQueued ? "#94a3b8" : "#64748b";
+  const statusBg = isBeingAnalyzed ? "rgba(0,255,136,0.1)" : "rgba(255,255,255,0.05)";
   const borderColor = isBeingAnalyzed ? "#00FF88" : isMock ? "#00FF88" : "#1e293b";
+
+  const SourceBadge =
+    story.source === "finnhub" ? (
+      <FinnhubBadge />
+    ) : story.source === "reddit" ? (
+      <RedditBadge author={story.author} />
+    ) : (
+      <XBadge author={story.author} />
+    );
 
   return (
     <div
-      className="rounded-[8px] p-2 cursor-pointer relative"
+      className={`${compact ? "px-[7px] py-[5px]" : "p-2"} rounded-[8px] cursor-pointer relative overflow-hidden`}
       style={{
         border: "1px solid rgba(100,116,139,0.15)",
         background: isBeingAnalyzed
@@ -109,29 +120,49 @@ export default function PendingNewsCard({
     >
       <AnalysisProgressBorder progress={progress} color={borderColor} />
 
-      <p className="block text-[13px] font-semibold leading-snug line-clamp-2 text-slate-400 relative z-10">
-        {story.headline}
-      </p>
-
-      <div className="mt-1 flex items-center justify-between text-[11px] text-slate-600 relative z-10">
-        <div className="flex items-center gap-1.5">
-          {story.source === "finnhub" ? (
-            <FinnhubBadge />
-          ) : story.source === "reddit" ? (
-            <RedditBadge author={story.author} />
-          ) : (
-            <XBadge author={story.author} />
-          )}
-          {timeAgo && <span>{timeAgo}</span>}
+      {compact ? (
+        <div className="relative z-10">
+          <div className="flex items-start gap-1.5">
+            <p className="flex-1 min-w-0 text-[12px] font-semibold leading-[1.25] line-clamp-2 text-slate-400 break-words m-0">
+              {story.headline}
+            </p>
+          </div>
+          <div className="mt-[3px] flex items-center gap-[5px] text-[10px] text-slate-600">
+            {SourceBadge}
+            {timeAgo && <span className="text-[10px]">{timeAgo}</span>}
+            <span className="ml-auto" />
+            <span
+              className={`shrink-0 inline-flex items-center gap-[3px] font-mono text-[8px] font-black leading-none px-[4px] py-[2px] rounded-[2px] tracking-[0.04em] ${
+                isBeingAnalyzed ? "animate-pulse" : ""
+              }`}
+              style={{ background: statusBg, color: statusColor, border: `1px solid ${statusColor}33` }}
+            >
+              <span className="w-1 h-1 rounded-full" style={{ background: statusColor }} />
+              {statusLabel.toUpperCase()}
+            </span>
+          </div>
         </div>
-        <span
-          className={`text-[9px] font-mono uppercase tracking-widest font-bold ${
-            isBeingAnalyzed ? "text-[#00FF88] animate-pulse" : "text-slate-500"
-          }`}
-        >
-          {statusLabel}
-        </span>
-      </div>
+      ) : (
+        <div className="relative z-10">
+          <p className="block text-[13px] font-semibold leading-snug line-clamp-2 text-slate-400">
+            {story.headline}
+          </p>
+
+          <div className="mt-1 flex items-center justify-between text-[11px] text-slate-600">
+            <div className="flex items-center gap-1.5">
+              {SourceBadge}
+              {timeAgo && <span>{timeAgo}</span>}
+            </div>
+            <span
+              className={`text-[9px] font-mono uppercase tracking-widest font-bold ${
+                isBeingAnalyzed ? "text-[#00FF88] animate-pulse" : "text-slate-500"
+              }`}
+            >
+              {statusLabel}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

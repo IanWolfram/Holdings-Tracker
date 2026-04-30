@@ -1,16 +1,23 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import MobileHeader from "./MobileHeader";
 import MobileBottomNav from "./MobileBottomNav";
 import MobilePositionCard from "./MobilePositionCard";
+import AddProposedCard from "@/components/AddProposedCard";
 import type { Position } from "@/types/position.types";
 import type { ClassifiedStory } from "@/types/news.types";
+import type { ProposedPositionEntry } from "@/hooks/useProposedPositions";
 
 import EmptyState from "@/components/EmptyState";
 
 interface MobileDashboardProps {
   positions: Position[];
+  proposedPositionData: Position[];
+  proposedEntries: ProposedPositionEntry[];
+  proposedTickers: string[];
+  onAddProposed: (ticker: string, targetShares?: number, targetPrice?: number) => boolean;
+  onRemoveProposed: (ticker: string) => void;
   news: Record<string, ClassifiedStory[]>;
   loadingNews: Record<string, boolean>;
   refreshing: boolean;
@@ -19,15 +26,33 @@ interface MobileDashboardProps {
 
 export default function MobileDashboard({
   positions,
+  proposedPositionData,
+  proposedEntries,
+  proposedTickers,
+  onAddProposed,
+  onRemoveProposed,
   news,
   loadingNews: _loadingNews,
   refreshing,
   onRefresh,
 }: MobileDashboardProps) {
+  const allPositions = useMemo(() => {
+    const heldTickers = new Set(positions.map((p) => p.ticker));
+    const filteredProposed = proposedPositionData.filter(
+      (p) => !heldTickers.has(p.ticker)
+    );
+    return [...positions, ...filteredProposed];
+  }, [positions, proposedPositionData]);
+
+  const allTickers = useMemo(
+    () => allPositions.map((p) => p.ticker),
+    [allPositions]
+  );
+
   return (
     <div className="bg-transparent text-on-surface font-body selection:bg-positive/30 min-h-screen">
       <MobileHeader onRefresh={onRefresh} />
-      
+
       <main className="pt-20 pb-24 px-3 space-y-5">
         {/* Market Status */}
         <div className="flex justify-between items-end px-1 mb-2">
@@ -54,13 +79,18 @@ export default function MobileDashboard({
             />
           )}
 
-          {positions.map((pos) => (
-            <MobilePositionCard 
-              key={pos.ticker} 
-              position={pos} 
-              stories={news[pos.ticker] ?? []} 
+          {allPositions.map((pos) => (
+            <MobilePositionCard
+              key={pos.ticker}
+              position={pos}
+              stories={news[pos.ticker] ?? []}
             />
           ))}
+
+          <AddProposedCard
+            onAdd={onAddProposed}
+            existingTickers={allTickers}
+          />
         </div>
       </main>
 

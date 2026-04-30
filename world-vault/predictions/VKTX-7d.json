@@ -1,0 +1,28 @@
+[
+  {
+    "id": "VKTX-7d-1777484414130",
+    "ticker": "VKTX",
+    "runAt": 1777484414130,
+    "priceAtPrediction": 31.5009,
+    "direction": "FLAT",
+    "magnitudePct": 2,
+    "horizonDays": 7,
+    "confidence": 0.65,
+    "reasoning": "Only one low-confidence HOLD verdict (0.50) from a pre-earnings catalyst with no concrete data; no BUY or SELL signals to form a directional cluster. Ticker patterns and prior predictions are unavailable. At 7 days, earnings on April 29 provide a potential catalyst but insufficient evidence for direction. Forecast FLAT with moderate confidence.",
+    "catalysts": [
+      {
+        "headline": "Earnings Scheduled For April 29, 2026",
+        "verdict": "HOLD",
+        "confidence": 0.5,
+        "catalystTypes": [
+          "technical"
+        ]
+      }
+    ],
+    "catalystTypes": [
+      "technical"
+    ],
+    "engine": "deepseek_1776977666998",
+    "status": "pending"
+  }
+]

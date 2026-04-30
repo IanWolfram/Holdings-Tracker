@@ -12,21 +12,13 @@ export function rebuildHQMarkers(
   worldData: WorldData,
   hqMarkersRef: MutableRefObject<HQMarkerState[]>,
   markerInstancesRef: MutableRefObject<{
-    spheres: THREE.InstancedMesh;
     hitSpheres: THREE.InstancedMesh;
-    diamonds: THREE.InstancedMesh;
   } | null>
 ) {
   if (markerInstancesRef.current) {
-    globeGroup.remove(markerInstancesRef.current.spheres);
     globeGroup.remove(markerInstancesRef.current.hitSpheres);
-    globeGroup.remove(markerInstancesRef.current.diamonds);
-    markerInstancesRef.current.spheres.geometry.dispose();
-    (markerInstancesRef.current.spheres.material as THREE.Material).dispose();
     markerInstancesRef.current.hitSpheres.geometry.dispose();
     (markerInstancesRef.current.hitSpheres.material as THREE.Material).dispose();
-    markerInstancesRef.current.diamonds.geometry.dispose();
-    (markerInstancesRef.current.diamonds.material as THREE.Material).dispose();
     markerInstancesRef.current = null;
   }
   hqMarkersRef.current = [];
@@ -37,21 +29,12 @@ export function rebuildHQMarkers(
     return;
   }
 
-  const sphereGeo = new THREE.SphereGeometry(1, 10, 10);
-  const sphereMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.75 });
-  const spheres = new THREE.InstancedMesh(sphereGeo, sphereMat, count);
-
   const hitGeo = new THREE.SphereGeometry(1, 8, 8);
   const hitSpheres = new THREE.InstancedMesh(hitGeo, new THREE.MeshBasicMaterial({ visible: false }), count);
   hitSpheres.userData = { isMarkerInstance: true };
 
-  const dGeo = new THREE.OctahedronGeometry(1, 0);
-  dGeo.applyMatrix4(new THREE.Matrix4().makeScale(1, 2.4, 1));
-  const dMat = new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.85, side: THREE.DoubleSide });
-  const diamonds = new THREE.InstancedMesh(dGeo, dMat, count);
-
-  markerInstancesRef.current = { spheres, hitSpheres, diamonds };
-  globeGroup.add(spheres, hitSpheres, diamonds);
+  markerInstancesRef.current = { hitSpheres };
+  globeGroup.add(hitSpheres);
 
   profiles.forEach((profile, i) => {
     const state = worldData.countries[profile.countryCode];
@@ -73,6 +56,8 @@ export function rebuildHQMarkers(
       sepIndex: 0,
       clusterPeers: [],
       separationT: 0,
+      focusT: 0,
+      spinAngle: 0,
       visible: true,
       renderedVisible: true,
     });

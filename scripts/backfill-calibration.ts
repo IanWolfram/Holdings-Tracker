@@ -132,7 +132,7 @@ async function main(): Promise<void> {
     skippedInvalid: 0,
   };
 
-  const pendingByTicker = new Map<string, TickerPrediction[]>();
+  const pendingByTickerDate = new Map<string, TickerPrediction>();
   const existingByTicker = new Map<string, TickerPrediction[]>();
   const barCache = new Map<string, DailyBar[]>();
 
@@ -154,6 +154,34 @@ async function main(): Promise<void> {
     const direction = verdictToDirection(verdict);
     if (!direction) {
       stats.skippedInvalid += 1;
+      continue;
+    }
+
+    const groupKey = `${ticker}|${date}`;
+    const headline = readHeadline(content, file);
+    const reason = readReason(content);
+    const confidence = clampConfidence(parseFloat(fm.confidence ?? "0.5"));
+    const catalystTypes = classifyCatalystTypes({
+      headline,
+      reason,
+      verdict,
+    });
+
+    const newCatalyst = {
+      headline: headline.slice(0, 120),
+      verdict,
+      confidence,
+      catalystTypes,
+    };
+
+    if (pendingByTickerDate.has(groupKey)) {
+      const existing = pendingByTickerDate.get(groupKey)!;
+      // If directions conflict, we stick with the first one for now or we could implement better logic.
+      // Usually they are consistent in backfills.
+      if (!existing.catalysts.some(c => c.headline === newCatalyst.headline)) {
+        existing.catalysts.push(newCatalyst);
+        existing.catalystTypes = [...new Set([...(existing.catalystTypes || []), ...catalystTypes])];
+      }
       continue;
     }
 
@@ -183,22 +211,13 @@ async function main(): Promise<void> {
       continue;
     }
 
-    const confidence = clampConfidence(parseFloat(fm.confidence ?? "0.5"));
     const magnitudePct = magnitudeFromConfidence(direction, confidence);
     const actualPct =
       ((resolutionBar.close - predictionBar.close) / predictionBar.close) * 100;
     const roundedActualPct = Math.round(actualPct * 100) / 100;
     const outcome = computePredictionOutcome(direction, magnitudePct, roundedActualPct);
 
-    const headline = readHeadline(content, file);
-    const reason = readReason(content);
     const sourceUrl = fm.url ?? fullPath;
-    const catalystTypes = classifyCatalystTypes({
-      headline,
-      reason,
-      verdict,
-    });
-
     const id = createPredictionId(ticker, date, sourceUrl);
     let existing = existingByTicker.get(ticker);
     if (!existing) {
@@ -206,7 +225,7 @@ async function main(): Promise<void> {
       existingByTicker.set(ticker, existing);
     }
 
-    if (existing.some((prediction) => prediction.id === id)) {
+    if (existing.some((p) => p.runAt === runAt && p.direction === direction)) {
       stats.skippedExisting += 1;
       continue;
     }
@@ -222,14 +241,7 @@ async function main(): Promise<void> {
       horizonDays: 7,
       confidence,
       reasoning: reason || "Backfilled from historical vault note.",
-      catalysts: [
-        {
-          headline: headline.slice(0, 120),
-          verdict,
-          confidence,
-          catalystTypes,
-        },
-      ],
+      catalysts: [newCatalyst],
       catalystTypes,
       engine: "backfill-v1",
       status: "resolved",
@@ -241,10 +253,15 @@ async function main(): Promise<void> {
       outcome,
     };
 
-    const pending = pendingByTicker.get(ticker) ?? [];
-    pending.push(synthetic);
-    pendingByTicker.set(ticker, pending);
+    pendingByTickerDate.set(groupKey, synthetic);
     stats.created += 1;
+  }
+
+  const pendingByTicker = new Map<string, TickerPrediction[]>();
+  for (const prediction of pendingByTickerDate.values()) {
+    const list = pendingByTicker.get(prediction.ticker) ?? [];
+    list.push(prediction);
+    pendingByTicker.set(prediction.ticker, list);
   }
 
   if (apply) {

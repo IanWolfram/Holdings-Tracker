@@ -499,15 +499,11 @@ export async function runStockAgent(): Promise<AgentRunResult> {
           const tickerMarketQuote = marketQuoteCache[pos.ticker] ?? null;
           const currentPrice = quote?.currentPrice ?? tickerMarketQuote?.price ?? null;
           if (currentPrice !== null) {
-            // All three horizons refresh on a daily cadence so new information
-            // updates the 30d view before its full window elapses; the horizon
-            // only controls when an outstanding prediction is *resolved* against
-            // realized price, not how often a new one is issued.
-            const dailyCutoff = startedAt - 86_400_000;
+            const weeklyCutoff = startedAt - 7 * 86_400_000;
             for (const horizon of SUPPORTED_HORIZONS) {
               if (isCancelled) break;
               const existing = loadPredictions(WORLD_VAULT_PATH, pos.ticker, horizon);
-              const recentPrediction = existing.find((p) => p.runAt >= dailyCutoff);
+              const recentPrediction = existing.find((p) => p.runAt >= weeklyCutoff);
               if (recentPrediction) {
                 console.log(
                   `[agent] Skipping ${horizon}d forecast for ${pos.ticker} — predicted on ${new Date(recentPrediction.runAt).toDateString()}`

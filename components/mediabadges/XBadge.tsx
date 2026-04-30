@@ -13,7 +13,7 @@ export default function XBadge({ author, iconOnly }: XBadgeProps) {
         alt="X"
         width={11}
         height={11}
-        style={{ width: 11, height: "auto", filter: "grayscale(1) contrast(10) invert(1)" }}
+        style={{ width: 11, height: "auto" }}
         className="object-contain"
       />
       {!iconOnly && (

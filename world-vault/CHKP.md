@@ -1,5 +1,5 @@
 ---
-date: "2026-04-27"
+date: "2026-04-29"
 type: ticker-knowledge
 ticker: CHKP
 sector: Tech
@@ -8,6 +8,6 @@ generated: true
 
 # CHKP — Learned Patterns
 
-When CHKP receives independent third-party validation of its technology leadership, such as Frost & Sullivan innovation awards or Miercom security rankings, BUY signals consistently fire at 0.85-0.92 confidence. Cloud partnership announcements with major platforms like Google Cloud for AI security integration produce BUY signals at 0.88 confidence, reflecting direct revenue catalyst expectations. Analyst rating maintenance with price target reductions triggers BUY signals at 0.82 confidence, indicating the market prices the maintained rating more heavily than the target cut. Sector-wide software pullbacks without company-specific catalysts produce HOLD signals at 0.20 confidence, as CHKP's defensive cybersecurity positioning buffers against broad tech sentiment. Analyst neutral ratings with price target reductions generate HOLD signals at 0.65 confidence, signaling reduced upside expectations without a fundamental sell catalyst.
+When CHKP receives independent third-party validation of product leadership, such as Frost & Sullivan innovation awards or Miercom #1 rankings, BUY signals consistently exceed 85% confidence. Partnership announcements with major cloud providers like Google Cloud for AI security integration also trigger high-confidence BUY signals at 88% confidence. Analyst rating actions produce moderate BUY signals around 82% confidence when maintaining Buy ratings, while neutral or downgrade actions generate HOLD signals at 20-65% confidence, never triggering SELL signals. Sector-wide software pullbacks without company-specific catalysts produce only HOLD signals below 30% confidence, indicating CHKP is resilient to broad tech sentiment shifts. The ticker shows no reliable SELL signal triggers in the observed data, as negative analyst actions and sector headwinds only produce HOLD signals.
 
-_Last updated: 2026-04-27_
+_Last updated: 2026-04-29_

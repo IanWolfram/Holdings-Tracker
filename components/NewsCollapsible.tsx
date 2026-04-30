@@ -11,14 +11,34 @@ import {
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
+// Ghost slabs are full-card-height so when they fan out on hover they stay
+// continuously overlapped — gaps between thin slivers turn into a smooth
+// reveal of "real" news cards tucked behind the top one.
+const GHOST_HEIGHT = 60;
+// How far the fan-out animation is allowed to extend below the wrapper
+// (kept generous so the motion isn't clipped). The clipper wrapper sits
+// exactly at the top card's bottom edge, so ghosts never bleed through.
+const STACK_FAN_REVEAL = 24;
+
+type StackVariant = "default" | "pending" | "queued";
+
 interface Props {
   badge: React.ReactNode;
   icon?: React.ReactNode;
   count: number;
   defaultExpanded?: boolean;
   fullyCollapsible?: boolean;
+  /** Tints the bottom ghost stack to match the visible top card variant
+   *  (e.g. `pending` for `Run Agent` cards, `queued` for `In Queue` cards). */
+  stackVariant?: StackVariant;
   children: React.ReactNode[];
 }
+
+const STACK_VARIANT_CLASS: Record<StackVariant, string> = {
+  default: "",
+  pending: "glass-edge-pending",
+  queued: "glass-edge-queued",
+};
 
 export default function NewsCollapsible({
   badge,
@@ -26,10 +46,11 @@ export default function NewsCollapsible({
   count,
   defaultExpanded = false,
   fullyCollapsible = false,
+  stackVariant = "default",
   children,
 }: Props) {
   const [expanded, setExpanded] = useState(
-    defaultExpanded || (!fullyCollapsible && count <= 1),
+    defaultExpanded,
   );
   // Tracks whether cursor is anywhere within the combined card + stack area.
   // Passed as `pinned` to children[0] so the top news card's AI panel doesn't
@@ -137,65 +158,73 @@ export default function NewsCollapsible({
           </div>
         )}
 
-        {/* Ghost stack — sits BEHIND the top card. translateY shifts on hover
-            create a fan-out reveal. Static padding is preserved so layout
-            doesn't jitter while the ghosts move. */}
-        <AnimatePresence>
-          {showGhost1 && (
-            <motion.div
-              initial={{ opacity: 0, y: -2 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0, y: -2 }}
-              transition={{ duration: 0.22 }}
-              className="absolute left-[4%] right-[4%] rounded-[8px] glass-edge pointer-events-none"
-              style={{
-                bottom: showGhost3 ? 14 : showGhost2 ? 7 : 0,
-                height: 18,
-                zIndex: 1,
-                clipPath: "inset(11px 0 0 0)",
-                y: ghost1Y,
-              }}
-            />
-          )}
-        </AnimatePresence>
+        {/* Ghost stack — sits BEHIND the top card and is clipped by the wrapper
+            below so the part of each slab that extends up into the top card
+            area never bleeds through the top card's glass. The clipper top
+            edge sits flush with the top card's bottom edge (height ===
+            baseStackPad + STACK_FAN_REVEAL); the extra `STACK_FAN_REVEAL`
+            below the wrapper bottom keeps the fan-out animation uncut. */}
+        <div
+          className="absolute left-0 right-0 overflow-hidden pointer-events-none"
+          style={{
+            bottom: -STACK_FAN_REVEAL,
+            height: baseStackPad + STACK_FAN_REVEAL,
+          }}
+        >
+          <AnimatePresence>
+            {showGhost1 && (
+              <motion.div
+                initial={{ opacity: 0, y: -2 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, y: -2 }}
+                transition={{ duration: 0.22 }}
+                className={`absolute left-[4%] right-[4%] rounded-[8px] glass-edge glass-edge-opaque ${STACK_VARIANT_CLASS[stackVariant]} pointer-events-none`}
+                style={{
+                  bottom: STACK_FAN_REVEAL + (showGhost3 ? 14 : showGhost2 ? 7 : 0),
+                  height: GHOST_HEIGHT,
+                  zIndex: 3,
+                  y: ghost1Y,
+                }}
+              />
+            )}
+          </AnimatePresence>
 
-        <AnimatePresence>
-          {showGhost2 && (
-            <motion.div
-              initial={{ opacity: 0, y: -2 }}
-              animate={{ opacity: 0.7 }}
-              exit={{ opacity: 0, y: -2 }}
-              transition={{ duration: 0.22, delay: 0.04 }}
-              className="absolute left-[8%] right-[8%] rounded-[8px] glass-edge pointer-events-none"
-              style={{
-                bottom: showGhost3 ? 7 : 0,
-                height: 18,
-                zIndex: 0,
-                clipPath: "inset(11px 0 0 0)",
-                y: ghost2Y,
-              }}
-            />
-          )}
-        </AnimatePresence>
+          <AnimatePresence>
+            {showGhost2 && (
+              <motion.div
+                initial={{ opacity: 0, y: -2 }}
+                animate={{ opacity: 0.7 }}
+                exit={{ opacity: 0, y: -2 }}
+                transition={{ duration: 0.22, delay: 0.04 }}
+                className={`absolute left-[8%] right-[8%] rounded-[8px] glass-edge glass-edge-opaque ${STACK_VARIANT_CLASS[stackVariant]} pointer-events-none`}
+                style={{
+                  bottom: STACK_FAN_REVEAL + (showGhost3 ? 7 : 0),
+                  height: GHOST_HEIGHT,
+                  zIndex: 2,
+                  y: ghost2Y,
+                }}
+              />
+            )}
+          </AnimatePresence>
 
-        <AnimatePresence>
-          {showGhost3 && (
-            <motion.div
-              initial={{ opacity: 0, y: -2 }}
-              animate={{ opacity: 0.45 }}
-              exit={{ opacity: 0, y: -2 }}
-              transition={{ duration: 0.22, delay: 0.08 }}
-              className="absolute left-[12%] right-[12%] rounded-[8px] glass-edge pointer-events-none"
-              style={{
-                bottom: 0,
-                height: 18,
-                zIndex: 0,
-                clipPath: "inset(11px 0 0 0)",
-                y: ghost3Y,
-              }}
-            />
-          )}
-        </AnimatePresence>
+          <AnimatePresence>
+            {showGhost3 && (
+              <motion.div
+                initial={{ opacity: 0, y: -2 }}
+                animate={{ opacity: 0.45 }}
+                exit={{ opacity: 0, y: -2 }}
+                transition={{ duration: 0.22, delay: 0.08 }}
+                className={`absolute left-[12%] right-[12%] rounded-[8px] glass-edge glass-edge-opaque ${STACK_VARIANT_CLASS[stackVariant]} pointer-events-none`}
+                style={{
+                  bottom: STACK_FAN_REVEAL,
+                  height: GHOST_HEIGHT,
+                  zIndex: 1,
+                  y: ghost3Y,
+                }}
+              />
+            )}
+          </AnimatePresence>
+        </div>
 
         {/* Hit zone — confined to the paddingBottom area + a small extension
             below. Sized so the top edge of the zone meets the bottom edge of

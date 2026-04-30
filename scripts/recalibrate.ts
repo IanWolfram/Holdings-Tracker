@@ -83,9 +83,9 @@ function formatDriftLine(
 }
 
 function buildEngineLeaderboard(
-  byEngine: Record<string, CalibrationStats>
+  byEngine: Record<string, CalibrationStats> | undefined
 ): string[] {
-  const entries = Object.entries(byEngine)
+  const entries = Object.entries(byEngine ?? {})
     .filter(([, stats]) => stats.n >= 3)
     .sort((a, b) => b[1].winRate - a[1].winRate);
   if (entries.length === 0) {

@@ -7,10 +7,27 @@ import { XAxis } from "./XAxis";
  * Graph component - Main coordinator for the visualization
  */
 export function Graph({ data, width = 60, height = 24, purchaseDate }: GraphProps) {
+  const pl = 4;
+  const pr = 4;
+  const py = 6;
+
   if (!data || data.length < 2) {
+    // Show axes skeleton while real data loads
     return (
-      <div style={{ width, height }} className="flex items-center justify-center">
-        <div className="w-full h-[1px] bg-white/5" />
+      <div className="relative" style={{ width, height }}>
+        <svg width={width} height={height} className="overflow-visible select-none">
+          <XAxis
+            pl={pl} pr={pr} py={py}
+            width={width} height={height}
+            points={[]} dataLength={0}
+          />
+          <line
+            x1={pl} y1={height / 2} x2={width - pr} y2={height / 2}
+            stroke="rgba(255,255,255,0.05)"
+            strokeWidth={0.5}
+            strokeDasharray="2,2"
+          />
+        </svg>
       </div>
     );
   }
@@ -19,10 +36,6 @@ export function Graph({ data, width = 60, height = 24, purchaseDate }: GraphProp
   const max = Math.max(...data);
   const range = max - min || 1;
   const isPositive = data[data.length - 1] >= data[0];
-
-  const pl = 4;
-  const pr = 4;
-  const py = 6;
 
   const toY = (val: number) =>
     (height - py * 2) - ((val - min) / range) * (height - py * 2) + py;

@@ -1,12 +1,12 @@
-import React from "react";
-import { AnimatePresence } from "framer-motion";
-import CountryTooltip from "@/components/world/CountryTooltip";
-import StockFocusPanel from "@/components/world/StockFocusPanel";
 import CountryFocusPanel from "@/components/world/CountryFocusPanel";
-import StockDetailPanel from "@/components/world/StockDetailPanel";
-import type { WorldData, CountryState, GeoStory } from "@/types/geo.types";
-import type { Position } from "@/types/position.types";
+import CountryTooltip from "@/components/world/CountryTooltip";
 import type { GlobeFocusTarget } from "@/components/world/GlobeCanvas";
+import MarkerHoverLabel from "@/components/world/MarkerHoverLabel";
+import StockDetailPanel from "@/components/world/StockDetailPanel";
+import StockLogoCube from "@/components/world/StockLogoCube";
+import type { CountryState, WorldData } from "@/types/geo.types";
+import type { Position } from "@/types/position.types";
+import { AnimatePresence } from "framer-motion";
 
 interface WorldOverlaysProps {
   loading: boolean;
@@ -21,22 +21,6 @@ interface WorldOverlaysProps {
   setHoveredTicker: (ticker: string | null) => void;
   stockNavIndex: number;
   countryStocks: Array<{ ticker: string }>;
-}
-
-function getHoveredStories(worldData: WorldData, hoveredTicker: string): GeoStory[] {
-  const seen = new Set<string>();
-  const output: GeoStory[] = [];
-
-  for (const state of Object.values(worldData.countries)) {
-    for (const story of state.stories) {
-      if (story.ticker === hoveredTicker && !seen.has(story.url)) {
-        seen.add(story.url);
-        output.push(story);
-      }
-    }
-  }
-
-  return output.sort((a, b) => (b.relevanceScore ?? 0) - (a.relevanceScore ?? 0));
 }
 
 export default function WorldOverlays({
@@ -109,17 +93,15 @@ export default function WorldOverlays({
         />
       )}
 
-      <AnimatePresence>
-        {hoveredTicker && worldData?.profiles[hoveredTicker] && (
-          <StockFocusPanel
-            profile={worldData.profiles[hoveredTicker]}
-            stories={getHoveredStories(worldData, hoveredTicker)}
-            position={positions.find((position) => position.ticker === hoveredTicker)}
-            onClose={() => setHoveredTicker(null)}
-            isHoverPreview
-          />
-        )}
-      </AnimatePresence>
+      <MarkerHoverLabel
+        hoveredTicker={hoveredTicker}
+        profile={hoveredTicker && worldData?.profiles[hoveredTicker] ? worldData.profiles[hoveredTicker] : null}
+        focusedTicker={focusTarget?.type === "stock" ? focusTarget.ticker : null}
+      />
+
+      {worldData && (
+        <StockLogoCube profiles={Object.values(worldData.profiles)} />
+      )}
 
       {isFocused && (
         <div

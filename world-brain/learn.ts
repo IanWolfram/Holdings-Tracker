@@ -211,13 +211,20 @@ export async function runMetaReflection(
   // Inject the most recent prior session's insights so META-ANALYST can compare
   let priorInsightsBlock = "";
   try {
-    const insightsPath = path.join(process.cwd(), "world-brain", "market-insights.md");
-    if (fs.existsSync(insightsPath)) {
-      const raw = fs.readFileSync(insightsPath, "utf-8");
-      const sections = raw.split(/\n## Session Insights — /).filter(Boolean);
-      const lastSection = sections[sections.length - 1];
-      if (lastSection && !lastSection.startsWith(today)) {
-        priorInsightsBlock = `\n\nPrevious session insights (for comparison — do not repeat, only reference if relevant):\n${lastSection.replace(/\n---\s*$/, "").trim()}`;
+    const insightsDir = path.join(resolveVaultPath(vaultPath), "_insights");
+    if (fs.existsSync(insightsDir)) {
+      const priorFiles = fs
+        .readdirSync(insightsDir)
+        .filter((f) => f.endsWith(".md") && !f.startsWith(today))
+        .sort()
+        .reverse();
+      if (priorFiles.length > 0) {
+        const raw = fs.readFileSync(path.join(insightsDir, priorFiles[0]), "utf-8");
+        // Strip frontmatter for the prompt
+        const body = raw.replace(/^---[\s\S]*?---\n/, "").trim();
+        if (body) {
+          priorInsightsBlock = `\n\nPrevious session insights (for comparison — do not repeat, only reference if relevant):\n${body.slice(0, 600)}`;
+        }
       }
     }
   } catch { /* prior insights are optional */ }
@@ -235,25 +242,37 @@ export async function runMetaReflection(
 
   const reflection = await callMlxRaw(getSubagentPrompt("META-ANALYST.md"), userMessage);
   if (!reflection) {
-    console.log("[learn] Meta-reflection returned empty — skipping market-insights update.");
+    console.log("[learn] Meta-reflection returned empty — skipping insights update.");
     return;
   }
 
-  const insightsPath = path.join(process.cwd(), "world-brain", "market-insights.md");
-  const header = `## Session Insights — ${today}`;
-  const newSection = `\n${header}\n\n${reflection}\n\n---\n`;
-  const existing = fs.existsSync(insightsPath) ? fs.readFileSync(insightsPath, "utf-8") : "";
+  // Write to world-vault/_insights/YYYY-MM-DD.md — one file per session
+  const insightsDir = path.join(resolveVaultPath(vaultPath), "_insights");
+  fs.mkdirSync(insightsDir, { recursive: true });
+  const insightPath = path.join(insightsDir, `${today}.md`);
 
-  // Replace today's entry if it already exists, otherwise append
-  const sectionRegex = new RegExp(
-    `\\n?## Session Insights — ${today}\\n[\\s\\S]*?(?=\\n## Session Insights —|$)`
-  );
-  const updated = sectionRegex.test(existing)
-    ? existing.replace(sectionRegex, newSection)
-    : existing + newSection;
+  const tickers = sessionResult.tickerResults.map((t) => t.ticker).join(", ");
+  const content = [
+    "---",
+    `date: "${today}"`,
+    "type: session-insight",
+    `tickers: "${tickers}"`,
+    `totalBuys: ${sessionResult.totalBuys}`,
+    `totalSells: ${sessionResult.totalSells}`,
+    `totalHolds: ${sessionResult.totalHolds}`,
+    "tags:",
+    "  - insight",
+    "  - world-brain",
+    "---",
+    "",
+    `# Session Insights — ${today}`,
+    "",
+    reflection.trim(),
+    "",
+  ].join("\n");
 
-  fs.writeFileSync(insightsPath, updated, "utf-8");
-  console.log("[learn] Market insights updated.");
+  fs.writeFileSync(insightPath, content, "utf-8");
+  console.log(`[learn] Session insight written to _insights/${today}.md`);
 
   invalidateSystemPromptCache();
 }

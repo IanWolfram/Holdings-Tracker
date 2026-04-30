@@ -1,16 +1,16 @@
 "use client";
 
+import NewsCardAiPanel from "@/components/news/NewsCardAiPanel";
+import {
+  CARD_RADIUS,
+  HOVER_EXPAND_DELAY,
+  REVEAL_EASE,
+  getSourceColor,
+} from "@/lib/utils/newsCardAnimations";
 import type { ClassifiedStory } from "@/types/news.types";
 import { formatDistanceToNow } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useId, useRef, useState } from "react";
-import {
-  CARD_RADIUS,
-  REVEAL_EASE,
-  HOVER_EXPAND_DELAY,
-  getSourceColor,
-} from "@/lib/utils/newsCardAnimations";
-import NewsCardAiPanel from "@/components/news/NewsCardAiPanel";
 import { FinnhubBadge, RedditBadge, XBadge } from "./mediabadges";
 import GlassView from "./ui/LiquidGlass/GlassView";
 
@@ -26,14 +26,22 @@ const VERDICT_BG: Record<string, string> = {
   HOLD: "rgba(100,116,139,0.08)",
 };
 
+const VERDICT_PILL_BG: Record<string, string> = {
+  BUY: "rgba(0,255,136,0.10)",
+  SELL: "rgba(255,68,68,0.10)",
+  HOLD: "rgba(100,116,139,0.12)",
+};
+
 export default function NewsCard({
   story,
   isAnalyzed = false,
   pinned = false,
+  compact = process.env.NEXT_PUBLIC_UI_MODE === "compact",
 }: {
   story: ClassifiedStory;
   isAnalyzed?: boolean;
   pinned?: boolean;
+  compact?: boolean;
 }) {
   const rawId = useId();
   const id = rawId.replace(/:/g, "");
@@ -50,8 +58,6 @@ export default function NewsCard({
     };
   }, []);
 
-  // When the parent un-pins (cursor left the combined card+stack area),
-  // collapse if the cursor isn't directly on the card either.
   useEffect(() => {
     if (!pinned && !innerHoveredRef.current) {
       setExpanded(false);
@@ -74,12 +80,7 @@ export default function NewsCard({
       clearTimeout(expandTimerRef.current);
       expandTimerRef.current = null;
     }
-    // Always drop the visual hover state — the edge-fill timer should reverse
-    // the moment the cursor leaves the card, even if the AI panel stays pinned
-    // because the cursor moved down onto the bottom stack.
     setHovered(false);
-    // Pin only the expansion: if already expanded, keep the AI panel up while
-    // the parent reports the cursor is still in the combined wrapper.
     if (pinned) return;
     setExpanded(false);
   };
@@ -91,6 +92,8 @@ export default function NewsCard({
 
   const color = VERDICT_COLOR[activeVerdict] ?? "#64748b";
   const verdictBg = VERDICT_BG[activeVerdict] ?? "rgba(100,116,139,0.08)";
+  const verdictPillBg =
+    VERDICT_PILL_BG[activeVerdict] ?? "rgba(100,116,139,0.12)";
   const confidence = Math.round((activeConfidence ?? 0) * 100);
 
   const isSeconds = story.datetime && story.datetime < 10000000000;
@@ -100,6 +103,15 @@ export default function NewsCard({
     : "";
 
   const sourceColor = getSourceColor(story.source);
+
+  const SourceBadge =
+    story.source === "finnhub" ? (
+      <FinnhubBadge />
+    ) : story.source === "reddit" ? (
+      <RedditBadge author={story.author} />
+    ) : (
+      <XBadge author={story.author} />
+    );
 
   return (
     <GlassView
@@ -112,7 +124,7 @@ export default function NewsCard({
       onClick={() => window.open(story.url, "_blank")}
     >
       <div
-        className="p-2 relative"
+        className={compact ? "px-[7px] py-[5px] relative" : "p-2 relative"}
         data-hovered={hovered ? "true" : undefined}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
@@ -123,7 +135,7 @@ export default function NewsCard({
         <span className="news-cap news-cap-bottom-left" />
         <span className="news-cap news-cap-bottom-right" />
 
-        {/* Animated edge fills — also act as a 1s hover timer that fills to the edges before the AI panel expands */}
+        {/* Animated edge fills */}
         <motion.span
           className="news-edge news-edge-top"
           initial={false}
@@ -137,79 +149,151 @@ export default function NewsCard({
           transition={{ duration: hovered ? HOVER_EXPAND_DELAY : 0.2, ease: "linear" }}
         />
 
-        {/* Headline + footer */}
         <div className="relative" style={{ zIndex: 2 }}>
-          <p className="block text-[13px] font-semibold leading-snug line-clamp-2 text-white transition-colors">
-            {story.headline}
-          </p>
+          {compact ? (
+            // ---------- COMPACT LAYOUT ----------
+            <>
+              {/* Row 1: headline */}
+              <div className="flex items-start gap-1.5">
+                <p className="flex-1 min-w-0 text-[12px] font-semibold leading-[1.25] line-clamp-2 text-white transition-colors break-words m-0">
+                  {story.headline}
+                </p>
+              </div>
 
-          <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
-            <div className="flex items-center gap-1.5">
-              {story.source === "finnhub" ? (
-                <FinnhubBadge />
-              ) : story.source === "reddit" ? (
-                <RedditBadge author={story.author} />
-              ) : (
-                <XBadge author={story.author} />
-              )}
-              {timeAgo && <span>{timeAgo}</span>}
-              {duplicates.length > 0 && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowDuplicates((v) => !v);
+              {/* Row 2: source + time + confidence mini + arrow */}
+              <div className="mt-[3px] flex items-center gap-[5px] text-[10px] text-slate-500">
+                {SourceBadge}
+                {timeAgo && <span className="text-[10px]">{timeAgo}</span>}
+                {duplicates.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowDuplicates((v) => !v);
+                    }}
+                    aria-expanded={showDuplicates}
+                    aria-label={`${duplicates.length} similar coverage stories`}
+                    className="px-1 py-[1px] rounded-full text-[9px] font-bold tracking-wide tabular-nums transition-colors hover:bg-white/[0.06]"
+                    style={{
+                      color: sourceColor,
+                      backgroundColor: "rgba(255,255,255,0.04)",
+                      border: `1px solid ${sourceColor}33`,
+                    }}
+                  >
+                    +{duplicates.length}
+                  </button>
+                )}
+
+                <span className="ml-auto" />
+
+                <motion.div
+                  className="flex items-center justify-center relative w-4 h-4 shrink-0"
+                  animate={{
+                    rotate: hovered ? -45 : 0,
+                    scale: hovered ? 1.1 : 1,
                   }}
-                  aria-expanded={showDuplicates}
-                  aria-label={`${duplicates.length} similar coverage stories`}
-                  className="ml-1 px-1.5 py-[1px] rounded-full text-[9.5px] font-bold tracking-wide tabular-nums transition-colors hover:bg-white/[0.06]"
-                  style={{
-                    color: sourceColor,
-                    backgroundColor: "rgba(255,255,255,0.04)",
-                    border: `1px solid ${sourceColor}33`,
-                  }}
+                  transition={{ duration: 0.4, ease: REVEAL_EASE }}
                 >
-                  +{duplicates.length} similar
-                </button>
-              )}
-            </div>
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="absolute inset-0 w-full h-full overflow-visible"
+                  >
+                    <path
+                      d="M 4 12 H 20 M 14 6 L 20 12 L 14 18"
+                      fill="none"
+                      stroke={hovered ? sourceColor : "#64748b"}
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{
+                        opacity: hovered ? 1 : 0.4,
+                        filter: hovered ? `drop-shadow(0 0 2px ${sourceColor})` : "none",
+                      }}
+                    />
+                  </svg>
+                </motion.div>
+              </div>
 
-            {/* Footer arrow — ↗ on hover */}
-            <motion.div
-              className="flex items-center justify-center relative w-[24px] h-[24px]"
-              animate={{
-                rotate: hovered ? -45 : 0,
-                scale: hovered ? 1.1 : 1,
-              }}
-              transition={{ duration: 0.4, ease: REVEAL_EASE }}
-            >
-              <svg viewBox="0 0 24 24" className="absolute inset-0 w-full h-full overflow-visible">
-                <path
-                  d="M 4 12 H 20 M 14 6 L 20 12 L 14 18"
-                  fill="none"
-                  stroke={hovered ? sourceColor : "#64748b"}
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  style={{
-                    opacity: hovered ? 1 : 0.4,
-                    filter: hovered ? `drop-shadow(0 0 2px ${sourceColor})` : "none",
+              {/* AI panel (compact = reasoning only) */}
+              <NewsCardAiPanel
+                hovered={expanded}
+                color={color}
+                activeIsAnalyzed={activeIsAnalyzed}
+                activeVerdict={activeVerdict}
+                verdictBg={verdictBg}
+                confidence={confidence}
+                activeReason={activeReason}
+                compact
+              />
+            </>
+          ) : (
+            // ---------- ORIGINAL LAYOUT ----------
+            <>
+              <p className="block text-[13px] font-semibold leading-snug line-clamp-2 text-white transition-colors">
+                {story.headline}
+              </p>
+
+              <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
+                <div className="flex items-center gap-1.5">
+                  {SourceBadge}
+                  {timeAgo && <span>{timeAgo}</span>}
+                  {duplicates.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowDuplicates((v) => !v);
+                      }}
+                      aria-expanded={showDuplicates}
+                      aria-label={`${duplicates.length} similar coverage stories`}
+                      className="ml-1 px-1.5 py-[1px] rounded-full text-[9.5px] font-bold tracking-wide tabular-nums transition-colors hover:bg-white/[0.06]"
+                      style={{
+                        color: sourceColor,
+                        backgroundColor: "rgba(255,255,255,0.04)",
+                        border: `1px solid ${sourceColor}33`,
+                      }}
+                    >
+                      +{duplicates.length} similar
+                    </button>
+                  )}
+                </div>
+
+                <motion.div
+                  className="flex items-center justify-center relative w-[24px] h-[24px]"
+                  animate={{
+                    rotate: hovered ? -45 : 0,
+                    scale: hovered ? 1.1 : 1,
                   }}
-                />
-              </svg>
-            </motion.div>
-          </div>
+                  transition={{ duration: 0.4, ease: REVEAL_EASE }}
+                >
+                  <svg viewBox="0 0 24 24" className="absolute inset-0 w-full h-full overflow-visible">
+                    <path
+                      d="M 4 12 H 20 M 14 6 L 20 12 L 14 18"
+                      fill="none"
+                      stroke={hovered ? sourceColor : "#64748b"}
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{
+                        opacity: hovered ? 1 : 0.4,
+                        filter: hovered ? `drop-shadow(0 0 2px ${sourceColor})` : "none",
+                      }}
+                    />
+                  </svg>
+                </motion.div>
+              </div>
 
-          {/* AI panel — expands after a 1s hover, gated by the edge timer */}
-          <NewsCardAiPanel
-            hovered={expanded}
-            color={color}
-            activeIsAnalyzed={activeIsAnalyzed}
-            activeVerdict={activeVerdict}
-            verdictBg={verdictBg}
-            confidence={confidence}
-            activeReason={activeReason}
-          />
+              <NewsCardAiPanel
+                hovered={expanded}
+                color={color}
+                activeIsAnalyzed={activeIsAnalyzed}
+                activeVerdict={activeVerdict}
+                verdictBg={verdictBg}
+                confidence={confidence}
+                activeReason={activeReason}
+              />
+            </>
+          )}
 
           <AnimatePresence initial={false}>
             {showDuplicates && duplicates.length > 0 && (
@@ -222,10 +306,10 @@ export default function NewsCard({
                 className="overflow-hidden"
               >
                 <div
-                  className="mt-2 pt-2 space-y-1.5 border-t"
+                  className={`${compact ? "mt-1.5 pt-1.5 space-y-1" : "mt-2 pt-2 space-y-1.5"} border-t`}
                   style={{ borderColor: "rgba(255,255,255,0.06)" }}
                 >
-                  <div className="text-[9.5px] font-bold uppercase tracking-wider text-slate-500">
+                  <div className={`${compact ? "text-[8.5px]" : "text-[9.5px]"} font-bold uppercase tracking-wider text-slate-500`}>
                     Similar coverage
                   </div>
                   {duplicates.map((d) => {
@@ -251,11 +335,11 @@ export default function NewsCard({
                         ) : (
                           <XBadge author={d.author} />
                         )}
-                        <span className="flex-1 text-[11px] text-slate-300 line-clamp-1">
+                        <span className={`flex-1 ${compact ? "text-[10px]" : "text-[11px]"} text-slate-300 line-clamp-1`}>
                           {d.headline}
                         </span>
                         {dAgo && (
-                          <span className="text-[10px] text-slate-500 shrink-0 tabular-nums">
+                          <span className={`${compact ? "text-[9px]" : "text-[10px]"} text-slate-500 shrink-0 tabular-nums`}>
                             {dAgo}
                           </span>
                         )}

@@ -1,5 +1,5 @@
 ---
-date: "2026-04-27"
+date: "2026-04-29"
 type: ticker-knowledge
 ticker: MDB
 sector: Tech
@@ -8,6 +8,6 @@ generated: true
 
 # MDB — Learned Patterns
 
-When MDB announces direct operational investment, such as a €74M Ireland expansion for AI and engineering teams or executive product leadership appointments, BUY signals consistently register at 0.78–0.92 confidence, reflecting strong long-term growth commitment. Amazon DocumentDB compatibility upgrades that directly expand MDB's ecosystem also trigger high-confidence BUY signals near 0.92. Broader tech sector weakness driven by sympathy with major peers like ServiceNow or IBM produces only soft HOLD signals at 0.20 confidence, as these lack a direct MDB catalyst. Pre-earnings SaaS sector contagion risk from earnings misses elsewhere generates cautious HOLD signals at 0.65 confidence, indicating sector-wide sentiment can suppress conviction but rarely triggers outright SELL signals for MDB. No recurring geopolitical or macro factors have reliably produced SELL signals in this window.
+When MDB announces direct operational investment in geographic expansion, particularly engineering and AI development hubs with quantified job creation and capital expenditure, BUY signals emerge at 82% confidence. Executive appointments to product leadership roles generate BUY signals at 78% confidence, while compatibility enhancements from major cloud partners like Amazon produce the highest confidence BUY signals at 92%. No SELL signals were observed in this window; however, sector-wide SaaS earnings misses and sympathy weakness with enterprise software peers create HOLD signals at 20-65% confidence, indicating that MDB is susceptible to contagion risk without company-specific catalysts. Confidence calibration shows that operational investment catalysts consistently score 0.78-0.82, while indirect sector tailwinds or competitor news never exceed 0.50 confidence.
 
-_Last updated: 2026-04-27_
+_Last updated: 2026-04-29_

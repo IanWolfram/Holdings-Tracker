@@ -2,31 +2,39 @@ import type { INewsProvider, RawNewsItem } from "@/src/domain/interfaces/INewsPr
 
 const RATE_LIMIT_MS = 5 * 60 * 1000;
 const lastFetchedAt = new Map<string, number>();
-const SUBREDDITS = "investing+stocks";
+const SUBREDDITS = "investing+stocks+wallstreetbets+stockmarket+options+pennystocks";
 
 export class RedditProvider implements INewsProvider {
   async fetchNews(ticker: string, companyName?: string, sector?: string): Promise<RawNewsItem[]> {
     const now = Date.now();
     const last = lastFetchedAt.get(ticker) ?? 0;
-    if (now - last < RATE_LIMIT_MS) return [];
+    if (now - last < RATE_LIMIT_MS) {
+      console.log(`[RedditProvider] Rate limit hit for ${ticker}, skipping fetch.`);
+      return [];
+    }
     lastFetchedAt.set(ticker, now);
 
     const name = companyName ?? ticker;
     const queryTerms =
       name.toLowerCase() !== ticker.toLowerCase()
-        ? `$${ticker} OR "${name}"`
-        : `$${ticker}`;
+        ? `$${ticker} OR ${ticker} OR "${name}"`
+        : `$${ticker} OR ${ticker}`;
     const query = encodeURIComponent(queryTerms);
     const url = `https://www.reddit.com/r/${SUBREDDITS}/search.json?q=${query}&restrict_sr=1&sort=new&t=month&limit=25`;
 
+    console.log(`[RedditProvider] Fetching for ${ticker}: ${url}`);
+
     const res = await fetch(url, {
-      headers: { "User-Agent": "Holdings-Tracker/1.0" },
+      headers: { 
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 HoldingsTracker/1.0" 
+      },
       signal: AbortSignal.timeout(10_000),
     });
 
     if (!res.ok) {
       const body = await res.text();
-      throw new Error(`Reddit request failed ${res.status}: ${body}`);
+      console.error(`[RedditProvider] Error ${res.status} for ${ticker}:`, body.slice(0, 200));
+      throw new Error(`Reddit request failed ${res.status}`);
     }
 
     const json = await res.json();

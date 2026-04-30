@@ -9,7 +9,7 @@ import type {
 } from "../types/predictions";
 import { FLAT_BAND_PCT, CORRECT_DIRECTION_MAGNITUDE_RATIO } from "../types/predictions";
 
-export const SUPPORTED_HORIZONS = [1, 7, 30] as const;
+export const SUPPORTED_HORIZONS = [7] as const;
 export type SupportedHorizon = (typeof SUPPORTED_HORIZONS)[number];
 const DEFAULT_HORIZON: SupportedHorizon = 7;
 

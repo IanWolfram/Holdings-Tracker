@@ -1,4 +1,3 @@
-import React from "react";
 import AgentTrigger from "@/components/AgentTrigger";
 import TopBarDivider from "@/components/layout/TopBarDivider";
 
@@ -10,6 +9,8 @@ interface ConnectionControlsProps {
   timeStr: string | null;
   onRefresh: () => void;
   refreshing: boolean;
+  calibratedAt?: Date | null;
+  calibrationResolved?: number;
 }
 
 export default function ConnectionControls({
@@ -20,16 +21,31 @@ export default function ConnectionControls({
   timeStr,
   onRefresh,
   refreshing,
+  calibratedAt,
+  calibrationResolved,
 }: ConnectionControlsProps) {
   return (
-    <div className="flex items-center rounded-md overflow-hidden bg-white/[0.03] border border-white/[0.07]">
-      <div className="px-3 py-1.5 flex items-center">
+    <div className="flex items-center h-full">
+      <TopBarDivider />
+      {calibratedAt && (
+        <>
+          <div
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5"
+            title={`Last recalibrated: ${calibratedAt.toLocaleDateString()} — ${calibrationResolved ?? 0} resolved predictions`}
+          >
+            <span className="font-mono text-[10px] text-slate-500 uppercase tracking-widest">calibrated</span>
+            <span className="font-mono text-[11px] font-bold text-slate-300">
+              {calibratedAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+            </span>
+          </div>
+        </>
+      )}
+
+      <div className="flex items-center justify-center px-2 py-1.5">
         <AgentTrigger />
       </div>
 
-      <TopBarDivider />
-
-      <div className="flex items-center gap-1.5 px-3 py-1.5">
+      <div className="flex items-center gap-1.5 px-3 bg-white/6 border border-white/7 rounded-sm h-full">
         {successVisible || isConnected ? (
           <button
             onClick={async () => {
@@ -48,7 +64,7 @@ export default function ConnectionControls({
               <img
                 src="/etrade-logo.png"
                 alt="E*Trade"
-                className={`w-4 h-4 object-contain ${isConnecting ? "animate-spin opacity-50" : ""}`}
+                className={`w-6 h-6 object-contain ${isConnecting ? "animate-spin opacity-50" : ""}`}
               />
             </div>
             <span className="hidden sm:inline">{isConnecting ? "reconnecting..." : "connected"}</span>
@@ -72,7 +88,7 @@ export default function ConnectionControls({
               <img
                 src="/etrade-logo.png"
                 alt="E*Trade"
-                className={`w-4 h-4 object-contain grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 transition-all ${isConnecting ? "animate-spin" : ""}`}
+                className={`w-6 h-6 object-contain grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 transition-all ${isConnecting ? "animate-spin" : ""}`}
               />
               <span className="hidden sm:inline">{isConnecting ? "connecting..." : "connect"}</span>
             </button>

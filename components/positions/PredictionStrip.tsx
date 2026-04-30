@@ -9,6 +9,9 @@ interface PredictionStripProps {
   allPredictions: TickerPrediction[];
   resolvedCount: number;
   correctCount: number;
+  compact?: boolean;
+  open?: boolean;
+  onToggle?: (open: boolean) => void;
 }
 
 const DIRECTION_ARROW: Record<string, string> = { UP: "▲", DOWN: "▼", FLAT: "→" };
@@ -34,7 +37,9 @@ function daysLeft(runAt: number, horizonDays: number): number {
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex flex-col">
-      <span className="font-mono text-[8px] uppercase tracking-widest text-slate-700 leading-none mb-0.5">{label}</span>
+      <span className="font-mono text-[8px] uppercase tracking-widest text-slate-700 leading-none mb-0.5">
+        {label}
+      </span>
       {children}
     </div>
   );
@@ -45,7 +50,6 @@ function PredictionRow({ p }: { p: TickerPrediction }) {
 
   return (
     <div className="border-b border-white/[0.04] px-4 py-2 last:border-b-0">
-      {/* Top line: direction + stats */}
       <div className="flex items-center gap-3 flex-wrap">
         <Field label="Direction">
           <span className={`font-mono text-[10px] font-semibold ${DIRECTION_COLOR[p.direction]}`}>
@@ -58,13 +62,17 @@ function PredictionRow({ p }: { p: TickerPrediction }) {
         <Field label="Conf">
           <span className="font-mono text-[10px] text-slate-300">{Math.round(p.confidence * 100)}%</span>
         </Field>
+        <Field label="Horizon">
+          <span className="font-mono text-[10px] text-slate-300">{p.horizonDays}d</span>
+        </Field>
         <Field label="Status">
           {p.status === "resolved" && p.outcome ? (
             <span className={`font-mono text-[10px] font-semibold ${OUTCOME_COLOR[p.outcome]}`}>
               {p.outcome}
               {p.actualPct !== undefined && (
                 <span className="ml-1 text-slate-500 font-normal">
-                  ({p.actualPct >= 0 ? "+" : ""}{p.actualPct.toFixed(1)}%)
+                  ({p.actualPct >= 0 ? "+" : ""}
+                  {p.actualPct.toFixed(1)}%)
                 </span>
               )}
             </span>
@@ -79,14 +87,17 @@ function PredictionRow({ p }: { p: TickerPrediction }) {
           <span className="font-mono text-[10px] text-slate-500">${p.priceAtPrediction.toFixed(2)}</span>
         </Field>
       </div>
-      {/* Reasoning */}
       {p.reasoning && (
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
           className="mt-1.5 w-full text-left cursor-pointer group/reasoning"
         >
-          <p className={`font-mono text-[10px] text-slate-500 group-hover/reasoning:text-slate-300 transition-colors duration-150 leading-relaxed ${expanded ? "" : "truncate"}`}>
+          <p
+            className={`font-mono text-[10px] text-slate-500 group-hover/reasoning:text-slate-300 transition-colors duration-150 leading-relaxed ${
+              expanded ? "" : "truncate"
+            }`}
+          >
             {p.reasoning}
           </p>
         </button>
@@ -100,39 +111,61 @@ export default function PredictionStrip({
   allPredictions,
   resolvedCount,
   correctCount,
+  compact = false,
+  open: controlledOpen,
+  onToggle,
 }: PredictionStripProps) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const hasPredictions = allPredictions.length > 0;
+
+  const handleToggle = () => {
+    if (!hasPredictions) return;
+    const next = !isOpen;
+    if (onToggle) {
+      onToggle(next);
+    } else {
+      setInternalOpen(next);
+    }
+  };
 
   return (
     <div className="border-b border-white/[0.05]">
-      {/* Header row — clickable trigger */}
       <button
         type="button"
-        onClick={() => hasPredictions && setOpen((v) => !v)}
-        className={`w-full px-4 py-2 bg-black/[0.12] flex items-center gap-2 ${hasPredictions ? "cursor-pointer" : "cursor-default"}`}
+        onClick={handleToggle}
+        className={`w-full ${
+          compact ? "px-2.5 py-1.5" : "px-4 py-2"
+        } bg-black/[0.12] flex items-center gap-2 ${
+          hasPredictions ? "cursor-pointer" : "cursor-default"
+        }`}
       >
-        <span className="font-mono text-[10px] text-slate-500">
+        <span className={`font-mono text-slate-500 ${compact ? "text-[9px]" : "text-[10px]"}`}>
           Predictions
         </span>
         {resolvedCount > 0 ? (
-          <span className={`font-mono text-[10px] font-semibold ${correctCount / resolvedCount >= 0.6 ? "text-emerald-400" : "text-slate-400"}`}>
+          <span
+            className={`font-mono font-semibold ${
+              correctCount / resolvedCount >= 0.6 ? "text-emerald-400" : "text-slate-400"
+            } ${compact ? "text-[9px]" : "text-[10px]"}`}
+          >
             {correctCount}/{resolvedCount} correct
           </span>
         ) : (
-          <span className="font-mono text-[10px] text-slate-700">—</span>
+          <span className={`font-mono text-slate-700 ${compact ? "text-[9px]" : "text-[10px]"}`}>—</span>
         )}
         <span className="flex-1" />
         {hasPredictions && (
-          <span className="font-mono text-[9px] text-slate-700 shrink-0">
-            {open ? "▲" : "▼"}
+          <span
+            className={`font-mono text-slate-700 shrink-0 ${compact ? "text-[8px]" : "text-[9px]"}`}
+          >
+            {isOpen ? "▲" : "▼"}
           </span>
         )}
       </button>
 
-      {/* Dropdown list */}
-      {open && hasPredictions && (
-        <div className="bg-black/[0.25]">
+      {isOpen && hasPredictions && (
+        <div className="bg-black/[0.25] max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
           {allPredictions.map((p, i) => (
             <PredictionRow key={`${p.ticker}-${p.runAt}-${i}`} p={p} />
           ))}

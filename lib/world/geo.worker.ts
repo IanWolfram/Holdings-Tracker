@@ -54,10 +54,9 @@ function srgbToLinear(c: number): number {
   return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
 }
 
-function verdictColor(verdict: "BUY" | "SELL" | "HOLD" | null, selected = false): [number, number, number] {
-  let hex = 0x2d5238; // Slightly brighter base green
-  if (selected) hex = 0x4488ff;        // blue — focused but no verdict
-  else if (verdict === "BUY") hex = 0x00ff88;
+function verdictColor(verdict: "BUY" | "SELL" | "HOLD" | null): [number, number, number] {
+  let hex = 0x2d5238;
+  if (verdict === "BUY") hex = 0x00ff88;
   else if (verdict === "SELL") hex = 0xff4444;
   else if (verdict === "HOLD") hex = 0x64748b;
   const r = srgbToLinear((hex >> 16 & 255) / 255);
@@ -102,12 +101,10 @@ self.onmessage = (e) => {
     const dimOthers = hasFocus && focusedHasRelevant;
     const showVerdict = hasRelevantStory && (!dimOthers || isFocusedCountry);
     const verdict = showVerdict ? (state?.netVerdict ?? null) : null;
-    // Give the focused country a distinct "selected" blue highlight even when it has no verdict.
-    const isSelected = isFocusedCountry && verdict === null;
 
-    const [r_base, g_base, b_base] = verdictColor(verdict, isSelected);
-    const opacity = (verdict !== null || isSelected) ? 1.0 : 0.82; // Increased from 0.45
-    const radius = (verdict !== null || isSelected) ? 1.002 : 1.001;
+    const [r_base, g_base, b_base] = verdictColor(verdict);
+    const opacity = verdict !== null ? 1.0 : 0.82;
+    const radius = verdict !== null ? 1.002 : 1.001;
     const r = r_base * opacity;
     const g = g_base * opacity;
     const b = b_base * opacity;
@@ -123,7 +120,7 @@ self.onmessage = (e) => {
     };
 
     const processDots = (polygonRings: number[][][]) => {
-      if (verdict === null && !isSelected) return;
+      if (verdict === null) return;
       const dots = dotFillPolygon(polygonRings, 0.9);
       for (const [lon, lat] of dots) {
         const v = latLonToVector3(lat, lon, radius - 0.001);

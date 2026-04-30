@@ -1,7 +1,6 @@
 import type { IBrokerProvider } from "@/src/domain/interfaces/IBrokerProvider";
 import type { ICache } from "@/src/domain/interfaces/ICache";
 import type { Position } from "@/types/position.types";
-import { withSyntheticHistory } from "@/src/mappers/positionMapper";
 import { MOCK_POSITIONS } from "@/lib/etrade";
 
 export interface PortfolioServiceConfig {
@@ -40,14 +39,14 @@ export class PortfolioService {
     }
 
     if (this.cfg.etradeEnv === "mock") {
-      return withSyntheticHistory(MOCK_POSITIONS);
+      return MOCK_POSITIONS;
     }
 
     if (!this.cfg.hasOAuthTokens) {
       console.warn(
         "[etrade] OAuth tokens not set — returning mock data. Run `npm run etrade:auth` to authorize."
       );
-      return withSyntheticHistory(MOCK_POSITIONS);
+      return MOCK_POSITIONS;
     }
 
     try {
@@ -60,7 +59,7 @@ export class PortfolioService {
           ? "[etrade] OAuth tokens expired — run `npm run etrade:auth` to refresh. Returning mock data."
           : `[etrade] API error (${msg}) — returning mock data.`
       );
-      return withSyntheticHistory(MOCK_POSITIONS);
+      return MOCK_POSITIONS;
     }
   }
 }

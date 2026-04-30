@@ -1,10 +1,10 @@
 ---
 type: catalyst
 name: "analyst-upgrade"
-n: 1
-winRate: 1.0000
-avgConfidence: 0.6000
-newsCount: 11
+n: 0
+winRate: 0.0000
+avgConfidence: 0.0000
+newsCount: 16
 tags:
   - catalyst
   - graph
@@ -13,11 +13,16 @@ tags:
 
 # Catalyst — analyst-upgrade
 
-Win rate: 100.0% (1/1), avg confidence 0.60
-Recent stories tagged with this catalyst: 11
-Verdict mix: 8 BUY / 0 SELL / 3 HOLD
+Win rate: insufficient resolved predictions yet.
+Recent stories tagged with this catalyst: 16
+Verdict mix: 11 BUY / 0 SELL / 5 HOLD
 
 ## Recent Stories
+- [2026-04-29] **HOLD** 65.0% — [[HOOD]] — Barclays Cuts Robinhood Price Target to $82: Is the Crypto Drag Worth the Worry?
+- [2026-04-29] **BUY** 65.0% — [[PLTR]] — Palantir Has Become A Buy Ahead Of Earnings (Preview, Upgrade)
+- [2026-04-29] **BUY** 72.0% — [[PLTR]] — Palantir Technologies Q1 expectations buoyed by commercial acceleration, government contracts
+- [2026-04-28] **HOLD** 50.0% — [[PLTR]] — A 40% Margin Of Safety On Palantir, Plus 12% Yield As You Wait
+- [2026-04-28] **BUY** 82.0% — [[PLTR]] — Palantir's Growth Is Stunning; The Answer Lies In Global Expansion (Rating Upgrade)
 - [2026-04-26] **BUY** 82.0% — [[HOOD]] — Cantor Fitzgerald Raises Robinhood (HOOD) Price Target to $110, Keeps Overweight Rating
 - [2026-04-24] **HOLD** 50.0% — [[PLTR]] — Palantir Technologies (PLTR): The Trillion-Dollar Contender Nobody Is Talking About
 - [2026-04-24] **BUY** 75.0% — [[HOOD]] — Robinhood earnings on tap as stock rebounds: A closer look

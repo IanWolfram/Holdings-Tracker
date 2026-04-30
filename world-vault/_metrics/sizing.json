@@ -1,12 +1,57 @@
 {
-  "updatedAt": "2026-04-28T02:59:25.275Z",
+  "updatedAt": "2026-04-29T20:58:35.068Z",
   "entries": {
+    "CHKP": {
+      "ticker": "CHKP",
+      "base": 0.1667,
+      "directionConfidence": 0.72,
+      "historicalAccuracy": 0.5,
+      "portfolioCorrelation": 0.2995,
+      "suggestedAllocation": 0.042,
+      "rationale": "UP 4.5% @ 72% conf, 50% historical accuracy, mean |corr| 0.30"
+    },
     "PLTR": {
       "ticker": "PLTR",
-      "base": 1,
+      "base": 0.1667,
+      "directionConfidence": 0.72,
+      "historicalAccuracy": 0.5,
+      "portfolioCorrelation": 0.5096,
+      "suggestedAllocation": 0.0294,
+      "rationale": "UP 4.5% @ 72% conf, 50% historical accuracy, mean |corr| 0.51"
+    },
+    "MMS": {
+      "ticker": "MMS",
+      "base": 0.1667,
       "directionConfidence": 0,
-      "historicalAccuracy": 0.0345,
-      "portfolioCorrelation": 0.547,
+      "historicalAccuracy": 0.5,
+      "portfolioCorrelation": 0.2465,
+      "suggestedAllocation": 0,
+      "rationale": "no directional 7d prediction available — sizing collapses to 0"
+    },
+    "MDB": {
+      "ticker": "MDB",
+      "base": 0.1667,
+      "directionConfidence": 0.78,
+      "historicalAccuracy": 0.5,
+      "portfolioCorrelation": 0.4781,
+      "suggestedAllocation": 0.0339,
+      "rationale": "UP 6.5% @ 78% conf, 50% historical accuracy, mean |corr| 0.48"
+    },
+    "HOOD": {
+      "ticker": "HOOD",
+      "base": 0.1667,
+      "directionConfidence": 0.78,
+      "historicalAccuracy": 0.5,
+      "portfolioCorrelation": 0.459,
+      "suggestedAllocation": 0.0352,
+      "rationale": "DOWN 6.5% @ 78% conf, 50% historical accuracy, mean |corr| 0.46"
+    },
+    "VKTX": {
+      "ticker": "VKTX",
+      "base": 0.1667,
+      "directionConfidence": 0,
+      "historicalAccuracy": 0.5,
+      "portfolioCorrelation": 0.2955,
       "suggestedAllocation": 0,
       "rationale": "no directional 7d prediction available — sizing collapses to 0"
     }

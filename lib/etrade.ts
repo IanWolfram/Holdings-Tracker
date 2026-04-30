@@ -167,6 +167,8 @@ async function fetchPortfolio(accountIdKey: string): Promise<Position[]> {
       const totalGain: number = Number(pos?.totalGain ?? 0);
       const pricePaid: number = Number(pos?.pricePaid ?? 0);
       const currentPrice: number = Number(pos?.Quick?.lastTrade ?? 0);
+      const dayChange: number = Number(pos?.Quick?.change ?? 0);
+      const dayChangePct: number = Number(pos?.Quick?.changePct ?? 0);
 
       positions.push({
         ticker,
@@ -176,6 +178,8 @@ async function fetchPortfolio(accountIdKey: string): Promise<Position[]> {
         gainLoss: totalGain,
         pricePaid,
         currentPrice,
+        dayChange,
+        dayChangePct,
       });
     }
   }

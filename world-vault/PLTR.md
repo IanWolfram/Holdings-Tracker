@@ -1,5 +1,5 @@
 ---
-date: "2026-04-27"
+date: "2026-04-29"
 type: ticker-knowledge
 ticker: PLTR
 sector: Tech
@@ -8,6 +8,6 @@ generated: true
 
 # PLTR — Learned Patterns
 
-Government contract wins, especially those expanding PLTR's reach into civilian agencies like the USDA or IRS, and Pentagon program of record confirmations reliably trigger high-confidence BUY signals at 85-92% confidence. SELL signals at 80% confidence are consistently triggered by high-profile short-seller theses (e.g., Michael Burry) and institutional divestment campaigns (e.g., SNB pressure) that amplify regulatory or reputational risk around government surveillance contracts. Recurring macro factors include the AI defense narrative and government spending cycles, where any headline linking PLTR to presidential-level government expansion or non-defense agency adoption acts as a strong positive catalyst. Calibration note: analyst upgrade signals and dip-buying narratives following sharp price drops (e.g., 7% or 20% declines) historically score 72-85% confidence but have under-performed predicted magnitude by approximately 40% when lacking a concurrent hard catalyst like a contract win.
+Named commercial partnership announcements with industrial entities, such as Cleveland-Cliffs, consistently trigger high-confidence BUY signals at 0.82, while analyst upgrades and pre-earnings bullish calls score 0.65-0.72 due to speculation capping conviction. SELL signals arise from political or ethical friction around military AI contracts, like Google's Pentagon drone withdrawal, at 0.72, and pre-earnings downside narrative risk at 0.65. Sector-wide AI sentiment shifts without a specific PLTR catalyst produce only HOLD signals at 0.50, and macro-driven sell-offs in tech or semiconductors lack direct impact. Confidence calibration: named partnerships and rating upgrades with concrete catalysts reach 0.82, while pre-earnings speculation and analyst calls without new data cap at 0.65-0.72.
 
-_Last updated: 2026-04-27_
+_Last updated: 2026-04-29_

@@ -3,14 +3,21 @@
 import { useMemo } from "react";
 import TopBar from "@/components/TopBar";
 import PositionCard from "@/components/PositionCard";
+import AddProposedCard from "@/components/AddProposedCard";
 import type { Position } from "@/types/position.types";
 import type { ClassifiedStory, CongressTrade } from "@/types/news.types";
 import type { AgentProgress } from "@/lib/agent/service";
 import type { TickerPrediction } from "@/types/predictions";
+import type { ProposedPositionEntry } from "@/hooks/useProposedPositions";
 import EmptyState from "@/components/EmptyState";
 
 interface DesktopDashboardProps {
   positions: Position[];
+  proposedPositionData: Position[];
+  proposedEntries: ProposedPositionEntry[];
+  proposedTickers: string[];
+  onAddProposed: (ticker: string, targetShares?: number, targetPrice?: number) => boolean;
+  onRemoveProposed: (ticker: string) => void;
   news: Record<string, ClassifiedStory[]>;
   congressTrades: Record<string, CongressTrade[]>;
   loadingNews: Record<string, boolean>;
@@ -27,6 +34,11 @@ interface DesktopDashboardProps {
 
 export default function DesktopDashboard({
   positions,
+  proposedPositionData,
+  proposedEntries,
+  proposedTickers,
+  onAddProposed,
+  onRemoveProposed,
   news,
   congressTrades,
   loadingNews,
@@ -62,6 +74,21 @@ export default function DesktopDashboard({
     return out;
   }, [predictions]);
 
+  // Merge held + proposed positions
+  const allPositions = useMemo(() => {
+    const heldTickers = new Set(positions.map((p) => p.ticker));
+    const filteredProposed = proposedPositionData.filter(
+      (p) => !heldTickers.has(p.ticker)
+    );
+    return [...positions, ...filteredProposed];
+  }, [positions, proposedPositionData]);
+
+  // All tickers for deduplication check
+  const allTickers = useMemo(
+    () => allPositions.map((p) => p.ticker),
+    [allPositions]
+  );
+
   return (
     <div className="min-h-screen flex flex-col bg-surface">
       <TopBar lastUpdated={lastUpdated} refreshing={refreshing} onRefresh={onRefresh} totalValue={totalValue} totalCostBasis={totalCostBasis} totalGainLoss={totalGainLoss} _cashBalance={cashBalance} />
@@ -80,7 +107,7 @@ export default function DesktopDashboard({
           />
         )}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-          {positions.map((pos) => (
+          {allPositions.map((pos) => (
             <PositionCard
               key={pos.ticker}
               position={pos}
@@ -91,8 +118,13 @@ export default function DesktopDashboard({
               prediction={predictionsByTicker[pos.ticker]?.current}
               allPredictions={predictionsByTicker[pos.ticker]?.all}
               resolvedStats={predictionsByTicker[pos.ticker]?.resolvedStats}
+              onRemoveProposed={pos.isProposed ? onRemoveProposed : undefined}
             />
           ))}
+          <AddProposedCard
+            onAdd={onAddProposed}
+            existingTickers={allTickers}
+          />
         </div>
       </main>
     </div>

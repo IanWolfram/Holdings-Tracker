@@ -1,10 +1,10 @@
 ---
 type: catalyst
 name: "product-launch"
-n: 2
+n: 0
 winRate: 0.0000
-avgConfidence: 0.5000
-newsCount: 14
+avgConfidence: 0.0000
+newsCount: 22
 tags:
   - catalyst
   - graph
@@ -13,12 +13,20 @@ tags:
 
 # Catalyst — product-launch
 
-Win rate: 0.0% (0/2), avg confidence 0.50
-Recent stories tagged with this catalyst: 14
-Verdict mix: 10 BUY / 0 SELL / 4 HOLD
+Win rate: insufficient resolved predictions yet.
+Recent stories tagged with this catalyst: 22
+Verdict mix: 12 BUY / 0 SELL / 10 HOLD
 
 ## Recent Stories
+- [2026-04-29] **BUY** 65.0% — [[HOOD]] — Robinhood Is Working on AI Financial Advice, But CEO Tenev Isn’t Writing Off Human Advisors
+- [2026-04-29] **HOLD** 50.0% — [[PLTR]] — What's Going On With Nvidia Stock Today?
+- [2026-04-28] **HOLD** 50.0% — [[PLTR]] — ReelTime’s Reel Intelligence “RI” Launches Worlds Most Advanced Image Generation System, Expanding I
+- [2026-04-28] **HOLD** 65.0% — [[HOOD]] — Top Wall Street Forecasters Revamp Robinhood Expectations Ahead Of Q1 Earnings
+- [2026-04-27] **HOLD** 65.0% — [[HOOD]] — Here's How Much Traders Expect Robinhood Stock to Move After Earnings
+- [2026-04-27] **BUY** 85.0% — [[HOOD]] — Robinhood Gets In-Principle Approval From MAS for Singapore Launch
+- [2026-04-27] **HOLD** 50.0% — [[PLTR]] — What's the next big idea in AI downstream?
 - [2026-04-26] **BUY** 72.0% — [[PLTR]] — Vanyar Launch Tests Depth Of Palantir Foundry And AIP Demand
+- [2026-04-26] **HOLD** 50.0% — [[HOOD]] — What market has wrong about Figma and Claude Design
 - [2026-04-23] **BUY** 85.0% — [[PLTR]] — DZ Bank Just Launched Palantir at Buy With a $175 Target: The AI Darling Gains Another Believer
 - [2026-04-23] **BUY** 60.0% — [[PLTR]] — Palantir and AIP Specialist Firm, Vanyar, Launches
 - [2026-04-23] **BUY** 87.0% — [[HOOD]] — Robinhood Markets : Secures In-Principle Approval to Launch Brokerage in Singapore

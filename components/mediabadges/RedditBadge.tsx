@@ -13,7 +13,7 @@ export default function RedditBadge({ author, iconOnly }: RedditBadgeProps) {
         alt="Reddit"
         width={21}
         height={14}
-        style={{ width: "auto", height: 14, filter: "grayscale(1) contrast(10) invert(1)" }}
+        style={{ width: "auto", height: 14 }}
         className="object-contain"
       />
       {!iconOnly && (

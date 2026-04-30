@@ -146,7 +146,32 @@ body {
   100% { opacity: 0.5; }
 }
 
+/* ── Proposed / Watchlist (amber dashed) ── */
+.glow-proposed {
+  border-top: 1.5px dashed rgba(234, 179, 8, 0.4);
+}
+.group:hover .glow-proposed {
+  animation: border-pulse-amber 3s ease-in-out infinite;
+}
+.glow-proposed::after {
+  background: radial-gradient(ellipse 120% 90px at 50% 0%,
+    rgba(234, 179, 8, 0.12) 0%,
+    rgba(234, 179, 8, 0.04) 50%,
+    transparent 100%
+  );
+  animation: bloom-amber 3s ease-in-out infinite;
+}
 
+@keyframes border-pulse-amber {
+  0%   { border-top-color: rgba(234,179,8,0.4); }
+  50%  { border-top-color: rgba(234,179,8,0.75); }
+  100% { border-top-color: rgba(234,179,8,0.4); }
+}
+@keyframes bloom-amber {
+  0%   { opacity: 0.4; }
+  50%  { opacity: 0.8; }
+  100% { opacity: 0.4; }
+}
 
 /* ── Tapered border on news items ── */
 .news-item-frame {
@@ -175,27 +200,44 @@ body {
    - top specular rim + bottom counter-highlight
    - soft outer shadow for stack separation ── */
 .glass-edge {
+  /* Tint colors are exposed as variables so variants (.glass-edge-pending,
+     .glass-edge-queued, …) only need to override what changes. Default tint
+     reads as a generic frosted slab on top of darker content. */
+  --glass-edge-tint-top: rgba(255, 255, 255, 0.08);
+  --glass-edge-tint-mid: rgba(255, 255, 255, 0.03);
+  --glass-edge-tint-bot: rgba(0, 0, 0, 0.08);
+  --glass-edge-base: rgba(255, 255, 255, 0.05);
+  --glass-edge-bevel-light: rgba(255, 255, 255, 0.18);
+  --glass-edge-bevel-dark: rgba(0, 0, 0, 0.45);
+  --glass-edge-rim-top: rgba(255, 255, 255, 0.55);
+  --glass-edge-rim-bottom: rgba(255, 255, 255, 0.10);
+  --glass-edge-shadow: rgba(0, 0, 0, 0.7);
+  --glass-edge-shadow-line: rgba(0, 0, 0, 0.45);
+  --glass-edge-brightness: 1.12;
+  --glass-edge-saturate: 180%;
+  --glass-edge-blur: 24px;
+
   /* Heavier frosted tint stacked over a self-illuminated top-down gradient.
      The solid tint guarantees visibility on flat backgrounds; the backdrop-filter
      blurs anything that IS behind (sparklines, neighboring cards, etc). */
   background:
     linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.08) 0%,
-      rgba(255, 255, 255, 0.03) 60%,
-      rgba(0, 0, 0, 0.08) 100%
+      var(--glass-edge-tint-top) 0%,
+      var(--glass-edge-tint-mid) 60%,
+      var(--glass-edge-tint-bot) 100%
     ),
-    rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(24px) saturate(180%) brightness(1.12) contrast(0.95);
-  -webkit-backdrop-filter: blur(24px) saturate(180%) brightness(1.12) contrast(0.95);
+    var(--glass-edge-base);
+  backdrop-filter: blur(var(--glass-edge-blur)) saturate(var(--glass-edge-saturate)) brightness(var(--glass-edge-brightness)) contrast(0.95);
+  -webkit-backdrop-filter: blur(var(--glass-edge-blur)) saturate(var(--glass-edge-saturate)) brightness(var(--glass-edge-brightness)) contrast(0.95);
   box-shadow:
     /* lift the slab off whatever's behind it */
-    0 10px 28px -10px rgba(0, 0, 0, 0.7),
-    0 1px 0 0 rgba(0, 0, 0, 0.45),
+    0 10px 28px -10px var(--glass-edge-shadow),
+    0 1px 0 0 var(--glass-edge-shadow-line),
     /* directional bevel: bright light from top-left */
-    inset 1px 1px 0 0 rgba(255, 255, 255, 0.18),
+    inset 1px 1px 0 0 var(--glass-edge-bevel-light),
     /* depth on the opposite rim */
-    inset -1px -1px 0 0 rgba(0, 0, 0, 0.45);
+    inset -1px -1px 0 0 var(--glass-edge-bevel-dark);
 }
 
 .glass-edge::before {
@@ -210,7 +252,7 @@ body {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.55) 50%,
+    var(--glass-edge-rim-top) 50%,
     transparent 100%
   );
   z-index: 1;
@@ -227,10 +269,112 @@ body {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.10) 50%,
+    var(--glass-edge-rim-bottom) 50%,
     transparent 100%
   );
   z-index: 1;
+}
+
+/* ── Pending-stack variant — matches the dark slate `Run Agent` PendingNewsCard
+   background. Heavy frosted glass so the card below is NOT visible through it —
+   only the bottom sliver that extends below the card above. ── */
+.glass-edge-pending {
+  --glass-edge-tint-top: rgba(255, 255, 255, 0.06);
+  --glass-edge-tint-mid: rgba(255, 255, 255, 0.03);
+  --glass-edge-tint-bot: rgba(0, 0, 0, 0.35);
+  --glass-edge-base: rgba(10, 12, 18, 0.75);
+  --glass-edge-bevel-light: rgba(255, 255, 255, 0.12);
+  --glass-edge-bevel-dark: rgba(0, 0, 0, 0.7);
+  --glass-edge-rim-top: rgba(255, 255, 255, 0.25);
+  --glass-edge-rim-bottom: rgba(255, 255, 255, 0.06);
+  --glass-edge-shadow: rgba(0, 0, 0, 0.85);
+  --glass-edge-shadow-line: rgba(0, 0, 0, 0.65);
+  --glass-edge-brightness: 0.85;
+  --glass-edge-saturate: 140%;
+  --glass-edge-blur: 48px;
+}
+
+/* ── Queued-stack variant — matches the `In Queue` PendingNewsCard background.
+   Heavy frosted glass so the card below is NOT visible through it. ── */
+.glass-edge-queued {
+  --glass-edge-tint-top: rgba(255, 255, 255, 0.07);
+  --glass-edge-tint-mid: rgba(255, 255, 255, 0.04);
+  --glass-edge-tint-bot: rgba(0, 0, 0, 0.25);
+  --glass-edge-base: rgba(255, 255, 255, 0.08);
+  --glass-edge-bevel-light: rgba(255, 255, 255, 0.15);
+  --glass-edge-bevel-dark: rgba(0, 0, 0, 0.55);
+  --glass-edge-rim-top: rgba(255, 255, 255, 0.4);
+  --glass-edge-rim-bottom: rgba(255, 255, 255, 0.08);
+  --glass-edge-shadow: rgba(0, 0, 0, .9);
+  --glass-edge-shadow-line: rgba(0, 0, 0, 0.55);
+  --glass-edge-brightness: 0.92;
+  --glass-edge-saturate: 150%;
+  --glass-edge-blur: 48px;
+}
+
+/* ── Proposed / Watchlist variant — lighter ghostly slab with dashed amber border.
+     Signals "not yet committed" at a glance. ── */
+.glass-edge-proposed {
+  --glass-edge-tint-top: rgba(234, 179, 8, 0.04);
+  --glass-edge-tint-mid: rgba(255, 255, 255, 0.02);
+  --glass-edge-tint-bot: rgba(0, 0, 0, 0.15);
+  --glass-edge-base: rgba(255, 255, 255, 0.03);
+  --glass-edge-bevel-light: rgba(255, 255, 255, 0.08);
+  --glass-edge-bevel-dark: rgba(0, 0, 0, 0.25);
+  --glass-edge-rim-top: rgba(234, 179, 8, 0.3);
+  --glass-edge-rim-bottom: rgba(234, 179, 8, 0.08);
+  --glass-edge-shadow: rgba(0, 0, 0, 0.5);
+  --glass-edge-shadow-line: rgba(0, 0, 0, 0.3);
+  --glass-edge-brightness: 1.05;
+  --glass-edge-saturate: 160%;
+  --glass-edge-blur: 28px;
+  border: 1.5px dashed rgba(234, 179, 8, 0.25);
+}
+
+/* ── Opaque modifiers — fully solid backgrounds, zero see-through.
+     Used on ghost stack slabs so nothing behind them bleeds through.
+     Each variant's tints are converted from rgba → solid rgb to match
+     its corresponding card's visual appearance at full opacity. ── */
+
+/* Default (NewsCard) — light neutral grey to match the visible glass slab */
+.glass-edge-opaque {
+  --glass-edge-tint-top: rgb(58, 58, 58);
+  --glass-edge-tint-mid: rgb(50, 50, 50);
+  --glass-edge-tint-bot: rgb(42, 42, 42);
+  --glass-edge-base: rgb(55, 55, 55);
+  --glass-edge-blur: 0px;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Pending — matches the dark slate Run Agent card (rgba(10,12,18,0.75) base) */
+.glass-edge-pending.glass-edge-opaque {
+  --glass-edge-tint-top: rgb(18, 22, 18);
+  --glass-edge-tint-mid: rgb(12, 16, 20);
+  --glass-edge-tint-bot: rgb(6, 8, 14);
+  --glass-edge-base: rgb(10, 14, 20);
+  --glass-edge-blur: 0px;
+  --glass-edge-bevel-light: rgba(255, 255, 255, 0.12);
+  --glass-edge-bevel-dark: rgba(0, 0, 0, 0.7);
+  --glass-edge-rim-top: rgba(255, 255, 255, 0.25);
+  --glass-edge-rim-bottom: rgba(255, 255, 255, 0.06);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Queued — matches the slightly lighter In Queue card (rgba(255,255,255,0.02) base) */
+.glass-edge-queued.glass-edge-opaque {
+  --glass-edge-tint-top: rgb(30, 32, 40);
+  --glass-edge-tint-mid: rgb(24, 26, 34);
+  --glass-edge-tint-bot: rgb(16, 18, 26);
+  --glass-edge-base: rgb(22, 24, 32);
+  --glass-edge-blur: 0px;
+  --glass-edge-bevel-light: rgba(255, 255, 255, 0.15);
+  --glass-edge-bevel-dark: rgba(0, 0, 0, 0.55);
+  --glass-edge-rim-top: rgba(255, 255, 255, 0.4);
+  --glass-edge-rim-bottom: rgba(255, 255, 255, 0.08);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 .glass-prominent {

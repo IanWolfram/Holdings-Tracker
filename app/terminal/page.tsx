@@ -7,6 +7,11 @@ import { useDashboardData } from "@/hooks/useDashboardData";
 export default function Dashboard() {
   const {
     positions,
+    proposedPositionData,
+    proposedEntries,
+    proposedTickers,
+    addProposedPosition,
+    removeProposedPosition,
     news,
     congressTrades,
     loadingNews,
@@ -24,6 +29,11 @@ export default function Dashboard() {
       <div className="hidden md:block">
         <DesktopDashboard
           positions={positions}
+          proposedPositionData={proposedPositionData}
+          proposedEntries={proposedEntries}
+          proposedTickers={proposedTickers}
+          onAddProposed={addProposedPosition}
+          onRemoveProposed={removeProposedPosition}
           news={news}
           congressTrades={congressTrades}
           loadingNews={loadingNews}
@@ -41,6 +51,11 @@ export default function Dashboard() {
       <div className="block md:hidden">
         <MobileDashboard
           positions={positions}
+          proposedPositionData={proposedPositionData}
+          proposedEntries={proposedEntries}
+          proposedTickers={proposedTickers}
+          onAddProposed={addProposedPosition}
+          onRemoveProposed={removeProposedPosition}
           news={news}
           loadingNews={loadingNews}
           refreshing={refreshing}

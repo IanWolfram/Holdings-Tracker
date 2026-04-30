@@ -12,7 +12,7 @@ export default function FinnhubBadge({ iconOnly }: FinnhubBadgeProps) {
         alt="Finnhub"
         width={12}
         height={12}
-        style={{ width: 12, height: "auto", filter: "grayscale(1) contrast(10) invert(1)" }}
+        style={{ width: 12, height: "auto" }}
         className="object-contain"
       />
       {!iconOnly && (

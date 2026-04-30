@@ -4,6 +4,7 @@ import type { Position } from "@/types/position.types";
 import type { ClassifiedStory, CongressTrade } from "@/types/news.types";
 import type { AgentProgress } from "@/lib/agent/service";
 import type { TickerPrediction } from "@/types/predictions";
+import { useProposedPositions } from "./useProposedPositions";
 
 const CONGRESS_POLL_MS = 60_000;
 const AGENT_POLL_MS_ACTIVE = 2_000;
@@ -11,6 +12,7 @@ const AGENT_POLL_MS_IDLE = 30_000;
 
 export function useDashboardData() {
   const [positions, setPositions] = useState<Position[]>([]);
+  const [proposedPositionData, setProposedPositionData] = useState<Position[]>([]);
   const [news, setNews] = useState<Record<string, ClassifiedStory[]>>({});
   const [congressTrades, setCongressTrades] = useState<Record<string, CongressTrade[]>>({});
   const [loadingNews, setLoadingNews] = useState<Record<string, boolean>>({});
@@ -27,6 +29,16 @@ export function useDashboardData() {
   const agentPollRateRef = useRef<number>(AGENT_POLL_MS_IDLE);
   const heldTickersRef = useRef<string[]>([]);
   const prevAgentStatusRef = useRef<string>("idle");
+
+  // Proposed positions hook
+  const {
+    proposedEntries,
+    proposedTickers,
+    addProposedPosition,
+    removeProposedPosition,
+  } = useProposedPositions(
+    positions.map((p) => p.ticker)
+  );
 
   const fetchPredictions = useCallback(async () => {
     try {
@@ -82,6 +94,42 @@ export function useDashboardData() {
     }
   }, []);
 
+  const fetchProposedQuotes = useCallback(async (entries: typeof proposedEntries) => {
+    if (entries.length === 0) {
+      setProposedPositionData([]);
+      return;
+    }
+    try {
+      const res = await fetch("/api/proposed-quotes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          targets: entries.map((e) => ({
+            ticker: e.ticker,
+            targetShares: e.targetShares,
+            targetPrice: e.targetPrice,
+          })),
+        }),
+      });
+      if (!res.ok) return;
+      const data: Position[] = await res.json();
+      // Merge localStorage entry data with server response
+      setProposedPositionData(
+        data.map((pos) => {
+          const entry = entries.find((e) => e.ticker === pos.ticker);
+          return {
+            ...pos,
+            targetShares: entry?.targetShares,
+            targetPrice: entry?.targetPrice,
+            addedAt: entry?.addedAt ?? pos.addedAt,
+          };
+        })
+      );
+    } catch {
+      // ignore — proposed data will show as zeros
+    }
+  }, []);
+
   const refresh = useCallback(async () => {
     setRefreshing(true);
     try {
@@ -111,7 +159,7 @@ export function useDashboardData() {
     } finally {
       setRefreshing(false);
     }
-  }, [fetchCongress, fetchNews]);
+  }, [fetchCongress, fetchNews, fetchPredictions]);
 
   const mergeAgentResults = useCallback((progress: AgentProgress) => {
     if (!progress.results) return;
@@ -172,6 +220,30 @@ export function useDashboardData() {
     };
   }, [refresh]);
 
+  // When positions arrive without history, re-fetch sooner so graphs populate
+  useEffect(() => {
+    const missingHistory = positions.some(
+      (p) => !p.history || p.history.length < 2
+    );
+    if (!missingHistory) return;
+
+    const timer = setTimeout(refresh, 15_000); // retry after 15s
+    return () => clearTimeout(timer);
+  }, [positions, refresh]);
+
+  // Fetch proposed position market data when proposedTickers change
+  useEffect(() => {
+    fetchProposedQuotes(proposedEntries);
+  }, [proposedEntries, fetchProposedQuotes]);
+
+  // Fetch news for proposed tickers
+  useEffect(() => {
+    if (proposedTickers.length === 0) return;
+    fetchNews(proposedTickers);
+    fetchCongress(proposedTickers);
+    fetchPredictions();
+  }, [proposedTickers, fetchNews, fetchCongress, fetchPredictions]);
+
   useEffect(() => {
     congressIntervalRef.current = setInterval(() => {
       fetchCongress(heldTickersRef.current);
@@ -191,6 +263,11 @@ export function useDashboardData() {
 
   return {
     positions,
+    proposedPositionData,
+    proposedEntries,
+    proposedTickers,
+    addProposedPosition,
+    removeProposedPosition,
     news,
     congressTrades,
     loadingNews,

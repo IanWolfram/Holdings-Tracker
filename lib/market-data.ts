@@ -4,6 +4,7 @@ import {
   isYahooCrumbRateLimitedError,
 } from "./yahoo-finance";
 import { fetchCandlesPolygon } from "./polygon";
+import { fetchWithAlphaVantageRateLimit } from "./marketdata/alphavantage-limiter";
 import { NEWS_CACHE_TTL_MS, ACCOUNT_CACHE_TTL_MS } from "./constants";
 import type { QuoteData, HistoryData } from "@/types/market-data.types";
 
@@ -35,12 +36,45 @@ export async function getQuote(ticker: string): Promise<QuoteData | null> {
     );
   }
 
-  // Fallback: Finnhub quote endpoint (if API key is configured)
-  const apiKey = process.env.FINNHUB_API_KEY;
+  const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
   if (apiKey) {
     try {
+      const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${ticker}&apikey=${apiKey}`;
+      const json = await fetchWithAlphaVantageRateLimit(url).catch(() => null);
+      if (json) {
+        const quote = json["Global Quote"];
+        if (quote && quote["05. price"]) {
+          const data: QuoteData = {
+            ticker,
+            currentPrice: parseFloat(quote["05. price"]),
+            changePercent: parseFloat(quote["10. change percent"].replace('%', '')),
+            dayHigh: parseFloat(quote["03. high"]),
+            dayLow: parseFloat(quote["04. low"]),
+            previousClose: parseFloat(quote["08. previous close"]),
+            source: "alphavantage",
+            fetchedAt: Date.now(),
+          };
+          quoteCache.set(ticker, {
+            data,
+            expiresAt: Date.now() + NEWS_CACHE_TTL_MS,
+          });
+          return data;
+        }
+      }
+    } catch (err) {
+      const msg = (err as Error).message;
+      if (!msg.includes("daily budget exhausted")) {
+        console.warn(`[market-data] Alpha Vantage quote failed for ${ticker}: ${msg}`);
+      }
+    }
+  }
+
+  // Fallback: Finnhub quote endpoint (if API key is configured)
+  const finnhubKey = process.env.FINNHUB_API_KEY;
+  if (finnhubKey) {
+    try {
       const res = await fetch(
-        `https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${apiKey}`,
+        `https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${finnhubKey}`,
         {
           signal: AbortSignal.timeout(10_000),
         }
@@ -113,7 +147,7 @@ export async function getHistory(
       const now = Date.now();
       if (now >= yahooRateLimitLoggedUntil) {
         console.warn(
-          "[market-data] Yahoo crumb is rate-limited; falling back to Polygon (background fetch, cache warms for next poll)."
+          "[market-data] Yahoo crumb is rate-limited; falling back to Finnhub/Alpha Vantage/Polygon."
         );
         yahooRateLimitLoggedUntil = now + YAHOO_RATE_LIMIT_LOG_COOLDOWN_MS;
       }
@@ -122,6 +156,78 @@ export async function getHistory(
         `[market-data] Yahoo history failed for ${ticker}:`,
         (err as Error).message
       );
+    }
+  }
+
+  // Secondary: Finnhub (60 calls/min, no daily cap)
+  const finnhubKey = process.env.FINNHUB_API_KEY;
+  if (finnhubKey) {
+    try {
+      const to = Math.floor(Date.now() / 1000);
+      const from = to - 120 * 86_400; // ~4 months for 90 trading days
+      const url =
+        `https://finnhub.io/api/v1/stock/candle?symbol=${encodeURIComponent(ticker)}` +
+        `&resolution=D&from=${from}&to=${to}&token=${finnhubKey}`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+      if (res.ok) {
+        const json = (await res.json()) as {
+          s?: string;
+          t?: number[];
+          c?: number[];
+        };
+        if (json.s === "ok" && json.c && json.c.length > 0) {
+          const data: HistoryData = {
+            ticker,
+            closes: json.c.slice(-90),
+            source: "finnhub",
+            fetchedAt: Date.now(),
+          };
+          historyCache.set(ticker, {
+            data,
+            expiresAt: Date.now() + ACCOUNT_CACHE_TTL_MS,
+          });
+          return data;
+        }
+      }
+    } catch (err) {
+      console.warn(
+        `[market-data] Finnhub history failed for ${ticker}:`,
+        (err as Error).message
+      );
+    }
+  }
+
+  // Tertiary: Alpha Vantage (Very limited: 25 calls/day free)
+  const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
+  if (apiKey) {
+    try {
+      const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${ticker}&outputsize=compact&apikey=${apiKey}`;
+      const json = await fetchWithAlphaVantageRateLimit(url);
+      const ts = json["Time Series (Daily)"];
+      if (ts) {
+        const dates = Object.keys(ts).sort((a, b) => a.localeCompare(b));
+        const closes = dates.slice(-90).map((d) => parseFloat(ts[d]["4. close"]));
+
+        if (closes.length > 0) {
+          const data: HistoryData = {
+            ticker,
+            closes,
+            source: "alphavantage",
+            fetchedAt: Date.now(),
+          };
+          historyCache.set(ticker, {
+            data,
+            expiresAt: Date.now() + ACCOUNT_CACHE_TTL_MS,
+          });
+          return data;
+        }
+      }
+    } catch (err) {
+      const msg = (err as Error).message;
+      // Budget exhaustion is expected — log at debug level only
+      if (!msg.includes("daily budget exhausted")) {
+        console.warn(`[market-data] Alpha Vantage history failed for ${ticker}: ${msg}`);
+      }
     }
   }
 

@@ -1,10 +1,10 @@
 ---
 type: sector
 name: "Professional Services"
-momentum: neutral
+momentum: weak
 todayBuyPct: 0.0000
-rolling7dBuyPct: 0.4000
-rolling30dBuyPct: 0.2500
+rolling7dBuyPct: 0.0714
+rolling30dBuyPct: 0.1000
 tags:
   - sector
   - graph
@@ -12,10 +12,10 @@ tags:
 
 # Sector — Professional Services
 
-Tickers: [[MMS]]
+Tickers: [[BR]], [[MMS]]
 
 ## Breadth
-- Today: 0 stories, 0.0% BUY
-- Rolling 7d: 5 stories, 40.0% BUY
-- Rolling 30d: 8 stories, 25.0% BUY
-- Momentum: **neutral**
+- Today: 1 stories, 0.0% BUY
+- Rolling 7d: 14 stories, 7.1% BUY
+- Rolling 30d: 20 stories, 10.0% BUY
+- Momentum: **weak**

@@ -7,7 +7,7 @@ export function mapRawPosition(pos: {
   marketValue?: string | number;
   totalGain?: string | number;
   pricePaid?: string | number;
-  Quick?: { lastTrade?: string | number };
+  Quick?: { lastTrade?: string | number; change?: string | number; changePct?: string | number };
 }): Position {
   return {
     ticker: (pos.Product?.symbol ?? "UNKNOWN") as string,
@@ -17,6 +17,8 @@ export function mapRawPosition(pos: {
     gainLoss: Number(pos.totalGain ?? 0),
     pricePaid: Number(pos.pricePaid ?? 0),
     currentPrice: Number(pos.Quick?.lastTrade ?? 0),
+    dayChange: Number(pos.Quick?.change ?? 0),
+    dayChangePct: Number(pos.Quick?.changePct ?? 0),
   };
 }
 

@@ -1,9 +1,9 @@
 ---
 type: catalyst
 name: "govt-contract"
-n: 1
+n: 0
 winRate: 0.0000
-avgConfidence: 0.5000
+avgConfidence: 0.0000
 newsCount: 25
 tags:
   - catalyst
@@ -13,33 +13,33 @@ tags:
 
 # Catalyst — govt-contract
 
-Win rate: 0.0% (0/1), avg confidence 0.50
+Win rate: insufficient resolved predictions yet.
 Recent stories tagged with this catalyst: 25
-Verdict mix: 10 BUY / 3 SELL / 12 HOLD
+Verdict mix: 4 BUY / 1 SELL / 20 HOLD
 
 ## Recent Stories
-- [2026-04-27] **BUY** 92.0% — [[PLTR]] — Palantir (PLTR) Secures $300M USDA Agreement to Modernize National Farm Security
-- [2026-04-27] **HOLD** 20.0% — [[PLTR]] — Peter Thiel Buys $12 Million Mansion In Argentina As Javier Milei Woos Silicon Valley: Report
-- [2026-04-26] **HOLD** 20.0% — [[PLTR]] — 2 AI Stocks With 85% and 70% Upside to Buy During a Software Bear Market
-- [2026-04-26] **HOLD** 50.0% — [[PLTR]] — Down 30% From Its All-Time High, Is Now the Perfect Buying Opportunity for Palantir's Stock?
-- [2026-04-26] **HOLD** 20.0% — [[PLTR]] — FEPI: A Battle-Tested 25% Yielder To Buy
-- [2026-04-25] **HOLD** 50.0% — [[PLTR]] — AI talent war: Software industry is a new target as top executives jump ship to OpenAI
-- [2026-04-25] **HOLD** 20.0% — [[PLTR]] — Is the AI Gold Rush Still On? A Historical Look at Amazon's AWS Offers a Compellingly Clear Answer.
-- [2026-04-25] **HOLD** 20.0% — [[PLTR]] — Peter Thiel Buys $12 Million Mansion In Argentina As Javier Milei Woos Silicon Valley: Report
-- [2026-04-24] **SELL** 75.0% — [[HOOD]] — Coinbase Hit With Second State Lawsuit In 48 Hours As Wisconsin Joins Prediction Market Crackdown
-- [2026-04-24] **HOLD** 20.0% — [[PLTR]] — Don’t Fret the War. Why ‘Big Money’ Investors Are Bullish—and Where They’re Investing Now.
-- [2026-04-24] **HOLD** 20.0% — [[PLTR]] — Kalshi Taps Pyth Network To Settle Bets On Gold, Oil, Wheat And More
-- [2026-04-24] **BUY** 88.0% — [[MMS]] — MAXIMUS Inc (NYSE:MMS): A Deep Value Play with a 9/10 Valuation Rating
-- [2026-04-24] **BUY** 92.0% — [[PLTR]] — Palantir Aims to Protect the U.S. Food Supply. Is Its $300M USDA Deal Important for PLTR Stock?
-- [2026-04-24] **SELL** 80.0% — [[PLTR]] — Palantir Faces SNB Divestment Push
-- [2026-04-24] **BUY** 72.0% — [[PLTR]] — Palantir is reportedly helping the IRS investigate financial crimes
-- [2026-04-24] **BUY** 85.0% — [[PLTR]] — Palantir Stock Investors Just Got Good News from President Trump and the U.S. Government
-- [2026-04-24] **BUY** 80.0% — [[PLTR]] — Palantir Stock Is Down 20% in 2026. Why This Analyst Says It’s a Buy.
-- [2026-04-24] **BUY** 85.0% — [[PLTR]] — Palantir Stock Slides 7% in a Single Day. Is This the Buying Opportunity Investors Have Been Waiting
-- [2026-04-24] **HOLD** 50.0% — [[PLTR]] — Palantir Technologies (PLTR): The Trillion-Dollar Contender Nobody Is Talking About
-- [2026-04-24] **BUY** 75.0% — [[HOOD]] — Prediction markets could soon be available in your retirement account
-- [2026-04-24] **BUY** 92.0% — [[PLTR]] — Why Palantir's Story Just Entered A New Phase
-- [2026-04-24] **HOLD** 50.0% — [[PLTR]] — Why Palantir Stock Is Slumping in 2026—and Why It Could Bounce Back
-- [2026-04-24] **SELL** 75.0% — [[HOOD]] — Wisconsin Sues Prediction Markets Over Sports Betting Contracts
-- [2026-04-23] **HOLD** 20.0% — [[PLTR]] — At what share price would you buy Palantir?
-- [2026-04-23] **BUY** 85.0% — [[CHKP]] — Check Point Software Earns 2026 Technology Innovation Leadership Recognition for Prevention‑first WA
+- [2026-04-29] **HOLD** 50.0% — [[PLTR]] — Exploring Three High Growth Tech Stocks In The US Market
+- [2026-04-29] **SELL** 72.0% — [[PLTR]] — Google Withdraws From $100 Million Pentagon Drone Swarm AI Challenge
+- [2026-04-29] **HOLD** 50.0% — [[PLTR]] — High Growth Tech Stocks To Watch In The US April 2026
+- [2026-04-29] **HOLD** 50.0% — [[PLTR]] — Nasdaq called higher ahead of Fed decision, Alphabet, Microsoft earnings
+- [2026-04-29] **HOLD** 60.0% — [[PLTR]] — Palantir looks better but something is holding it back
+- [2026-04-29] **BUY** 72.0% — [[PLTR]] — Palantir Technologies Q1 expectations buoyed by commercial acceleration, government contracts
+- [2026-04-29] **HOLD** 50.0% — [[PLTR]] — Startup Blockworks wants to become the crypto equivalent of Morningstar. How it plans to do it
+- [2026-04-29] **HOLD** 50.0% — [[PLTR]] — What's Going On With Nvidia Stock Today?
+- [2026-04-29] **HOLD** 50.0% — [[PLTR]] — Which S&P500 stocks are the most active on Wednesday?
+- [2026-04-29] **HOLD** 50.0% — [[MMS]] — Why Maximus (MMS) is a Great Dividend Stock Right Now
+- [2026-04-29] **HOLD** 50.0% — [[PLTR]] — Why Palantir Stock Is Sinking Today
+- [2026-04-28] **HOLD** 50.0% — [[PLTR]] — A 40% Margin Of Safety On Palantir, Plus 12% Yield As You Wait
+- [2026-04-28] **HOLD** 50.0% — [[PLTR]] — Are Wall Street Analysts Bullish on Palantir Technologies Stock?
+- [2026-04-28] **BUY** 82.0% — [[PLTR]] — Cleveland‑Cliffs Announces Multi-Year Partnership with Palantir to Deploy AI Platform
+- [2026-04-28] **BUY** 82.0% — [[PLTR]] — Cleveland‑Cliffs Signs 3-Year Agreement With Palantir; Financial Terms Not Disclosed
+- [2026-04-28] **HOLD** 50.0% — [[PLTR]] — Here is What to Know Beyond Why Palantir Technologies Inc. (PLTR) is a Trending Stock
+- [2026-04-28] **HOLD** 50.0% — [[PLTR]] — Palantir’s IRS Role Weighs On Privacy Concerns And Rich Valuation
+- [2026-04-28] **HOLD** 50.0% — [[PLTR]] — Palantir Stock Falls After Citi Trims Price Target
+- [2026-04-28] **HOLD** 50.0% — [[PLTR]] — Palantir Stock Is Down 20% This Year, but That Could All Change on May 4. Are You Ready?
+- [2026-04-28] **HOLD** 50.0% — [[PLTR]] — PLTR DD, 2026
+- [2026-04-28] **HOLD** 50.0% — [[PLTR]] — ReelTime’s Reel Intelligence “RI” Launches Worlds Most Advanced Image Generation System, Expanding I
+- [2026-04-28] **HOLD** 50.0% — [[PLTR]] — Stock Market Today: Nasdaq Sells Off On OpenAI Report; Broadcom, Micron, Nvidia Take A Tumble (Live 
+- [2026-04-28] **HOLD** 50.0% — [[PLTR]] — Tempted To Buy the SpaceX IPO? This Is The Smarter Stock To Buy
+- [2026-04-28] **HOLD** 50.0% — [[PLTR]] — US High Growth Tech Stocks To Watch Now
+- [2026-04-27] **BUY** 82.0% — [[PLTR]] — Anthropic Claude users stay the course at Defense Department

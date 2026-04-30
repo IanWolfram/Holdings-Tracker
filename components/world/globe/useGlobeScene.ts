@@ -9,8 +9,10 @@ import type {
 } from "@/components/world/globe/types";
 import {
   computeCountryGeoData,
+  findCountryAtLatLon,
   getCameraShiftX,
   latLonToVector3,
+  vector3ToLatLon,
   zoomForAngularRadius,
 } from "@/components/world/globe/math";
 import { applyCountryBuffers, applyStateBuffers } from "@/components/world/globe/buffers";
@@ -56,11 +58,8 @@ export function useGlobeScene({
   const stateGeoJSONCacheRef = useRef<GeoJSON | null>(null);
   const hqMarkersRef = useRef<HQMarkerState[]>([]);
   const markerInstancesRef = useRef<{
-    spheres: THREE.InstancedMesh;
     hitSpheres: THREE.InstancedMesh;
-    diamonds: THREE.InstancedMesh;
   } | null>(null);
-  const selectedMarkerRef = useRef<THREE.Mesh | null>(null);
   const countryGeoDataRef = useRef<Record<string, CountryGeoData>>({});
   const focusZoomRef = useRef<number>(1.45);
   const frameRef = useRef<number>(0);
@@ -79,6 +78,7 @@ export function useGlobeScene({
   const segmentToCountryRef = useRef<string[]>([]);
   const geoJSONCacheRef = useRef<GeoJSON | null>(null);
   const workerRef = useRef<Worker | null>(null);
+  const focusedTickerRef = useRef<string | null>(null);
   const [webglAvailable, setWebglAvailable] = useState<boolean>(true);
 
   useEffect(() => {
@@ -100,6 +100,10 @@ export function useGlobeScene({
   }, [isFocused]);
 
   useEffect(() => {
+    focusedTickerRef.current = focusedTicker ?? null;
+  }, [focusedTicker]);
+
+  useEffect(() => {
     if (!navigateTo) {
       return;
     }
@@ -118,51 +122,13 @@ export function useGlobeScene({
 
   useEffect(() => {
     const globeGroup = globeGroupRef.current;
-    if (!globeGroup) {
+    if (!globeGroup || !worldData) {
       return;
-    }
-
-    if (selectedMarkerRef.current) {
-      globeGroup.remove(selectedMarkerRef.current);
-      selectedMarkerRef.current.geometry.dispose();
-      (selectedMarkerRef.current.material as THREE.Material).dispose();
-      selectedMarkerRef.current = null;
     }
 
     for (const ms of hqMarkersRef.current) {
       ms.visible = true;
     }
-
-    if (!focusedTicker || !worldData) {
-      return;
-    }
-    const profile = worldData.profiles[focusedTicker];
-    if (!profile || profile.lat === undefined || profile.lon === undefined) {
-      return;
-    }
-
-    const ms = hqMarkersRef.current.find((m) => m.ticker === focusedTicker);
-    if (ms) {
-      ms.visible = false;
-    }
-
-    const radius = 0.016;
-    const geo = new THREE.OctahedronGeometry(radius, 0);
-    geo.applyMatrix4(new THREE.Matrix4().makeScale(1, 2.4, 1));
-    const diamond = new THREE.Mesh(
-      geo,
-      new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.88, side: THREE.DoubleSide })
-    );
-
-    const surfacePos = ms?.eastDir && ms.clusterPeers.length > 1
-      ? ms.basePos.clone().addScaledVector(ms.eastDir, ms.sepIndex * CLUSTER_HOVER_SEP)
-      : (ms?.basePos?.clone() ?? latLonToVector3(profile.lat, profile.lon, 1.018));
-    const outward = ms?.outward?.clone() ?? surfacePos.clone().normalize();
-    diamond.position.copy(surfacePos.clone().addScaledVector(outward, radius * 2.4));
-    diamond.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), outward);
-
-    globeGroup.add(diamond);
-    selectedMarkerRef.current = diamond;
   }, [focusedTicker, worldData]);
 
   useEffect(() => {
@@ -245,12 +211,12 @@ export function useGlobeScene({
       frameRef.current = requestAnimationFrame(animate);
       animateGlobe(
         globeGroup,
-        selectedMarkerRef.current,
         camera,
         scene,
         hqMarkersRef.current,
         markerInstancesRef.current,
         hoveredMarkerTickerRef.current,
+        focusedTickerRef.current,
         isFocusedRef.current,
         targetQuatRef.current,
         focusZoomRef.current,
@@ -346,7 +312,7 @@ export function useGlobeScene({
               localHitRef.current.clone().normalize(),
               new THREE.Vector3(0, 0, 1)
             );
-            focusZoomRef.current = 1.45;
+            focusZoomRef.current = 1.15;
             onFocusClickRef.current({ type: "stock", ticker: ms.ticker });
             markerHandled = true;
           }
@@ -369,18 +335,11 @@ export function useGlobeScene({
           _localRay.origin.copy(raycasterRef.current.ray.origin).applyMatrix4(_invMat);
           _localRay.direction.copy(raycasterRef.current.ray.direction).transformDirection(_invMat);
           if (_localRay.intersectSphere(_globeSphere, _sphereHit)) {
-            _sphereHit.normalize();
-            let bestDot = -1;
-            let bestCode: string | null = null;
-            for (const [entryCode, geoData] of Object.entries(countryGeoDataRef.current)) {
-              const dot = geoData.centroid.dot(_sphereHit);
-              if (dot > Math.cos(geoData.angularRadius * 1.1) && dot > bestDot) {
-                bestDot = dot;
-                bestCode = entryCode;
-              }
-            }
-            if (bestCode) {
-              focusCountry(bestCode, globeGroup.localToWorld(_sphereHit.clone()));
+            const { lat, lon } = vector3ToLatLon(_sphereHit);
+            const geoJSON = geoJSONCacheRef.current;
+            const code = geoJSON ? findCountryAtLatLon(lat, lon, geoJSON.features, countryGeoDataRef.current) : null;
+            if (code) {
+              focusCountry(code, globeGroup.localToWorld(_sphereHit.clone()));
             } else {
               onFocusClickRef.current(null);
             }
@@ -446,15 +405,9 @@ export function useGlobeScene({
         _localRay.origin.copy(raycasterRef.current.ray.origin).applyMatrix4(_invMat);
         _localRay.direction.copy(raycasterRef.current.ray.direction).transformDirection(_invMat);
         if (_localRay.intersectSphere(_globeSphere, _sphereHit)) {
-          _sphereHit.normalize();
-          let bestDot = -1;
-          for (const [entryCode, geoData] of Object.entries(countryGeoDataRef.current)) {
-            const dot = geoData.centroid.dot(_sphereHit);
-            if (dot > Math.cos(geoData.angularRadius * 1.1) && dot > bestDot) {
-              bestDot = dot;
-              code = entryCode;
-            }
-          }
+          const { lat, lon } = vector3ToLatLon(_sphereHit);
+          const geoJSON = geoJSONCacheRef.current;
+          code = geoJSON ? findCountryAtLatLon(lat, lon, geoJSON.features, countryGeoDataRef.current) : null;
         }
         if (code) {
           if (hoverClearTimerRef.current) {

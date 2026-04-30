@@ -17,9 +17,17 @@ export interface GeoJSON {
   features: GeoFeature[];
 }
 
+export interface CountryBBox {
+  minLat: number;
+  maxLat: number;
+  minLon: number;
+  maxLon: number;
+}
+
 export interface CountryGeoData {
   centroid: THREE.Vector3;
   angularRadius: number;
+  bbox: CountryBBox;
 }
 
 export interface HQMarkerState {
@@ -35,6 +43,8 @@ export interface HQMarkerState {
   sepIndex: number;
   clusterPeers: string[];
   separationT: number;
+  focusT: number;
+  spinAngle: number;
   visible: boolean;
   renderedVisible: boolean;
 }

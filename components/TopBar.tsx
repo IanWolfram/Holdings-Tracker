@@ -1,7 +1,18 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import AccountSummary from "@/components/layout/AccountSummary";
+import ConnectionControls from "@/components/layout/ConnectionControls";
+import TopBarDivider from "@/components/layout/TopBarDivider";
+import TopBarNavItem from "@/components/layout/TopBarNavItem";
+import { useCalibrationStatus } from "@/hooks/useCalibrationStatus";
+import { useCongressTrades } from "@/hooks/useCongressTrades";
+import { useMarketStatus } from "@/hooks/useMarketStatus";
+import {
+  MARKET_STATE_DOT,
+  MARKET_STATE_LABEL,
+} from "@/lib/marketHours";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 
 function SearchParamsWatcher({
   pathname,
@@ -25,16 +36,6 @@ function SearchParamsWatcher({
   }, [searchParams, pathname, router, setSuccessVisible]);
   return null;
 }
-import {
-  MARKET_STATE_LABEL,
-  MARKET_STATE_DOT,
-} from "@/lib/marketHours";
-import { useCongressTrades } from "@/hooks/useCongressTrades";
-import { useMarketStatus } from "@/hooks/useMarketStatus";
-import TopBarNavItem from "@/components/layout/TopBarNavItem";
-import TopBarDivider from "@/components/layout/TopBarDivider";
-import AccountSummary from "@/components/layout/AccountSummary";
-import ConnectionControls from "@/components/layout/ConnectionControls";
 
 interface Props {
   lastUpdated: Date | null;
@@ -68,6 +69,7 @@ export default function TopBar({
 
   const badgeCount = useCongressTrades(pathname);
   const market = useMarketStatus();
+  const calibration = useCalibrationStatus();
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
 
@@ -143,7 +145,7 @@ export default function TopBar({
         )}
 
         {/* ── Segmented market cluster ── */}
-        <div className="flex items-center rounded-md overflow-hidden bg-white/[0.03] border border-white/[0.07]">
+        <div className="flex items-center rounded-md overflow-hidden bg-white/[0.03] border border-white/[0.07] h-14">
           {/* State */}
           <div className="flex items-center gap-2 px-3 py-1.5">
             <span
@@ -164,10 +166,6 @@ export default function TopBar({
             <span className="font-mono text-[11px] font-bold text-white" suppressHydrationWarning>{market.countdown}</span>
           </div>
 
-          <div className="hidden md:block">
-            <TopBarDivider />
-          </div>
-
           <ConnectionControls
             successVisible={successVisible}
             isConnected={isConnected}
@@ -176,6 +174,8 @@ export default function TopBar({
             timeStr={timeStr}
             onRefresh={onRefresh}
             refreshing={refreshing}
+            calibratedAt={calibration.updatedAt}
+            calibrationResolved={calibration.totalResolved}
           />
         </div>
       </div>

@@ -17,6 +17,7 @@
     "backfill": "npx tsx scripts/backfill-calibration.ts",
     "world:graph": "npx tsx scripts/world-graph.ts",
     "backfill:news-catalysts": "npx tsx scripts/backfill-news-catalysts.ts",
+    "recalibrate": "npx tsx scripts/recalibrate.ts",
     "pm2:start": "pm2 start ecosystem.config.cjs",
     "pm2:stop": "pm2 stop pulse",
     "pm2:restart": "pm2 restart pulse",

@@ -126,6 +126,14 @@ export function dedupeStories(
 
   for (let i = 0; i < n; i++) {
     for (let j = i + 1; j < n; j++) {
+      const s1 = stories[i];
+      const s2 = stories[j];
+      
+      // Don't dedupe across major source types (e.g. don't merge a Reddit post into a Finnhub article)
+      const isSocial1 = s1.source === "reddit" || s1.source === "twitter";
+      const isSocial2 = s2.source === "reddit" || s2.source === "twitter";
+      if (isSocial1 !== isSocial2) continue;
+
       const sameUrl = urls[i] && urls[j] && urls[i] === urls[j];
       const sim = jaccard(tokens[i], tokens[j]);
       if (sameUrl || sim >= DUPLICATE_SIMILARITY_THRESHOLD) {
