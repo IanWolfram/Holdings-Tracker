@@ -23,7 +23,10 @@ let enrichmentLock: Promise<void> | null = null;
 // World-brain enrichment (geo-origin inference) runs async in background.
 // ---------------------------------------------------------------------------
 
-export async function getWorldData(positions: Position[]): Promise<WorldData> {
+export async function getWorldData(
+  positions: Position[],
+  opts?: { mock?: boolean }
+): Promise<WorldData> {
   if (worldCache && Date.now() < worldCache.expiresAt) return worldCache.data;
 
   if (positions.length === 0) {
@@ -87,7 +90,8 @@ export async function getWorldData(positions: Position[]): Promise<WorldData> {
   }
 
   // ── 3. Write individual story notes to Obsidian vault ────────────────────
-  if (WORLD_VAULT_PATH && allGeoStories.length > 0) {
+  // Never write vault artifacts from mock positions
+  if (WORLD_VAULT_PATH && allGeoStories.length > 0 && !opts?.mock) {
     const vaultPath = WORLD_VAULT_PATH;
     await Promise.all(
       allGeoStories.map((story) => {
@@ -160,7 +164,8 @@ export async function getWorldData(positions: Position[]): Promise<WorldData> {
   worldCache = { data, expiresAt: Date.now() + WORLD_CACHE_TTL_MS };
 
   // Write daily summary now that `data` is available
-  if (WORLD_VAULT_PATH && allGeoStories.length > 0) {
+  // Never write vault artifacts from mock positions
+  if (WORLD_VAULT_PATH && allGeoStories.length > 0 && !opts?.mock) {
     const today = new Date().toISOString().split("T")[0];
     writeDailySummary(today, allGeoStories, WORLD_VAULT_PATH, data);
   }

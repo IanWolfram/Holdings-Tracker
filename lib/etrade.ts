@@ -353,37 +353,37 @@ export async function getPositions(): Promise<Position[]> {
 // ---------------------------------------------------------------------------
 
 /** Returns mock data or live data depending on ETRADE_ENV.
- *  Falls back to mock data automatically if OAuth tokens are not yet set. */
-export async function getPositionsSafe(): Promise<Position[]> {
-  let positions: Position[] = [];
-
+ *  Falls back to mock data automatically if OAuth tokens are not yet set.
+ *  The `mock` flag indicates whether positions are synthetic — callers should
+ *  use it to avoid writing vault artifacts (daily summaries, story notes)
+ *  from fake data. */
+export async function getPositionsSafe(): Promise<{ positions: Position[]; mock: boolean }> {
   if (process.env.ETRADE_ENV === "mock") {
-    positions = MOCK_POSITIONS;
-  } else {
-    const hasTokens =
-      !!process.env.ETRADE_OAUTH_TOKEN && !!process.env.ETRADE_OAUTH_TOKEN_SECRET;
-    if (!hasTokens) {
-      console.warn(
-        "[etrade] OAuth tokens not set — returning mock data. Run `npm run etrade:auth` to authorize."
-      );
-      positions = MOCK_POSITIONS;
-    } else {
-      try {
-        return await getPositions();
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        const expired = msg.includes("401") || msg.includes("403");
-        console.warn(
-          expired
-            ? "[etrade] OAuth tokens expired — run `npm run etrade:auth` to refresh. Returning mock data."
-            : `[etrade] API error (${msg}) — returning mock data.`
-        );
-        positions = MOCK_POSITIONS;
-      }
-    }
+    return { positions: MOCK_POSITIONS, mock: true };
   }
 
-  return positions;
+  const hasTokens =
+    !!process.env.ETRADE_OAUTH_TOKEN && !!process.env.ETRADE_OAUTH_TOKEN_SECRET;
+  if (!hasTokens) {
+    console.warn(
+      "[etrade] OAuth tokens not set — returning mock data. Run `npm run etrade:auth` to authorize."
+    );
+    return { positions: MOCK_POSITIONS, mock: true };
+  }
+
+  try {
+    const positions = await getPositions();
+    return { positions, mock: false };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const expired = msg.includes("401") || msg.includes("403");
+    console.warn(
+      expired
+        ? "[etrade] OAuth tokens expired — run `npm run etrade:auth` to refresh. Returning mock data."
+        : `[etrade] API error (${msg}) — returning mock data.`
+    );
+    return { positions: MOCK_POSITIONS, mock: true };
+  }
 }
 
 /** Update .env.local with new tokens */

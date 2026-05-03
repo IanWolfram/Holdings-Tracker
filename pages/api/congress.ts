@@ -17,7 +17,7 @@ export default async function handler(
   }
 
   try {
-    const positions = await getPositionsSafe();
+    const { positions } = await getPositionsSafe();
     const tickers = positions.map(p => p.ticker);
     
     // getHotTrades will try Quiver first, then fallback to Finnhub Insiders for your portfolio

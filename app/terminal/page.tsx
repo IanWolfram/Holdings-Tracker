@@ -21,6 +21,8 @@ export default function Dashboard() {
     totalGainLoss,
     agentState,
     predictions,
+    analyzingTickers,
+    analyzeTicker,
     refresh,
   } = useDashboardData();
 
@@ -46,6 +48,8 @@ export default function Dashboard() {
           totalGainLoss={totalGainLoss}
           cashBalance={cashBalance}
           predictions={predictions}
+          analyzingTickers={analyzingTickers}
+          analyzeTicker={analyzeTicker}
         />
       </div>
       <div className="block md:hidden">

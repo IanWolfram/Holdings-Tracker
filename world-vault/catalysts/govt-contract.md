@@ -18,6 +18,16 @@ Recent stories tagged with this catalyst: 25
 Verdict mix: 4 BUY / 1 SELL / 20 HOLD
 
 ## Recent Stories
+- [2026-04-30] **HOLD** 50.0% — [[HOOD]] — 'Don't Listen To The Experts,' Says Youngest Self-Made Female Billionaire: Here's How She Built Pred
+- [2026-04-30] **HOLD** 50.0% — [[PLTR]] — Bloom Energy and KB Home have been highlighted as Zacks Bull and Bear of the Day
+- [2026-04-30] **BUY** 88.0% — [[CHKP]] — Check Point Infinity Platform for Government Achieves GovRAMP Authorization
+- [2026-04-30] **HOLD** 50.0% — [[PLTR]] — General Dynamics Fights Through Wartime Slump
+- [2026-04-30] **BUY** 65.0% — [[PLTR]] — Here Are Thursday’s Top Wall Street Analyst Research Calls: AbbVie, Equinix, GE Healthcare, Kratos D
+- [2026-04-30] **HOLD** 50.0% — [[PLTR]] — High Growth Tech Stocks in the US Market to Watch
+- [2026-04-30] **HOLD** 50.0% — [[PLTR]] — Meta downgraded, Qualcomm upgraded: Wall Street's top analyst calls
+- [2026-04-30] **HOLD** 50.0% — [[PLTR]] — Microsoft Q3 Earnings Call Highlights
+- [2026-04-30] **HOLD** 50.0% — [[PLTR]] — Sergey Brin, Who Fled The Soviet Union, Now Warns California Could Head The Same Way As He Spends $5
+- [2026-04-29] **HOLD** 50.0% — [[PLTR]] — Alphabet Q1 Earnings Call Highlights
 - [2026-04-29] **HOLD** 50.0% — [[PLTR]] — Exploring Three High Growth Tech Stocks In The US Market
 - [2026-04-29] **SELL** 72.0% — [[PLTR]] — Google Withdraws From $100 Million Pentagon Drone Swarm AI Challenge
 - [2026-04-29] **HOLD** 50.0% — [[PLTR]] — High Growth Tech Stocks To Watch In The US April 2026
@@ -29,17 +39,7 @@ Verdict mix: 4 BUY / 1 SELL / 20 HOLD
 - [2026-04-29] **HOLD** 50.0% — [[PLTR]] — Which S&P500 stocks are the most active on Wednesday?
 - [2026-04-29] **HOLD** 50.0% — [[MMS]] — Why Maximus (MMS) is a Great Dividend Stock Right Now
 - [2026-04-29] **HOLD** 50.0% — [[PLTR]] — Why Palantir Stock Is Sinking Today
+- [2026-04-29] **HOLD** 50.0% — [[PLTR]] — Why Palantir Technologies Inc. (PLTR) Dipped More Than Broader Market Today
 - [2026-04-28] **HOLD** 50.0% — [[PLTR]] — A 40% Margin Of Safety On Palantir, Plus 12% Yield As You Wait
 - [2026-04-28] **HOLD** 50.0% — [[PLTR]] — Are Wall Street Analysts Bullish on Palantir Technologies Stock?
 - [2026-04-28] **BUY** 82.0% — [[PLTR]] — Cleveland‑Cliffs Announces Multi-Year Partnership with Palantir to Deploy AI Platform
-- [2026-04-28] **BUY** 82.0% — [[PLTR]] — Cleveland‑Cliffs Signs 3-Year Agreement With Palantir; Financial Terms Not Disclosed
-- [2026-04-28] **HOLD** 50.0% — [[PLTR]] — Here is What to Know Beyond Why Palantir Technologies Inc. (PLTR) is a Trending Stock
-- [2026-04-28] **HOLD** 50.0% — [[PLTR]] — Palantir’s IRS Role Weighs On Privacy Concerns And Rich Valuation
-- [2026-04-28] **HOLD** 50.0% — [[PLTR]] — Palantir Stock Falls After Citi Trims Price Target
-- [2026-04-28] **HOLD** 50.0% — [[PLTR]] — Palantir Stock Is Down 20% This Year, but That Could All Change on May 4. Are You Ready?
-- [2026-04-28] **HOLD** 50.0% — [[PLTR]] — PLTR DD, 2026
-- [2026-04-28] **HOLD** 50.0% — [[PLTR]] — ReelTime’s Reel Intelligence “RI” Launches Worlds Most Advanced Image Generation System, Expanding I
-- [2026-04-28] **HOLD** 50.0% — [[PLTR]] — Stock Market Today: Nasdaq Sells Off On OpenAI Report; Broadcom, Micron, Nvidia Take A Tumble (Live 
-- [2026-04-28] **HOLD** 50.0% — [[PLTR]] — Tempted To Buy the SpaceX IPO? This Is The Smarter Stock To Buy
-- [2026-04-28] **HOLD** 50.0% — [[PLTR]] — US High Growth Tech Stocks To Watch Now
-- [2026-04-27] **BUY** 82.0% — [[PLTR]] — Anthropic Claude users stay the course at Defense Department

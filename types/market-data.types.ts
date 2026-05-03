@@ -15,13 +15,13 @@ export interface QuoteData {
   dayHigh: number;
   dayLow: number;
   previousClose: number;
-  source: "yahoo" | "finnhub" | "alphavantage";
+  source: "yahoo" | "finnhub";
   fetchedAt: number;
 }
 
 export interface HistoryData {
   ticker: string;
   closes: number[];
-  source: "yahoo" | "finnhub" | "polygon" | "alphavantage";
+  source: "yahoo" | "finnhub" | "polygon";
   fetchedAt: number;
 }

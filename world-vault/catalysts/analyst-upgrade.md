@@ -4,7 +4,7 @@ name: "analyst-upgrade"
 n: 0
 winRate: 0.0000
 avgConfidence: 0.0000
-newsCount: 16
+newsCount: 25
 tags:
   - catalyst
   - graph
@@ -14,10 +14,19 @@ tags:
 # Catalyst — analyst-upgrade
 
 Win rate: insufficient resolved predictions yet.
-Recent stories tagged with this catalyst: 16
-Verdict mix: 11 BUY / 0 SELL / 5 HOLD
+Recent stories tagged with this catalyst: 25
+Verdict mix: 16 BUY / 0 SELL / 9 HOLD
 
 ## Recent Stories
+- [2026-04-30] **HOLD** 65.0% — [[VKTX]] — Cantor Fitzgerald Maintains Overweight on Viking Therapeutics, Lowers Price Target to $100
+- [2026-04-30] **BUY** 65.0% — [[PLTR]] — Here Are Thursday’s Top Wall Street Analyst Research Calls: AbbVie, Equinix, GE Healthcare, Kratos D
+- [2026-04-30] **HOLD** 50.0% — [[PLTR]] — Meta downgraded, Qualcomm upgraded: Wall Street's top analyst calls
+- [2026-04-30] **HOLD** 50.0% — [[HOOD]] — Oppenheimer Highlights AWS as Key Growth Engine for Amazon.com, Inc. (AMZN)
+- [2026-04-30] **BUY** 65.0% — [[PLTR]] — Oppenheimer Initiates Palantir Stock At Outperform With Q1 Earnings Due
+- [2026-04-30] **BUY** 72.0% — [[PLTR]] — Oppenheimer Initiates Palantir With Outperform and $200 Price Target: Is the AI Application Leader W
+- [2026-04-30] **BUY** 65.0% — [[PLTR]] — Palantir Gets Bullish Call Ahead of Earnings. Oppenheimer Sees 40% Upside
+- [2026-04-30] **BUY** 65.0% — [[PLTR]] — Palantir Stock Gets a Fresh Buy Rating. Earnings Will Show Whether AI Growth Is Real.
+- [2026-04-30] **HOLD** 50.0% — [[HOOD]] — UBS Highlights Generative AI as Key Revenue Driver for Meta Platforms, Inc. (META)
 - [2026-04-29] **HOLD** 65.0% — [[HOOD]] — Barclays Cuts Robinhood Price Target to $82: Is the Crypto Drag Worth the Worry?
 - [2026-04-29] **BUY** 65.0% — [[PLTR]] — Palantir Has Become A Buy Ahead Of Earnings (Preview, Upgrade)
 - [2026-04-29] **BUY** 72.0% — [[PLTR]] — Palantir Technologies Q1 expectations buoyed by commercial acceleration, government contracts

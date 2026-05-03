@@ -32,25 +32,28 @@ export class PortfolioService {
     this.cache.delete("positions");
   }
 
-  /** Returns positions with 5-min caching and automatic mock fallback. */
-  async getPositionsSafe(forceRefresh = false): Promise<Position[]> {
+  /** Returns positions with 5-min caching and automatic mock fallback.
+   *  The `mock` flag indicates whether positions are synthetic — callers should
+   *  use it to avoid writing vault artifacts from fake data. */
+  async getPositionsSafe(forceRefresh = false): Promise<{ positions: Position[]; mock: boolean }> {
     if (forceRefresh) {
       this.clearCache();
     }
 
     if (this.cfg.etradeEnv === "mock") {
-      return MOCK_POSITIONS;
+      return { positions: MOCK_POSITIONS, mock: true };
     }
 
     if (!this.cfg.hasOAuthTokens) {
       console.warn(
         "[etrade] OAuth tokens not set — returning mock data. Run `npm run etrade:auth` to authorize."
       );
-      return MOCK_POSITIONS;
+      return { positions: MOCK_POSITIONS, mock: true };
     }
 
     try {
-      return await this.fetchLive();
+      const positions = await this.fetchLive();
+      return { positions, mock: false };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       const expired = msg.includes("401") || msg.includes("403");
@@ -59,7 +62,7 @@ export class PortfolioService {
           ? "[etrade] OAuth tokens expired — run `npm run etrade:auth` to refresh. Returning mock data."
           : `[etrade] API error (${msg}) — returning mock data.`
       );
-      return MOCK_POSITIONS;
+      return { positions: MOCK_POSITIONS, mock: true };
     }
   }
 }

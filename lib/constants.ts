@@ -5,7 +5,7 @@
 import path from "path";
 
 // Timeouts and Intervals
-export const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+export const POLL_INTERVAL_MS = 30 * 1000; // 30 seconds
 export const NEWS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 export const ACCOUNT_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 export const WORLD_CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes

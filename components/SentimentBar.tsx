@@ -15,6 +15,8 @@ interface Props {
   showHeader?: boolean;
   label?: string;
   compact?: boolean;
+  onAnalyze?: () => void;
+  isAnalyzing?: boolean;
 }
 
 function verdictFrom(buy: number, sell: number, hold: number): SentimentDirection {
@@ -38,6 +40,8 @@ export default function SentimentBar({
   showHeader = true,
   label = "AI Conviction",
   compact = false,
+  onAnalyze,
+  isAnalyzing,
 }: Props) {
   const total = buy + hold + sell;
   const safe = total || 1;
@@ -106,19 +110,34 @@ export default function SentimentBar({
                 : "text-[9px] tracking-[0.18em] gap-1.5"
             }`}
           >
-            <span
-              className={`material-symbols-outlined ${compact ? "text-[11px]" : "text-[12px]"}`}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAnalyze?.();
+              }}
+              disabled={isAnalyzing}
+              aria-label={isAnalyzing ? "Analyzing stories..." : "Analyze stories"}
+              tabIndex={0}
+              className={`material-symbols-outlined ${compact ? "text-[11px]" : "text-[12px]"} ${
+                isAnalyzing
+                  ? "animate-pulse"
+                  : onAnalyze
+                    ? "cursor-pointer hover:scale-110 transition-transform"
+                    : ""
+              }`}
               style={{
-                color:
-                  verdict === "bull"
+                color: isAnalyzing
+                  ? "rgba(0, 255, 136, 0.9)"
+                  : verdict === "bull"
                     ? "rgba(34, 197, 94, 0.8)"
                     : verdict === "bear"
-                    ? "rgba(239, 68, 68, 0.8)"
-                    : undefined,
+                      ? "rgba(239, 68, 68, 0.8)"
+                      : undefined,
               }}
             >
               neurology
-            </span>
+            </button>
             {compact ? (
               <span>
                 {label}

@@ -1,6 +1,5 @@
 import { getQuote as getCoreQuote } from "../market-data";
 import { fetchOHLCPolygon } from "../polygon";
-import { fetchWithAlphaVantageRateLimit } from "./alphavantage-limiter";
 
 const QUOTE_CACHE_TTL_MS = 60 * 1000;
 const BARS_CACHE_TTL_MS = 60 * 60 * 1000;
@@ -286,39 +285,6 @@ async function fetchPolygonDailyBars(ticker: string, days: number): Promise<Dail
   return dedupeAndSortBars(bars);
 }
 
-async function fetchAlphaVantageDailyBars(ticker: string, days: number): Promise<DailyBar[]> {
-  const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
-  if (!apiKey) throw new Error("ALPHA_VANTAGE_API_KEY is not set");
-
-  const outputsize = days > 100 ? "full" : "compact";
-  const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${encodeURIComponent(ticker)}&outputsize=${outputsize}&apikey=${apiKey}`;
-
-  const json = await fetchWithAlphaVantageRateLimit(url).catch((err) => {
-    throw err;
-  });
-
-  const ts = json["Time Series (Daily)"];
-  if (!ts) throw new Error(`No Alpha Vantage bars for ${ticker}`);
-
-  const bars: DailyBar[] = [];
-  for (const date in ts) {
-    const data = ts[date];
-    bars.push({
-      date,
-      open: parseFloat(data["1. open"]),
-      high: parseFloat(data["2. high"]),
-      low: parseFloat(data["3. low"]),
-      close: parseFloat(data["4. close"]),
-      volume: parseFloat(data["5. volume"]),
-    });
-  }
-
-  if (bars.length === 0) {
-    throw new Error(`No Alpha Vantage bars for ${ticker}`);
-  }
-
-  return dedupeAndSortBars(bars);
-}
 
 async function fetchBarsFromSource(ticker: string, days: number): Promise<DailyBar[]> {
   let firstErr: Error | null = null;
@@ -333,13 +299,6 @@ async function fetchBarsFromSource(ticker: string, days: number): Promise<DailyB
   // Secondary: Finnhub (60 calls/min free)
   try {
     return await fetchFinnhubDailyBars(ticker, days);
-  } catch (err) {
-    if (!firstErr) firstErr = err as Error;
-  }
-
-  // Tertiary: Alpha Vantage (Extremely limited: 25 calls/day free)
-  try {
-    return await fetchAlphaVantageDailyBars(ticker, days);
   } catch (err) {
     if (!firstErr) firstErr = err as Error;
   }

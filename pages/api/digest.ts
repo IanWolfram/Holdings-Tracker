@@ -14,7 +14,7 @@ export default async function handler(
 
   // Trigger full portfolio digest
   try {
-    const positions = await getPositionsSafe();
+    const { positions } = await getPositionsSafe();
     const tickers = positions.map((p) => p.ticker);
 
     const allNews = await Promise.all(tickers.map((t) => getNewsForTicker(t)));

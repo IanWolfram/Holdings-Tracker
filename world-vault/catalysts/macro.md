@@ -4,7 +4,7 @@ name: "macro"
 n: 0
 winRate: 0.0000
 avgConfidence: 0.0000
-newsCount: 16
+newsCount: 18
 tags:
   - catalyst
   - graph
@@ -14,10 +14,12 @@ tags:
 # Catalyst — macro
 
 Win rate: insufficient resolved predictions yet.
-Recent stories tagged with this catalyst: 16
-Verdict mix: 0 BUY / 2 SELL / 14 HOLD
+Recent stories tagged with this catalyst: 18
+Verdict mix: 1 BUY / 2 SELL / 15 HOLD
 
 ## Recent Stories
+- [2026-04-30] **HOLD** 50.0% — [[PLTR]] — Bloom Energy and KB Home have been highlighted as Zacks Bull and Bear of the Day
+- [2026-04-30] **BUY** 65.0% — [[PLTR]] — Here Are Thursday’s Top Wall Street Analyst Research Calls: AbbVie, Equinix, GE Healthcare, Kratos D
 - [2026-04-29] **SELL** 88.0% — [[HOOD]] — 29 APRIL 2026 , WHAT  ARE THE BIGGEST LOSERS TODAY AND WHY ?
 - [2026-04-29] **HOLD** 50.0% — [[PLTR]] — Nasdaq called higher ahead of Fed decision, Alphabet, Microsoft earnings
 - [2026-04-29] **HOLD** 50.0% — [[HOOD]] — Oil Surges 6%, S&P 500 Wobbles Before Fed And Tech Earnings: Stock Market Today

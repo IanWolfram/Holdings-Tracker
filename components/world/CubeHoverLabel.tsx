@@ -9,7 +9,7 @@ interface Props {
   focusedTicker?: string | null;
 }
 
-export default function MarkerHoverLabel({ hoveredTicker, profile, focusedTicker }: Props) {
+export default function CubeHoverLabel({ hoveredTicker, profile, focusedTicker }: Props) {
   const lastTickerRef = useRef<string | null>(null);
 
   const activeTicker = hoveredTicker ?? focusedTicker;

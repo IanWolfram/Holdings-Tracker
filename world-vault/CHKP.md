@@ -1,5 +1,5 @@
 ---
-date: "2026-04-29"
+date: "2026-04-30"
 type: ticker-knowledge
 ticker: CHKP
 sector: Tech
@@ -8,6 +8,6 @@ generated: true
 
 # CHKP — Learned Patterns
 
-When CHKP receives independent third-party validation of product leadership, such as Frost & Sullivan innovation awards or Miercom #1 rankings, BUY signals consistently exceed 85% confidence. Partnership announcements with major cloud providers like Google Cloud for AI security integration also trigger high-confidence BUY signals at 88% confidence. Analyst rating actions produce moderate BUY signals around 82% confidence when maintaining Buy ratings, while neutral or downgrade actions generate HOLD signals at 20-65% confidence, never triggering SELL signals. Sector-wide software pullbacks without company-specific catalysts produce only HOLD signals below 30% confidence, indicating CHKP is resilient to broad tech sentiment shifts. The ticker shows no reliable SELL signal triggers in the observed data, as negative analyst actions and sector headwinds only produce HOLD signals.
+When CHKP reports a quarterly earnings beat with double-digit profit growth and subscription revenue acceleration while trading at a P/E below 12 and more than 40% off its 52-week high, BUY signals consistently reach 0.85-0.92 confidence. Government authorization catalysts like GovRAMP and strategic cloud partnerships with Google Cloud for AI security also generate BUY signals at 0.82-0.88 confidence. SELL signals are triggered by revenue misses that overshadow EPS beats, with confidence reaching 0.85, and by severe technical breakdowns showing a 17% single-day drop and RSI below 28, which produce SELL signals at 0.72 confidence. Sector-wide software pullbacks and analyst neutral ratings with price target cuts produce only HOLD signals at 0.20-0.65 confidence, never SELL, indicating that macro headwinds alone are insufficient to trigger a sell for this ticker. Analyst upgrades and institutional price target adjustments typically score 0.82-0.85 confidence, while pre-earnings speculation caps at 0.65 confidence regardless of valuation.
 
-_Last updated: 2026-04-29_
+_Last updated: 2026-04-30_

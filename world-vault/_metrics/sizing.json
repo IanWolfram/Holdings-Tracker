@@ -1,30 +1,30 @@
 {
-  "updatedAt": "2026-04-29T20:58:35.068Z",
+  "updatedAt": "2026-04-30T18:45:49.554Z",
   "entries": {
     "CHKP": {
       "ticker": "CHKP",
       "base": 0.1667,
       "directionConfidence": 0.72,
       "historicalAccuracy": 0.5,
-      "portfolioCorrelation": 0.2995,
-      "suggestedAllocation": 0.042,
-      "rationale": "UP 4.5% @ 72% conf, 50% historical accuracy, mean |corr| 0.30"
+      "portfolioCorrelation": 0.2817,
+      "suggestedAllocation": 0.0431,
+      "rationale": "UP 4.5% @ 72% conf, 50% historical accuracy, mean |corr| 0.28"
     },
     "PLTR": {
       "ticker": "PLTR",
       "base": 0.1667,
       "directionConfidence": 0.72,
       "historicalAccuracy": 0.5,
-      "portfolioCorrelation": 0.5096,
-      "suggestedAllocation": 0.0294,
-      "rationale": "UP 4.5% @ 72% conf, 50% historical accuracy, mean |corr| 0.51"
+      "portfolioCorrelation": 0.4956,
+      "suggestedAllocation": 0.0303,
+      "rationale": "UP 4.5% @ 72% conf, 50% historical accuracy, mean |corr| 0.50"
     },
     "MMS": {
       "ticker": "MMS",
       "base": 0.1667,
       "directionConfidence": 0,
       "historicalAccuracy": 0.5,
-      "portfolioCorrelation": 0.2465,
+      "portfolioCorrelation": 0.2195,
       "suggestedAllocation": 0,
       "rationale": "no directional 7d prediction available — sizing collapses to 0"
     },
@@ -33,25 +33,25 @@
       "base": 0.1667,
       "directionConfidence": 0.78,
       "historicalAccuracy": 0.5,
-      "portfolioCorrelation": 0.4781,
-      "suggestedAllocation": 0.0339,
-      "rationale": "UP 6.5% @ 78% conf, 50% historical accuracy, mean |corr| 0.48"
+      "portfolioCorrelation": 0.4549,
+      "suggestedAllocation": 0.0354,
+      "rationale": "UP 6.5% @ 78% conf, 50% historical accuracy, mean |corr| 0.45"
     },
     "HOOD": {
       "ticker": "HOOD",
       "base": 0.1667,
       "directionConfidence": 0.78,
       "historicalAccuracy": 0.5,
-      "portfolioCorrelation": 0.459,
-      "suggestedAllocation": 0.0352,
-      "rationale": "DOWN 6.5% @ 78% conf, 50% historical accuracy, mean |corr| 0.46"
+      "portfolioCorrelation": 0.399,
+      "suggestedAllocation": 0.0391,
+      "rationale": "DOWN 6.5% @ 78% conf, 50% historical accuracy, mean |corr| 0.40"
     },
     "VKTX": {
       "ticker": "VKTX",
       "base": 0.1667,
       "directionConfidence": 0,
       "historicalAccuracy": 0.5,
-      "portfolioCorrelation": 0.2955,
+      "portfolioCorrelation": 0.3002,
       "suggestedAllocation": 0,
       "rationale": "no directional 7d prediction available — sizing collapses to 0"
     }

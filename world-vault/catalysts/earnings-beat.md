@@ -4,7 +4,7 @@ name: "earnings-beat"
 n: 0
 winRate: 0.0000
 avgConfidence: 0.0000
-newsCount: 4
+newsCount: 7
 tags:
   - catalyst
   - graph
@@ -14,10 +14,13 @@ tags:
 # Catalyst — earnings-beat
 
 Win rate: insufficient resolved predictions yet.
-Recent stories tagged with this catalyst: 4
-Verdict mix: 1 BUY / 1 SELL / 2 HOLD
+Recent stories tagged with this catalyst: 7
+Verdict mix: 3 BUY / 1 SELL / 3 HOLD
 
 ## Recent Stories
+- [2026-04-30] **BUY** 92.0% — [[CHKP]] — Cyber security firm Check Point Software first-quarter profit beats estimates
+- [2026-04-30] **HOLD** 50.0% — [[PLTR]] — General Dynamics Fights Through Wartime Slump
+- [2026-04-30] **BUY** 92.0% — [[CHKP]] — Transcript : Check Point Software Technologies Ltd., Q1 2026 Earnings Call, Apr 30, 2026
 - [2026-04-29] **HOLD** 50.0% — [[MDB]] — MongoDB: Strong Platform, Uncertain Inflection, Watching The Transition
 - [2026-04-29] **SELL** 72.0% — [[HOOD]] — Robinhood Shares Drop 6.9% As Expenses Jump 18%, Flags $100 Million Investment
 - [2026-04-28] **BUY** 88.0% — [[HOOD]] — Robinhood Reports First Quarter 2026 Results

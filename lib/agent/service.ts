@@ -76,6 +76,23 @@ export interface AgentRunResult {
 let currentProgress: AgentProgress = { status: "idle" };
 let isCancelled = false;
 
+// Per-ticker analysis state — allows concurrent runs on different tickers
+export interface TickerAnalysisProgress {
+  ticker: string;
+  status: "idle" | "running" | "complete" | "error";
+  articleIndex: number;
+  totalArticles: number;
+  currentHeadline?: string;
+  message?: string;
+  results?: TickerResult;
+}
+
+const tickerAnalysisMap = new Map<string, TickerAnalysisProgress>();
+
+export function getTickerAnalysisProgress(ticker: string): TickerAnalysisProgress | undefined {
+  return tickerAnalysisMap.get(ticker);
+}
+
 export function getAgentProgress(): AgentProgress {
   return currentProgress;
 }
@@ -84,6 +101,193 @@ export function cancelStockAgent(): void {
   if (currentProgress.status === "running") {
     isCancelled = true;
     currentProgress = { status: "idle", message: "Agent run cancelled." };
+  }
+}
+
+export async function runTickerAnalysis(ticker: string): Promise<TickerResult> {
+  const upperTicker = ticker.toUpperCase();
+
+  // Reject if same ticker is already being analyzed
+  const existing = tickerAnalysisMap.get(upperTicker);
+  if (existing && existing.status === "running") {
+    throw new Error(`Already analyzing ${upperTicker}`);
+  }
+
+  // Reject if the full sweep is currently on this ticker
+  if (currentProgress.status === "running" && currentProgress.ticker === upperTicker) {
+    throw new Error(`Full agent sweep is currently analyzing ${upperTicker}`);
+  }
+
+  // Ensure MLX is available
+  await ensureMlxServer();
+
+  tickerAnalysisMap.set(upperTicker, {
+    ticker: upperTicker,
+    status: "running",
+    articleIndex: 0,
+    totalArticles: 0,
+    message: `Fetching news for ${upperTicker}...`,
+  });
+
+  try {
+    // Fetch stories via the same NewsService the dashboard uses
+    const articles = await getServices().newsService.getNewsForTicker(upperTicker);
+    const top = articles.filter((a) => a.isAnalyzed !== true).slice(0, 10);
+
+    tickerAnalysisMap.set(upperTicker, {
+      ...tickerAnalysisMap.get(upperTicker)!,
+      totalArticles: top.length,
+      message: top.length === 0 ? "No unanalyzed stories found." : `Analyzing ${top.length} stories...`,
+    });
+
+    // Get holding context for cross-portfolio reasoning
+    const positions = await getPositions().catch(() => []);
+    const holdingTickers = positions.map((p) => p.ticker);
+    const holdingSectors = [
+      ...new Set(
+        (
+          await Promise.all(
+            holdingTickers.slice(0, 10).map(async (t) => {
+              const prof = await fetchCompanyProfile(t).catch(() => null);
+              return prof?.sector;
+            })
+          )
+        ).filter((s): s is string => Boolean(s))
+      ),
+    ];
+
+    // Load per-ticker vault context
+    let tickerContext: string | undefined;
+    let recentVerdicts: Array<{ headline: string; verdict: string; confidence: number; reason: string }> | undefined;
+    if (WORLD_VAULT_PATH) {
+      const resolvedVault = resolveVaultPath(WORLD_VAULT_PATH)!;
+      try {
+        const raw = fs.readFileSync(path.join(resolvedVault, `${upperTicker}.md`), "utf-8");
+        const body = raw.match(/^---[\s\S]*?---\s*([\s\S]*)$/)?.[1]?.trim() ?? "";
+        const prose = body.replace(/^#.*\n/, "").trim();
+        if (prose) tickerContext = prose.slice(0, 600);
+      } catch { /* vault stub missing */ }
+
+      const stories = getRecentVaultStories(upperTicker, WORLD_VAULT_PATH, 3);
+      if (stories.length > 0) recentVerdicts = stories;
+    }
+
+    // Fetch macro context
+    let macroSnapshot: MacroSnapshot | null = null;
+    try { macroSnapshot = await getMacroSnapshot(); } catch { macroSnapshot = null; }
+
+    // Fetch ticker market quote for tickerState context
+    let tickerQuote: Awaited<ReturnType<typeof getMarketQuote>> | null = null;
+    try { tickerQuote = await getMarketQuote(upperTicker); } catch { tickerQuote = null; }
+
+    const verdicts: TickerResult["verdicts"] = [];
+
+    for (let i = 0; i < top.length; i++) {
+      const article = top[i];
+
+      tickerAnalysisMap.set(upperTicker, {
+        ...tickerAnalysisMap.get(upperTicker)!,
+        articleIndex: i + 1,
+        currentHeadline: article.headline,
+        message: `Analyzing: ${article.headline.slice(0, 40)}...`,
+      });
+
+      const analysis = await analyzeStory(
+        upperTicker,
+        article.headline,
+        article.summary ?? "",
+        holdingTickers,
+        holdingSectors,
+        undefined, // no streaming for per-ticker runs
+        tickerContext,
+        recentVerdicts,
+        {
+          macro: macroSnapshot
+            ? {
+                vix: macroSnapshot.vix,
+                tenY: macroSnapshot.tenY,
+                dxy: macroSnapshot.dxy,
+                regime: macroSnapshot.regime,
+                summary: macroSnapshot.summary,
+              }
+            : undefined,
+          tickerState: tickerQuote
+            ? {
+                price: tickerQuote.price,
+                change1d: tickerQuote.change1d,
+                change5d: tickerQuote.change5d,
+                change30d: tickerQuote.change30d,
+                return52wHigh: tickerQuote.return52wHigh,
+                rsi14: tickerQuote.rsi14,
+                atr14: tickerQuote.atr14,
+              }
+            : undefined,
+        },
+      );
+
+      const catalystTypes = classifyCatalystTypes({
+        headline: article.headline,
+        summary: article.summary ?? "",
+        reason: analysis.reason,
+        verdict: analysis.verdict,
+      });
+
+      verdicts.push({
+        verdict: analysis.verdict,
+        headline: article.headline,
+        url: article.url,
+        analysis,
+      });
+
+      // Patch cache and write to vault
+      if (WORLD_VAULT_PATH) {
+        const profile = await fetchCompanyProfile(upperTicker).catch(() => null);
+        const geoStory: GeoStory = {
+          ticker: upperTicker,
+          headline: article.headline,
+          summary: article.summary ?? "",
+          url: article.url,
+          datetime: article.datetime,
+          verdict: analysis.verdict,
+          confidence: analysis.confidence,
+          reason: analysis.reason,
+          source: article.source,
+          originCountryCode: analysis.originCountryCode ?? profile?.countryCode,
+          relevanceScore: analysis.relevanceScore,
+          isAnalyzed: Boolean(analysis.reason),
+          catalystTypes,
+        };
+        writeStoryNote(geoStory, WORLD_VAULT_PATH, profile?.sector);
+      }
+
+      getServices().newsService.patchCachedStory(upperTicker, article.url, {
+        verdict: analysis.verdict as ClassifiedStory["verdict"],
+        confidence: analysis.confidence,
+        reason: analysis.reason ?? undefined,
+        catalystTypes,
+        isAnalyzed: true,
+        classifiedAt: new Date().toISOString(),
+      });
+    }
+
+    const result: TickerResult = { ticker: upperTicker, verdicts };
+    tickerAnalysisMap.set(upperTicker, {
+      ...tickerAnalysisMap.get(upperTicker)!,
+      status: "complete",
+      results: result,
+      message: "Analysis complete.",
+    });
+
+    console.log(`\x1b[32m[agent] Per-ticker analysis complete for ${upperTicker}: ${verdicts.length} stories analyzed.\x1b[0m`);
+    return result;
+  } catch (err) {
+    console.error(`\x1b[31m[agent] Per-ticker analysis failed for ${upperTicker}:\x1b[0m`, err);
+    tickerAnalysisMap.set(upperTicker, {
+      ...tickerAnalysisMap.get(upperTicker)!,
+      status: "error",
+      message: (err as Error).message,
+    });
+    throw err;
   }
 }
 

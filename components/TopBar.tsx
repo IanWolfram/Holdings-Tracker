@@ -1,5 +1,7 @@
 "use client";
 
+import AccountIconDiv from "@/components/layout/AccountIconDiv";
+import AccountPanel from "@/components/layout/AccountPanel";
 import AccountSummary from "@/components/layout/AccountSummary";
 import ConnectionControls from "@/components/layout/ConnectionControls";
 import TopBarDivider from "@/components/layout/TopBarDivider";
@@ -11,6 +13,7 @@ import {
   MARKET_STATE_DOT,
   MARKET_STATE_LABEL,
 } from "@/lib/marketHours";
+import { AnimatePresence, motion } from "framer-motion";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
@@ -72,6 +75,7 @@ export default function TopBar({
   const calibration = useCalibrationStatus();
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [accountPanelOpen, setAccountPanelOpen] = useState(false);
 
   const isTerminal = pathname === "/terminal" || pathname === "/";
   const isWorld = pathname === "/world";
@@ -106,6 +110,7 @@ export default function TopBar({
   }, [isConnecting]);
 
   return (
+    <>
     <header className="bg-[#1e2023] border-b border-white/5 sticky top-0 z-50">
       <Suspense fallback={null}>
         <SearchParamsWatcher pathname={pathname} setSuccessVisible={setSuccessVisible} />
@@ -144,7 +149,8 @@ export default function TopBar({
           />
         )}
 
-        {/* ── Segmented market cluster ── */}
+        {/* ── Segmented market cluster + Account icon ── */}
+        <div className="flex items-center gap-1.5">
         <div className="flex items-center rounded-md overflow-hidden bg-white/[0.03] border border-white/[0.07] h-14">
           {/* State */}
           <div className="flex items-center gap-2 px-3 py-1.5">
@@ -178,7 +184,41 @@ export default function TopBar({
             calibrationResolved={calibration.totalResolved}
           />
         </div>
+        <AccountIconDiv onClick={() => setAccountPanelOpen(true)} isOpen={accountPanelOpen} />
+        </div>
       </div>
+
     </header>
+
+    <AnimatePresence>
+      {accountPanelOpen && (
+        <>
+          <motion.div
+            key="account-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 55,
+              background: "rgba(0,0,0,0.5)",
+              backdropFilter: "blur(4px)",
+              WebkitBackdropFilter: "blur(4px)",
+            }}
+            onClick={() => setAccountPanelOpen(false)}
+          />
+          <AccountPanel
+            key="account-panel"
+            isOpen={accountPanelOpen}
+            onClose={() => setAccountPanelOpen(false)}
+            isConnected={isConnected}
+            isConnecting={isConnecting}
+          />
+        </>
+      )}
+    </AnimatePresence>
+    </>
   );
 }

@@ -4,7 +4,7 @@ name: "leadership"
 n: 0
 winRate: 0.0000
 avgConfidence: 0.0000
-newsCount: 15
+newsCount: 19
 tags:
   - catalyst
   - graph
@@ -14,10 +14,14 @@ tags:
 # Catalyst — leadership
 
 Win rate: insufficient resolved predictions yet.
-Recent stories tagged with this catalyst: 15
-Verdict mix: 4 BUY / 1 SELL / 10 HOLD
+Recent stories tagged with this catalyst: 19
+Verdict mix: 6 BUY / 1 SELL / 12 HOLD
 
 ## Recent Stories
+- [2026-04-30] **HOLD** 50.0% — [[HOOD]] — 'Don't Listen To The Experts,' Says Youngest Self-Made Female Billionaire: Here's How She Built Pred
+- [2026-04-30] **BUY** 85.0% — [[CHKP]] — Check Point Software Technologies : First Quarter 2026 Financial Results Presentation
+- [2026-04-30] **BUY** 65.0% — [[HOOD]] — The NYSE Is Going 24/7 – This Stock Could Surge by Triple Digits
+- [2026-04-30] **HOLD** 50.0% — [[VKTX]] — Viking Therapeutics, Inc. (VKTX) Q1 2026 Earnings Call Transcript
 - [2026-04-29] **BUY** 65.0% — [[HOOD]] — Robinhood CEO says a ‘tokenization supercycle’ is underway
 - [2026-04-29] **BUY** 65.0% — [[HOOD]] — Robinhood Is Working on AI Financial Advice, But CEO Tenev Isn’t Writing Off Human Advisors
 - [2026-04-28] **HOLD** 50.0% — [[HOOD]] — Morning Call Sheet: AI spending, earnings and policy risks in focus

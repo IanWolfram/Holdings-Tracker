@@ -30,6 +30,8 @@ interface DesktopDashboardProps {
   totalGainLoss?: number;
   cashBalance?: number;
   predictions?: Record<string, TickerPrediction[]>;
+  analyzingTickers?: Set<string>;
+  analyzeTicker?: (ticker: string) => void;
 }
 
 export default function DesktopDashboard({
@@ -51,6 +53,8 @@ export default function DesktopDashboard({
   totalGainLoss,
   cashBalance,
   predictions = {},
+  analyzingTickers,
+  analyzeTicker,
 }: DesktopDashboardProps) {
   const predictionsByTicker = useMemo(() => {
     const out: Record<string, {
@@ -119,6 +123,8 @@ export default function DesktopDashboard({
               allPredictions={predictionsByTicker[pos.ticker]?.all}
               resolvedStats={predictionsByTicker[pos.ticker]?.resolvedStats}
               onRemoveProposed={pos.isProposed ? onRemoveProposed : undefined}
+              onAnalyzeTicker={analyzeTicker ? () => analyzeTicker(pos.ticker) : undefined}
+              isTickerAnalyzing={analyzingTickers?.has(pos.ticker) ?? false}
             />
           ))}
           <AddProposedCard

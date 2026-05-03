@@ -18,6 +18,8 @@ Recent stories tagged with this catalyst: 25
 Verdict mix: 7 BUY / 5 SELL / 13 HOLD
 
 ## Recent Stories
+- [2026-04-30] **HOLD** 50.0% — [[HOOD]] — Alphabet Inc. (GOOG) Faces Deeper Regulatory Scrutiny in Brazil Antitrust Review
+- [2026-04-30] **BUY** 72.0% — [[HOOD]] — Gemini sets sights on derivatives expansion after winning key U.S. regulatory approval
 - [2026-04-29] **HOLD** 50.0% — [[HOOD]] — Stocks making the biggest moves midday: GE HealthCare Technologies, Bloom Energy, Seagate, Teradyne,
 - [2026-04-29] **HOLD** 50.0% — [[HOOD]] — These S&P500 stocks that are showing activity before the opening bell on Wednesday.
 - [2026-04-29] **HOLD** 50.0% — [[HOOD]] — US Equity Futures Largely Flat Pre-Bell as Traders Await Tech Earnings, Fed Rate Decision
@@ -41,5 +43,3 @@ Verdict mix: 7 BUY / 5 SELL / 13 HOLD
 - [2026-04-24] **HOLD** 50.0% — [[HOOD]] — Investors Heavily Search Robinhood Markets, Inc. (HOOD): Here is What You Need to Know
 - [2026-04-24] **SELL** 80.0% — [[PLTR]] — Palantir Faces SNB Divestment Push
 - [2026-04-24] **BUY** 72.0% — [[PLTR]] — Palantir is reportedly helping the IRS investigate financial crimes
-- [2026-04-24] **BUY** 75.0% — [[HOOD]] — Prediction markets could soon be available in your retirement account
-- [2026-04-24] **HOLD** 20.0% — [[HOOD]] — Prediction Markets: The Potential Multi‑Trillion Dollar Asset Class Hiding In Plain Sight

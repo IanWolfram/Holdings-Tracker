@@ -1,6 +1,6 @@
 import React from "react";
 import Sparkline from "@/components/ui/Sparkline";
-import CompanyLogo from "@/components/ui/CompanyLogo";
+import { TerminalCube } from "@/components/world/StockLogoCube";
 import SentimentBar from "@/components/SentimentBar";
 import type { SentimentDirection } from "@/lib/utils/sentiment";
 import { formatCurrency, formatPercent, formatGainLoss } from "@/lib/utils/format";
@@ -34,6 +34,9 @@ interface PositionCardHeaderProps {
   isProposed?: boolean;
   targetPrice?: number;
   targetShares?: number;
+  hovered?: boolean;
+  onAnalyzeTicker?: () => void;
+  isTickerAnalyzing?: boolean;
 }
 
 interface StatProps {
@@ -105,14 +108,17 @@ export default function PositionCardHeader({
   isProposed,
   targetPrice,
   targetShares,
+  hovered = false,
+  onAnalyzeTicker,
+  isTickerAnalyzing,
 }: PositionCardHeaderProps) {
   return (
     <div className={`ticker-header-glow ${glowClass}`}>
       {compact ? (
         // ---------- COMPACT HEADER ----------
         <div className="px-[9px] pt-[7px] pb-[5px]">
-          <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center">
-            <CompanyLogo ticker={ticker} size={26} radius={6} />
+          <div className="grid grid-cols-[auto_1fr_auto] gap-3 items-center">
+            <TerminalCube ticker={ticker} size={32} spinning={hovered} />
             <div className="min-w-0 flex flex-col gap-[1px]">
               <div className="flex items-baseline gap-1.5">
                 <h1 className="font-mono text-[14px] font-black text-white tracking-tighter leading-none">
@@ -145,9 +151,9 @@ export default function PositionCardHeader({
       ) : (
         // ---------- ORIGINAL HEADER ----------
         <div className="p-3 pb-2">
-          <div className="grid grid-cols-[auto_1fr_auto] gap-2.5 items-start">
-            <div className="flex flex-col items-center gap-1 shrink-0">
-              <CompanyLogo ticker={ticker} size={36} radius={8} />
+          <div className="grid grid-cols-[auto_1fr_auto] gap-4 items-start">
+            <div className="flex flex-col items-center gap-1.5 shrink-0">
+              <TerminalCube ticker={ticker} size={48} spinning={hovered} />
             </div>
             <div className="min-w-0 flex flex-col gap-0.5">
               <h1 className="font-mono text-[18px] font-black text-white tracking-tighter leading-none">
@@ -225,9 +231,9 @@ export default function PositionCardHeader({
           ) : (
             <Stat
               label="P/L"
-              value={`${formatGainLoss(gainLoss)} ${gainPositive ? "▲" : "▼"} ${Math.abs(gainPct).toFixed(2)}%`}
+              value={formatGainLoss(gainLoss)}
               valueClass={gainPositive ? "text-positive" : "text-negative"}
-              sub={`@ ${formatCurrency(pricePaid)}`}
+              sub={`${gainPositive ? "▲" : "▼"} ${Math.abs(gainPct).toFixed(2)}%  ·  @ ${formatCurrency(pricePaid)}`}
               align="center"
               compact={compact}
             />
@@ -276,6 +282,8 @@ export default function PositionCardHeader({
           sentimentScore={sentimentScore}
           sentimentDirection={sentimentDirection}
           compact={compact}
+          onAnalyze={onAnalyzeTicker}
+          isAnalyzing={isTickerAnalyzing}
         />
       </div>
     </div>

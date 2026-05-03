@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { POLL_INTERVAL_MS } from "@/lib/constants";
 import type { Position } from "@/types/position.types";
 import type { ClassifiedStory, CongressTrade } from "@/types/news.types";
-import type { AgentProgress } from "@/lib/agent/service";
+import type { AgentProgress, TickerResult } from "@/lib/agent/service";
 import type { TickerPrediction } from "@/types/predictions";
 import { useProposedPositions } from "./useProposedPositions";
 
@@ -22,6 +22,9 @@ export function useDashboardData() {
   const [totalGainLoss, setTotalGainLoss] = useState<number | undefined>(undefined);
   const [agentState, setAgentState] = useState<AgentProgress>({ status: "idle" });
   const [predictions, setPredictions] = useState<Record<string, TickerPrediction[]>>({});
+  const [analyzingTickers, setAnalyzingTickers] = useState<Set<string>>(new Set());
+  const analyzingTickersRef = useRef<Set<string>>(new Set());
+  const tickerPollRefs = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const congressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -185,6 +188,76 @@ export function useDashboardData() {
     });
   }, []);
 
+  const mergeTickerResults = useCallback((ticker: string, results: TickerResult) => {
+    setNews((prev) => {
+      const tickerStories = prev[ticker];
+      if (!tickerStories) return prev;
+      const updated = { ...prev };
+      updated[ticker] = tickerStories.map((story) => {
+        const match = results.verdicts.find(
+          (v) => v.url === story.url || v.headline === story.headline
+        );
+        if (!match) return story;
+        return {
+          ...story,
+          verdict: match.analysis.verdict as ClassifiedStory["verdict"],
+          confidence: match.analysis.confidence,
+          reason: match.analysis.reason ?? story.reason,
+          isAnalyzed: true,
+          classifiedAt: new Date().toISOString(),
+        };
+      });
+      return updated;
+    });
+  }, []);
+
+  const analyzeTicker = useCallback(async (ticker: string) => {
+    const upper = ticker.toUpperCase();
+    if (analyzingTickersRef.current.has(upper)) return;
+    // Don't start if full agent sweep is on this ticker
+    if (agentState.status === "running" && agentState.ticker === upper) return;
+
+    analyzingTickersRef.current.add(upper);
+    setAnalyzingTickers(new Set(analyzingTickersRef.current));
+
+    try {
+      const res = await fetch("/api/agent/run-ticker", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ticker: upper }),
+      });
+      if (res.status === 409) {
+        analyzingTickersRef.current.delete(upper);
+        setAnalyzingTickers(new Set(analyzingTickersRef.current));
+        return;
+      }
+
+      // Poll for completion
+      const poll = setInterval(async () => {
+        try {
+          const pollRes = await fetch(`/api/agent/run-ticker?ticker=${upper}`);
+          if (!pollRes.ok) return;
+          const data = await pollRes.json();
+          if (data.status === "complete" || data.status === "error") {
+            clearInterval(poll);
+            tickerPollRefs.current.delete(upper);
+            analyzingTickersRef.current.delete(upper);
+            setAnalyzingTickers(new Set(analyzingTickersRef.current));
+            if (data.status === "complete" && data.results) {
+              mergeTickerResults(upper, data.results);
+            }
+          }
+        } catch {
+          // continue polling on transient errors
+        }
+      }, 2_000);
+      tickerPollRefs.current.set(upper, poll);
+    } catch {
+      analyzingTickersRef.current.delete(upper);
+      setAnalyzingTickers(new Set(analyzingTickersRef.current));
+    }
+  }, [agentState.status, agentState.ticker, mergeTickerResults]);
+
   const pollAgent = useCallback(async () => {
     try {
       const res = await fetch("/api/agent/run");
@@ -277,6 +350,8 @@ export function useDashboardData() {
     totalGainLoss,
     agentState,
     predictions,
+    analyzingTickers,
+    analyzeTicker,
     refresh,
   };
 }

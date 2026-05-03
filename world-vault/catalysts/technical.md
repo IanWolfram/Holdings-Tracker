@@ -15,31 +15,31 @@ tags:
 
 Win rate: insufficient resolved predictions yet.
 Recent stories tagged with this catalyst: 25
-Verdict mix: 14 BUY / 5 SELL / 6 HOLD
+Verdict mix: 14 BUY / 2 SELL / 9 HOLD
 
 ## Recent Stories
+- [2026-04-30] **HOLD** 20.0% — [[CHKP]] — 12 Information Technology Stocks Moving In Thursday's Intraday Session
+- [2026-04-30] **HOLD** 50.0% — [[HOOD]] — Alphabet Inc. (GOOG) Faces Deeper Regulatory Scrutiny in Brazil Antitrust Review
+- [2026-04-30] **BUY** 82.0% — [[HOOD]] — ARK Invest Ditches $6 Million in Crypto ETFs For $39 Million HOOD Shares After Shaky Robinhood Earni
+- [2026-04-30] **BUY** 65.0% — [[HOOD]] — Bitcoin ETF News: Cathie Wood Rotates to Robinhood as BlackRock’s Bitcoin ETF Hits a Wall
+- [2026-04-30] **HOLD** 65.0% — [[VKTX]] — Cantor Fitzgerald Maintains Overweight on Viking Therapeutics, Lowers Price Target to $100
+- [2026-04-30] **BUY** 65.0% — [[HOOD]] — Cathie Wood Buys Tumbling Robinhood Stock, ARK Adds $30 Mil Of This Stock
+- [2026-04-30] **BUY** 82.0% — [[HOOD]] — Cathie Wood's ARK Bets $39 Million On Robinhood: What Is Going On?
+- [2026-04-30] **BUY** 92.0% — [[CHKP]] — Check Point: Q1 Earnings Snapshot
+- [2026-04-30] **BUY** 92.0% — [[CHKP]] — Check Point Software Reports 2026 First Quarter Financial Results
+- [2026-04-30] **SELL** 85.0% — [[CHKP]] — Check Point Software Tech (NASDAQ:CHKP) Slips After Q1 Revenue Miss Overshadows EPS Beat
+- [2026-04-30] **BUY** 85.0% — [[CHKP]] — Check Point Software Technologies : First Quarter 2026 Financial Results Presentation
+- [2026-04-30] **BUY** 92.0% — [[CHKP]] — Check Point Software Technologies Ltd. Reports Earnings Results for the First Quarter Ended March 31
+- [2026-04-30] **BUY** 92.0% — [[CHKP]] — Cyber security firm Check Point Software first-quarter profit beats estimates
+- [2026-04-30] **HOLD** 65.0% — [[CHKP]] — Earnings Scheduled For April 30, 2026
+- [2026-04-30] **HOLD** 50.0% — [[PLTR]] — EMCOR Group Q1 Earnings Call Highlights
+- [2026-04-30] **SELL** 72.0% — [[CHKP]] — Meta, Ford, Willis Towers Watson And Other Big Stocks Moving Lower In Thursday's Pre-Market Session
+- [2026-04-30] **BUY** 65.0% — [[PLTR]] — This Palantir Analyst Begins Coverage On A Bullish Note; Here Are Top 2 Initiations For Thursday
+- [2026-04-30] **BUY** 92.0% — [[CHKP]] — Transcript : Check Point Software Technologies Ltd., Q1 2026 Earnings Call, Apr 30, 2026
+- [2026-04-30] **HOLD** 50.0% — [[VKTX]] — Viking Therapeutics Earnings: Q3 Maintenance Study Data A Potential Wildcard
+- [2026-04-30] **HOLD** 50.0% — [[VKTX]] — Viking Therapeutics, Inc. (VKTX) Q1 2026 Earnings Call Transcript
 - [2026-04-29] **HOLD** 50.0% — [[VKTX]] — Earnings Scheduled For April 29, 2026
+- [2026-04-29] **BUY** 82.0% — [[PLTR]] — Palantir Cleveland Cliffs Deal Tests Industrial AI Adoption Story
 - [2026-04-29] **BUY** 65.0% — [[PLTR]] — Palantir Expected to Deliver Robust Q1, Led by Growing Demand for AIP, Wedbush Says
 - [2026-04-29] **BUY** 65.0% — [[PLTR]] — Palantir (PLTR) Draws Bullish Calls Ahead of Key Earnings Test
 - [2026-04-29] **HOLD** 65.0% — [[PLTR]] — Palantir's AI Moment: Why Analysts Predict An 11th Straight Quarter Of Growth
-- [2026-04-29] **SELL** 82.0% — [[HOOD]] — Robinhood misses Q1 revenue estimates as crypto trading slumps
-- [2026-04-29] **HOLD** 50.0% — [[MMS]] — Why Maximus (MMS) is a Great Dividend Stock Right Now
-- [2026-04-28] **BUY** 82.0% — [[CHKP]] — Check Point Software Technologies (NASDAQ:CHKP): A Value Play with Strong Fundamentals
-- [2026-04-28] **BUY** 72.0% — [[PLTR]] — Citi Cuts Palantir Price Target to $210: Is the AI Software Multiple Compression Catching Up?
-- [2026-04-28] **BUY** 65.0% — [[PLTR]] — Citigroup Maintains Buy on Palantir Technologies, Lowers Price Target to $210
-- [2026-04-28] **BUY** 72.0% — [[PLTR]] — If Palantir Keeps Proving the Skeptics Wrong, PTIR Could Go Vertical Again
-- [2026-04-28] **SELL** 80.0% — [[PLTR]] — Michael Burry Thinks Tech Stocks are Pricier Than They Seem. Is the Value Case Just an Illusion?
-- [2026-04-28] **BUY** 82.0% — [[PLTR]] — Palantir's Growth Is Stunning; The Answer Lies In Global Expansion (Rating Upgrade)
-- [2026-04-28] **SELL** 65.0% — [[PLTR]] — Prediction: Palantir Stock Is Going to Plunge on May 5
-- [2026-04-28] **BUY** 88.0% — [[HOOD]] — Robinhood quarterly profit rises on trading strength
-- [2026-04-28] **BUY** 72.0% — [[HOOD]] — Strong call buying in Nvidia as traders bet oil move is overdone
-- [2026-04-27] **SELL** 80.0% — [[PLTR]] — Michael Burry Has Soured on Palantir and Is Betting on This Other Beaten-Down Artificial Intelligenc
-- [2026-04-27] **BUY** 82.0% — [[MDB]] — MongoDB (MDB): 10 Best NASDAQ Stocks with the Highest Upside Potential
-- [2026-04-27] **BUY** 72.0% — [[HOOD]] — Prediction markets prepare to invade one of crypto’s biggest and riskiest trades
-- [2026-04-27] **HOLD** 65.0% — [[HOOD]] — Robinhood To Report As Growth Slows And Expansions Add Risk
-- [2026-04-27] **BUY** 72.0% — [[HOOD]] — The Volatility Harvester That Thrives in Market Chaos
-- [2026-04-27] **HOLD** 50.0% — [[PLTR]] — Why May Could Be a Turning Point for Palantir Stock
-- [2026-04-26] **BUY** 72.0% — [[HOOD]] — Almost murdered my port on a Sunday trading BTC 15 minute up or down markets
-- [2026-04-26] **HOLD** 50.0% — [[HOOD]] — What market has wrong about Figma and Claude Design
-- [2026-04-25] **BUY** 75.0% — [[HOOD]] — Robinhood app lets everyday Americans buy into OpenAI, but Bank of America warns there are no 'rules
-- [2026-04-24] **SELL** 80.0% — [[PLTR]] — 1 Software Stock with Exciting Potential and 2 Facing Challenges

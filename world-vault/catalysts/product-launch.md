@@ -4,7 +4,7 @@ name: "product-launch"
 n: 0
 winRate: 0.0000
 avgConfidence: 0.0000
-newsCount: 22
+newsCount: 23
 tags:
   - catalyst
   - graph
@@ -14,10 +14,11 @@ tags:
 # Catalyst — product-launch
 
 Win rate: insufficient resolved predictions yet.
-Recent stories tagged with this catalyst: 22
-Verdict mix: 12 BUY / 0 SELL / 10 HOLD
+Recent stories tagged with this catalyst: 23
+Verdict mix: 13 BUY / 0 SELL / 10 HOLD
 
 ## Recent Stories
+- [2026-04-30] **BUY** 85.0% — [[CHKP]] — Check Point Software Technologies : First Quarter 2026 Financial Results Presentation
 - [2026-04-29] **BUY** 65.0% — [[HOOD]] — Robinhood Is Working on AI Financial Advice, But CEO Tenev Isn’t Writing Off Human Advisors
 - [2026-04-29] **HOLD** 50.0% — [[PLTR]] — What's Going On With Nvidia Stock Today?
 - [2026-04-28] **HOLD** 50.0% — [[PLTR]] — ReelTime’s Reel Intelligence “RI” Launches Worlds Most Advanced Image Generation System, Expanding I

@@ -12,7 +12,7 @@ export default async function handler(
   }
 
   const { portfolioService } = getServices();
-  const positions = await portfolioService.getPositionsSafe(false);
+  const { positions } = await portfolioService.getPositionsSafe(false);
   const unrealizedPnL = computeUnrealizedPnL(positions);
   return res.status(200).json({ realizedPnL: 0, unrealizedPnL, totalPnL: unrealizedPnL });
 }

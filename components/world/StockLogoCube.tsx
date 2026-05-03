@@ -1,25 +1,25 @@
 "use client";
 
 import type { CompanyProfile } from "@/types/geo.types";
-import { useState } from "react";
+import React, { useState } from "react";
 
-const CUBE = 26;
-const HALF = CUBE / 2;
-
-const FACE_TRANSFORMS = [
-  `translateZ(${HALF}px)`,
-  `rotateY(180deg) translateZ(${HALF}px)`,
-  `rotateY(90deg) translateZ(${HALF}px)`,
-  `rotateY(-90deg) translateZ(${HALF}px)`,
-  `rotateX(90deg) translateZ(${HALF}px)`,
-  `rotateX(-90deg) translateZ(${HALF}px)`,
+const FACE_TRANSFORMS = (half: number) => [
+  `translateZ(${half}px)`,
+  `rotateY(180deg) translateZ(${half}px)`,
+  `rotateY(90deg) translateZ(${half}px)`,
+  `rotateY(-90deg) translateZ(${half}px)`,
+  `rotateX(90deg) translateZ(${half}px)`,
+  `rotateX(-90deg) translateZ(${half}px)`,
 ];
 
-interface Props {
+
+// ============ World Variant (multiple cubes on globe) ============
+
+interface WorldCubeProps {
   profiles: CompanyProfile[];
 }
 
-export default function StockLogoCube({ profiles }: Props) {
+export default function StockLogoCube({ profiles }: WorldCubeProps) {
   if (profiles.length === 0) return null;
 
   return (
@@ -41,13 +41,13 @@ export default function StockLogoCube({ profiles }: Props) {
         }
       `}</style>
       {profiles.map((p) => (
-        <StockCube key={p.ticker} profile={p} />
+        <WorldStockCube key={p.ticker} profile={p} />
       ))}
     </div>
   );
 }
 
-function StockCube({ profile }: { profile: CompanyProfile }) {
+function WorldStockCube({ profile }: { profile: CompanyProfile }) {
   const [logoFailed, setLogoFailed] = useState(false);
   const initials = profile.ticker
     .replace(/[^A-Z0-9]/gi, "")
@@ -70,84 +70,279 @@ function StockCube({ profile }: { profile: CompanyProfile }) {
         perspective: 200,
       }}
     >
-      <div className="mc-wrap" style={{ transformStyle: "preserve-3d" }}>
+      <CubeInner
+        size={26}
+        logoUrl={logoUrl}
+        initials={initials}
+        logoFailed={logoFailed}
+        setLogoFailed={setLogoFailed}
+        variant="world"
+      />
+    </div>
+  );
+}
+
+// ============ Terminal Variant (single cube for UI) ============
+
+interface TerminalCubeProps {
+  ticker: string;
+  size?: number;
+  spinning?: boolean;
+}
+
+export function TerminalCube({ ticker, size = 36, spinning = false }: TerminalCubeProps) {
+  const [logoFailed, setLogoFailed] = useState(false);
+  const [is3D, setIs3D] = useState(false);
+  const [animClass, setAnimClass] = useState("");
+  const initials = ticker.replace(/[^A-Z0-9]/gi, "").slice(0, 2).toUpperCase();
+  const logoUrl = `https://assets.parqet.com/logos/symbol/${encodeURIComponent(ticker)}?format=svg`;
+
+  const POP_DURATION = 1.4; // seconds for the pop-out transition
+
+  // When hover starts: pop out into 3D, then start spin after transition
+  // When hover ends: stop spin immediately, collapse back to 2D
+  React.useEffect(() => {
+    if (spinning) {
+      // Start 3D pop-out transition
+      setIs3D(true);
+      setAnimClass("");
+      // Start spinning after the pop-out finishes
+      const t = setTimeout(() => setAnimClass("tc-spinning"), POP_DURATION * 1000);
+      return () => clearTimeout(t);
+    } else {
+      // Stop spin, collapse back
+      setAnimClass("");
+      setIs3D(false);
+    }
+  }, [spinning]);
+
+  return (
+    <div
+      style={{
+        width: size + 10,
+        height: size + 10,
+        flexShrink: 0,
+        perspective: size * 8,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <style>{`
+        @keyframes tc-spin {
+          0%   { transform: rotateX(-15deg) rotateY(20deg) scale3d(1.15,1.15,1.15); }
+          100% { transform: rotateX(-15deg) rotateY(380deg) scale3d(1.15,1.15,1.15); }
+        }
+        .tc-spinning {
+          animation: tc-spin 12s linear infinite;
+        }
+      `}</style>
+      <div
+        className={animClass}
+        style={{
+          width: size,
+          height: size,
+          position: "relative",
+          transformStyle: is3D ? "preserve-3d" : "flat",
+          transform: is3D
+            ? "rotateX(-15deg) rotateY(20deg) scale3d(1.15,1.15,1.15)"
+            : "rotateX(0deg) rotateY(0deg) scale(1)",
+          transition: `transform ${POP_DURATION}s cubic-bezier(0.22, 1, 0.36, 1), transform-style ${POP_DURATION}s`,
+        }}
+      >
+        <CubeInner
+          size={size}
+          logoUrl={logoUrl}
+          initials={initials}
+          logoFailed={logoFailed}
+          setLogoFailed={setLogoFailed}
+          variant="terminal"
+          flat={!is3D}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ============ Shared Cube Inner Component ============
+
+interface CubeInnerProps {
+  size: number;
+  logoUrl: string;
+  initials: string;
+  logoFailed: boolean;
+  setLogoFailed: (failed: boolean) => void;
+  variant: "world" | "terminal";
+  flat?: boolean;
+}
+
+function CubeInner({ size, logoUrl, initials, logoFailed, setLogoFailed, variant, flat = false }: CubeInnerProps) {
+  const half = size / 2;
+  const borderRadius = 0;
+
+  // Flat 2D mode - just show a single face
+  if (flat) {
+    return (
+      <div
+        className={variant === "world" ? "mc-wrap" : undefined}
+        style={{
+          width: size,
+          height: size,
+          position: "relative",
+          transformStyle: "flat",
+        }}
+      >
         <div
-          className="mc-inner"
           style={{
-            width: CUBE,
-            height: CUBE,
-            position: "relative",
-            transformStyle: "preserve-3d",
+            position: "absolute",
+            inset: 0,
+            background: "#000",
+            borderRadius: borderRadius,
+            overflow: "hidden",
           }}
         >
-          {FACE_TRANSFORMS.map((ft, i) => (
+          {!logoFailed && (
             <div
-              key={i}
               style={{
                 position: "absolute",
                 inset: 0,
-                backfaceVisibility: "hidden",
-                background: logoFailed ? "rgba(9,14,9,0.92)" : "rgba(0,0,0,0.6)",
-                borderRadius: 6,
-                overflow: "hidden",
-                transform: ft,
+                borderRadius: 0,
+                backgroundImage: `url(${logoUrl})`,
+                backgroundSize: "100% 100%",
+                backgroundPosition: "center",
+                backgroundRepeat: "no-repeat",
               }}
-            >
-              {/* Blurred color wash: logo stretched & blurred so edges match logo palette */}
-              {!logoFailed && (
-                <div
-                  style={{
-                    position: "absolute",
-                    inset: -12,
-                    borderRadius: 6,
-                    backgroundImage: `url(${logoUrl})`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                    filter: "blur(8px)",
-                  }}
-                />
-              )}
-              {/* Sharp logo centered on top */}
-              <div
+            />
+          )}
+          <div
+            style={{
+              position: "relative",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "100%",
+              height: "100%",
+            }}
+          >
+            {logoFailed ? (
+              <span
                 style={{
-                  position: "relative",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: "100%",
-                  height: "100%",
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: variant === "world" ? 8 : Math.round(size * 0.28),
+                  fontWeight: 700,
+                  color: "#00FF88",
+                  ...(variant === "world" && { textShadow: "0 0 4px rgba(0,255,136,0.4)" }),
                 }}
               >
-                {logoFailed ? (
-                  <span
-                    style={{
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: 8,
-                      fontWeight: 700,
-                      color: "#00FF88",
-                      textShadow: "0 0 4px rgba(0,255,136,0.4)",
-                    }}
-                  >
-                    {initials}
-                  </span>
-                ) : (
-                  <img
-                    src={logoUrl}
-                    alt={profile.ticker}
-                    draggable={false}
-                    onError={() => setLogoFailed(true)}
-                    style={{
-                      width: CUBE * 0.72,
-                      height: CUBE * 0.72,
-                      objectFit: "contain",
-                      filter: "drop-shadow(0 0 2px rgba(0,255,136,0.15))",
-                    }}
-                  />
-                )}
-              </div>
-            </div>
-          ))}
+                {initials}
+              </span>
+            ) : (
+              <img
+                src={logoUrl}
+                alt={initials}
+                draggable={false}
+                onError={() => setLogoFailed(true)}
+                style={{
+                  width: size * 0.88,
+                  height: size * 0.88,
+                  objectFit: "contain",
+                }}
+              />
+            )}
+          </div>
         </div>
+      </div>
+    );
+  }
+
+  // 3D cube mode - show all 6 faces
+  return (
+    <div
+      className={variant === "world" ? "mc-wrap" : undefined}
+      style={{
+        width: size,
+        height: size,
+        position: "relative",
+        transformStyle: "preserve-3d",
+      }}
+    >
+      {/* Rotation wrapper for world cubes (globe animation targets .mc-inner) */}
+      <div
+        className={variant === "world" ? "mc-inner" : undefined}
+        style={{
+          width: size,
+          height: size,
+          position: "relative",
+          transformStyle: "preserve-3d",
+        }}
+      >
+      {/* Main 6 faces */}
+      {FACE_TRANSFORMS(half).map((ft, i) => (
+        <div
+          key={`face-${i}`}
+          style={{
+            position: "absolute",
+            inset: 0,
+            backfaceVisibility: "hidden",
+            background: "#000",
+            borderRadius: borderRadius,
+            overflow: "hidden",
+            transform: ft,
+          }}
+        >
+          {/* Logo background fills entire face */}
+          {!logoFailed && (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                borderRadius: 0,
+                backgroundImage: `url(${logoUrl})`,
+                backgroundSize: "100% 100%",
+                backgroundPosition: "center",
+                backgroundRepeat: "no-repeat",
+              }}
+            />
+          )}
+          {/* Sharp logo centered on top */}
+          <div
+            style={{
+              position: "relative",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "100%",
+              height: "100%",
+            }}
+          >
+            {logoFailed ? (
+              <span
+                style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: variant === "world" ? 8 : Math.round(size * 0.28),
+                  fontWeight: 700,
+                  color: "#00FF88",
+                  ...(variant === "world" && { textShadow: "0 0 4px rgba(0,255,136,0.4)" }),
+                }}
+              >
+                {initials}
+              </span>
+            ) : (
+              <img
+                src={logoUrl}
+                alt={initials}
+                draggable={false}
+                onError={() => setLogoFailed(true)}
+                style={{
+                  width: size * 0.88,
+                  height: size * 0.88,
+                  objectFit: "contain",
+                }}
+              />
+            )}
+          </div>
+        </div>
+      ))}
       </div>
     </div>
   );

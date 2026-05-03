@@ -17,8 +17,8 @@ export default async function handler(
   if (process.env.ETRADE_ENV !== "mock") {
     try {
       const { portfolioService } = getServices();
-      const positions = await portfolioService.getPositionsSafe();
-      const data = await getWorldData(positions);
+      const { positions, mock } = await portfolioService.getPositionsSafe();
+      const data = await getWorldData(positions, { mock });
       return res.status(200).json(data);
     } catch (err) {
       console.error("[/api/world] Live data failed, falling back to mock:", err);

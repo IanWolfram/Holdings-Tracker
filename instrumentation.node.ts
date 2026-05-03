@@ -20,9 +20,9 @@ export async function register() {
     try {
       console.info(`[world-cron] ${now} — starting scheduled world refresh`);
 
-      const positions = await getPositionsSafe();
+      const { positions, mock } = await getPositionsSafe();
       invalidateWorldCache();
-      await getWorldData(positions);
+      await getWorldData(positions, { mock });
 
       const warmed = await Promise.allSettled(
         positions.map((p) => getHistory(p.ticker, { awaitPolygon: true }))

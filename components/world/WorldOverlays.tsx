@@ -1,7 +1,7 @@
 import CountryFocusPanel from "@/components/world/CountryFocusPanel";
 import CountryTooltip from "@/components/world/CountryTooltip";
 import type { GlobeFocusTarget } from "@/components/world/GlobeCanvas";
-import MarkerHoverLabel from "@/components/world/MarkerHoverLabel";
+import CubeHoverLabel from "@/components/world/CubeHoverLabel";
 import StockDetailPanel from "@/components/world/StockDetailPanel";
 import StockLogoCube from "@/components/world/StockLogoCube";
 import type { CountryState, WorldData } from "@/types/geo.types";
@@ -93,7 +93,7 @@ export default function WorldOverlays({
         />
       )}
 
-      <MarkerHoverLabel
+      <CubeHoverLabel
         hoveredTicker={hoveredTicker}
         profile={hoveredTicker && worldData?.profiles[hoveredTicker] ? worldData.profiles[hoveredTicker] : null}
         focusedTicker={focusTarget?.type === "stock" ? focusTarget.ticker : null}

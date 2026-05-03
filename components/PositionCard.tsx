@@ -28,6 +28,8 @@ interface Props {
   allPredictions?: TickerPrediction[];
   resolvedStats?: { total: number; correct: number };
   onRemoveProposed?: (ticker: string) => void;
+  onAnalyzeTicker?: () => void;
+  isTickerAnalyzing?: boolean;
 }
 
 function glowClass(buy: number, sell: number, loading: boolean): string {
@@ -49,6 +51,8 @@ export default function PositionCard({
   allPredictions,
   resolvedStats,
   onRemoveProposed,
+  onAnalyzeTicker,
+  isTickerAnalyzing,
 }: Props) {
   const articleRef = useRef<HTMLDivElement>(null);
   const [_hovered, setHovered] = useState(false);
@@ -178,6 +182,9 @@ export default function PositionCard({
           isProposed={isProposed}
           targetPrice={targetPrice}
           targetShares={targetShares}
+          hovered={_hovered}
+          onAnalyzeTicker={onAnalyzeTicker}
+          isTickerAnalyzing={isTickerAnalyzing}
         />
 
         <PositionCardNewsFeed
