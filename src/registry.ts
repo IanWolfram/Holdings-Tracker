@@ -1,8 +1,9 @@
 import { buildConfig } from "@/src/config";
 import { MapCache } from "@/src/infrastructure/cache/MapCache";
+import { DiskCache } from "@/src/infrastructure/cache/DiskCache";
 import { ETradeProvider } from "@/src/infrastructure/providers/ETradeProvider";
 import { FinnhubProvider } from "@/src/infrastructure/providers/FinnhubProvider";
-import { RedditProvider } from "@/src/infrastructure/providers/RedditProvider";
+import { PolygonProvider } from "@/src/infrastructure/providers/PolygonProvider";
 import { NewsAPIProvider } from "@/src/infrastructure/providers/NewsAPIProvider";
 import { ClassifierService } from "@/src/services/ClassifierService";
 import { PortfolioService } from "@/src/services/PortfolioService";
@@ -17,7 +18,9 @@ function wire() {
   const cfg = buildConfig();
 
   const portfolioCache = new MapCache();
-  const newsCache = new MapCache();
+  // Disk-backed so cache survives Next.js HMR / worker restarts. Without this,
+  // every dev-server reload sends users back through the cold-fetch path.
+  const newsCache = new DiskCache("news");
 
   const etradeProvider = new ETradeProvider(cfg.etrade);
 
@@ -30,9 +33,9 @@ function wire() {
 
   const classifier = new ClassifierService(cfg.ai);
 
-  const newsProviders: { reddit: INewsProvider; finnhub?: INewsProvider; newsapi?: INewsProvider } = {
-    reddit: new RedditProvider(),
+  const newsProviders: { finnhub?: INewsProvider; polygon?: INewsProvider; newsapi?: INewsProvider } = {
     ...(cfg.finnhub.apiKey ? { finnhub: new FinnhubProvider(cfg.finnhub.apiKey) } : {}),
+    ...(cfg.polygon.apiKey ? { polygon: new PolygonProvider() } : {}),
     ...(cfg.newsapi.apiKey ? { newsapi: new NewsAPIProvider(cfg.newsapi.apiKey) } : {}),
   };
 

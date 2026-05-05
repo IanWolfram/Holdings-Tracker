@@ -8,6 +8,7 @@ export const CATALYST_TYPES = [
   "analyst-downgrade",
   "earnings-beat",
   "earnings-miss",
+  "earnings-revenue-decline",
   "regulatory",
   "m-and-a",
   "macro",
@@ -15,6 +16,7 @@ export const CATALYST_TYPES = [
   "leadership",
   "product-launch",
   "partnership",
+  "insider-activity",
   "other",
 ] as const;
 

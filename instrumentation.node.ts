@@ -42,6 +42,45 @@ export async function register() {
   globalState._worldCronScheduled = true;
   console.info(`[world-cron] Service initialized: ${schedule}`);
 
+  if (!globalState._newsPrewarmCronScheduled && process.env.NEWS_PREWARM_ENABLED !== "false") {
+    const { getServices } = await import("./src/registry");
+
+    const prewarm = async () => {
+      try {
+        const { positions } = await getPositionsSafe();
+        const { newsService } = getServices();
+
+        // Only fetch tickers with no live cache entry. Stale entries are
+        // refreshed by user-driven dashboard requests; this cron exists to
+        // keep API quotas low while still ensuring a warm cache after restarts
+        // or long idle periods.
+        const cold = positions.filter(
+          (p) => newsService.getCachedNews(p.ticker) === null
+        );
+        if (cold.length === 0) return;
+
+        await Promise.all(
+          cold.map((p) =>
+            newsService.getNewsForTicker(p.ticker).catch((err) => {
+              console.error(`[news-prewarm] ${p.ticker}:`, (err as Error).message);
+            })
+          )
+        );
+        console.info(
+          `[news-prewarm] warmed ${cold.length} cold tickers (${positions.length - cold.length} already warm)`
+        );
+      } catch (err) {
+        console.error("[news-prewarm] failed:", (err as Error).message);
+      }
+    };
+
+    void prewarm();
+    cron.schedule("*/5 * * * *", prewarm);
+
+    globalState._newsPrewarmCronScheduled = true;
+    console.info("[news-prewarm] Scheduled: every 5 minutes (cold tickers only)");
+  }
+
   if (!globalState._recalibrateCronScheduled) {
     const { resolveVaultPath, WORLD_VAULT_PATH } = await import("./lib/constants");
     const { updateCalibration } = await import("./world-brain/calibration");

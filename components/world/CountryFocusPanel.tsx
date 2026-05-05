@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import VerdictBadge from "@/components/VerdictBadge";
+import VerdictBadge from "@/components/bars/VerdictBadge";
 import type { CountryState, GeoStory } from "@/types/geo.types";
 
 // ---------------------------------------------------------------------------

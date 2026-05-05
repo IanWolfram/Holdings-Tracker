@@ -5,6 +5,11 @@ import type { Verdict, Classification } from "@/types/news.types";
 
 export interface VaultEntry extends Classification {
   filePath: string;
+  ticker: string;
+  headline: string;
+  summary: string;
+  datetime: number;
+  source: string;
 }
 
 let vaultIndex: Map<string, VaultEntry> | null = null;
@@ -85,6 +90,25 @@ export async function getVaultIndex(vaultPath: string): Promise<Map<string, Vaul
           if (analysisMatch) reason = analysisMatch[1].trim();
         }
 
+        // Extract headline: prefer frontmatter, fall back to H1
+        let headline = fm.headline || "";
+        if (!headline) {
+          const h1Match = content.match(/\n# (.+)/);
+          if (h1Match) headline = h1Match[1].trim();
+        }
+
+        // Extract summary from ## Summary section
+        let summary = "";
+        const summaryMatch = content.match(/## Summary\n([\s\S]*?)(?:\n##|$)/);
+        if (summaryMatch) summary = summaryMatch[1].trim();
+
+        // Parse date to unix timestamp
+        let datetime = 0;
+        if (fm.date) {
+          const d = new Date(fm.date);
+          if (!isNaN(d.getTime())) datetime = Math.floor(d.getTime() / 1000);
+        }
+
         newIndex.set(url, {
           verdict: fm.verdict as Verdict,
           confidence: parseFloat(fm.confidence || "0.9"),
@@ -94,8 +118,14 @@ export async function getVaultIndex(vaultPath: string): Promise<Map<string, Vaul
           catalystTypes,
           classifiedAt: fm.date || new Date().toISOString(),
           isAnalyzed: fm.verified === "true",
+          analysisFailed: fm.analysisFailed === "true",
           fromVault: true,
           filePath,
+          ticker: fm.ticker || "",
+          headline,
+          summary,
+          datetime,
+          source: fm.source || "unknown",
         });
       }
     }

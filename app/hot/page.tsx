@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import TopBar from "@/components/TopBar";
-import CongressTradeCard from "@/components/CongressTradeCard";
-import EmptyState from "@/components/EmptyState";
+import TopBar from "@/components/layout/TopBar";
+import CongressTradeCard from "@/components/cards/CongressTradeCard";
+import EmptyState from "@/components/layout/EmptyState";
 import TickerRow from "@/components/positions/TickerRow";
 import { useHotTickers } from "@/hooks/useHotTickers";
 

@@ -2,9 +2,17 @@ import fs from "fs";
 import path from "path";
 import { getVaultIndex, updateVaultIndex } from "../lib/vault-index";
 import { resolveVaultPath } from "../lib/constants";
+import { appendVaultLog } from "./vault-meta";
 import type { GeoStory, WorldData } from "@/types/geo.types";
 import type { EventsSnapshot } from "../lib/marketdata/events";
 import type { MacroSnapshot } from "../lib/marketdata/macro";
+
+function writeFileAtomic(filePath: string, content: string): void {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  const tmp = `${filePath}.tmp`;
+  fs.writeFileSync(tmp, content, "utf-8");
+  fs.renameSync(tmp, filePath);
+}
 
 function computeDecayScore(storyDateMs: number, nowMs: number = Date.now()): number {
   // exp(-age_days / 7): a 1-week-old note is at ~0.37, a month is ~0.013.
@@ -12,8 +20,22 @@ function computeDecayScore(storyDateMs: number, nowMs: number = Date.now()): num
   return Math.max(0, Math.min(1, Math.exp(-ageDays / 7)));
 }
 
+function formatSummary(summary: string | undefined): string {
+  if (!summary) return "_No summary available._";
+  const trimmed = summary.trim();
+  if (!trimmed) return "_No summary available._";
+  // Detect truncation: doesn't end with sentence-ending punctuation
+  const lastChar = trimmed[trimmed.length - 1];
+  if (!/[.!?"]/.test(lastChar)) {
+    return trimmed + "…";
+  }
+  return trimmed;
+}
+
 function buildNoteContent(story: GeoStory, dateStr: string, sector?: string): string {
   const decayScore = computeDecayScore(story.datetime * 1000);
+  const isFailed = story.analysisFailed ?? false;
+  const isVerified = (story.isAnalyzed ?? false) && !isFailed;
   return [
     "---",
     `date: "${dateStr}"`,
@@ -23,10 +45,12 @@ function buildNoteContent(story: GeoStory, dateStr: string, sector?: string): st
     `confidence: ${story.confidence.toFixed(2)}`,
     `relevance: ${story.relevanceScore.toFixed(2)}`,
     `decayScore: ${decayScore.toFixed(4)}`,
-    `verified: ${story.isAnalyzed ?? false}`,
+    `verified: ${isVerified}`,
+    `analysisFailed: ${isFailed}`,
     `country: ${story.originCountryCode ?? "unknown"}`,
     `source: ${story.source}`,
     `url: "${story.url}"`,
+    `headline: "${story.headline.replace(/"/g, '\\"')}"`,
     ...(story.catalystTypes && story.catalystTypes.length > 0
       ? ["catalystTypes:", ...story.catalystTypes.map((type) => `  - ${type}`)]
       : []),
@@ -38,7 +62,8 @@ function buildNoteContent(story: GeoStory, dateStr: string, sector?: string): st
       "world-brain",
       ...(sector ? [sector.toLowerCase().replace(/\s+/g, "-")] : []),
       ...(story.catalystTypes?.map((type) => `catalyst-${type}`) ?? []),
-      ...(story.isAnalyzed ? ["m5-verified"] : []),
+      ...(isVerified ? ["m5-verified"] : []),
+      ...(isFailed ? ["analysis-failed"] : []),
     ].map((t) => `  - ${t}`),
     "---",
     "",
@@ -49,10 +74,12 @@ function buildNoteContent(story: GeoStory, dateStr: string, sector?: string): st
     `**Geographic origin**: ${story.originCountryCode ?? "Unknown"}  `,
     "",
     "## Summary",
-    story.summary || "_No summary available._",
+    formatSummary(story.summary),
     "",
     "## AI Analysis",
-    story.reason ?? "_No analysis available._",
+    isFailed
+      ? "> **Analysis failed.** Default HOLD at 50%. Do not use for pattern learning."
+      : (story.reason ?? "_No analysis available._"),
     "",
     "## Links",
     `- [Source Article](${story.url})`,
@@ -89,12 +116,14 @@ export async function writeStoryNote(story: GeoStory, vaultPath: string, sector?
     const index = await getVaultIndex(vaultPath);
     const existing = index.get(story.url);
     if (existing) {
+      // Don't overwrite a successful analysis with a failed one
+      if (existing.isAnalyzed && (story.analysisFailed ?? false)) return;
       if (existing.isAnalyzed && !story.isAnalyzed) return;
       // Skip if content is identical (simplified check)
       if (existing.verdict === story.verdict && existing.isAnalyzed === !!story.isAnalyzed) {
         return;
       }
-      fs.writeFileSync(existing.filePath, buildNoteContent(story, dateStr, sector), "utf-8");
+      writeFileAtomic(existing.filePath, buildNoteContent(story, dateStr, sector));
       updateVaultIndex(story.url, {
         verdict: story.verdict,
         confidence: story.confidence,
@@ -106,12 +135,16 @@ export async function writeStoryNote(story: GeoStory, vaultPath: string, sector?
         isAnalyzed: !!story.isAnalyzed,
         fromVault: true,
         filePath: existing.filePath,
+        ticker: story.ticker,
+        headline: story.headline,
+        summary: story.summary ?? "",
+        datetime: story.datetime,
+        source: story.source,
       });
       return;
     }
 
-    fs.mkdirSync(path.dirname(notePath), { recursive: true });
-    fs.writeFileSync(notePath, buildNoteContent(story, dateStr, sector), "utf-8");
+    writeFileAtomic(notePath, buildNoteContent(story, dateStr, sector));
     
     // Update index so subsequent writes in this process know about the new file
     updateVaultIndex(story.url, {
@@ -125,6 +158,11 @@ export async function writeStoryNote(story: GeoStory, vaultPath: string, sector?
       isAnalyzed: !!story.isAnalyzed,
       fromVault: true,
       filePath: notePath,
+      ticker: story.ticker,
+      headline: story.headline,
+      summary: story.summary ?? "",
+      datetime: story.datetime,
+      source: story.source,
     });
   } catch (err) {
     console.error("[obsidian] Failed to write story note:", err);
@@ -157,6 +195,16 @@ export function writeDailySummary(
 
     const sectors = Object.keys(bySector).sort();
 
+    // Read prior story count (if any) so we only log when the count changes.
+    let priorStoryCount = -1;
+    try {
+      if (fs.existsSync(notePath)) {
+        const prior = fs.readFileSync(notePath, "utf-8");
+        const m = prior.match(/Covering \*\*(\d+) stories\*\*/);
+        if (m) priorStoryCount = parseInt(m[1], 10);
+      }
+    } catch { /* fall through */ }
+
     const content = [
       "---",
       `date: "${date}"`,
@@ -174,20 +222,25 @@ export function writeDailySummary(
       ...sectors.flatMap((sector) => {
         const tickersInSector = bySector[sector];
         const tickerNames = Object.keys(tickersInSector).sort();
-        
+
         return [
           `## 📁 ${sector.toUpperCase()}`,
           "",
           ...tickerNames.flatMap((ticker) => {
             const ss = tickersInSector[ticker];
-            const buys = ss.filter((s) => s.verdict === "BUY").length;
-            const sells = ss.filter((s) => s.verdict === "SELL").length;
+            const nonFailed = ss.filter((s) => !(s.analysisFailed ?? false));
+            const failedCount = ss.length - nonFailed.length;
+            const buys = nonFailed.filter((s) => s.verdict === "BUY").length;
+            const sells = nonFailed.filter((s) => s.verdict === "SELL").length;
+            const headerSuffix = failedCount > 0 ? ` (${failedCount} analysis failure${failedCount > 1 ? "s" : ""})` : "";
             return [
-              `### [[${ticker}]] — ${ss.length} stories (${buys} BUY / ${sells} SELL)`,
+              `### [[${ticker}]] — ${ss.length} stories (${buys} BUY / ${sells} SELL)${headerSuffix}`,
               "",
               ...ss.map(
-                (s) =>
-                  `- **${s.verdict}** (${Math.round(s.confidence * 100)}%) — [${s.headline}](${s.url})`
+                (s) => {
+                  const failedTag = (s.analysisFailed ?? false) ? " *(analysis failed)*" : "";
+                  return `- **${s.verdict}** (${Math.round(s.confidence * 100)}%) — [${s.headline}](${s.url})${failedTag}`;
+                }
               ),
               "",
             ];
@@ -196,7 +249,23 @@ export function writeDailySummary(
       }),
     ].join("\n");
 
-    fs.writeFileSync(notePath, content, "utf-8");
+    writeFileAtomic(notePath, content);
+
+    if (priorStoryCount !== stories.length) {
+      const tickerCount = Object.values(bySector).reduce(
+        (acc, byTicker) => acc + Object.keys(byTicker).length,
+        0
+      );
+      const delta =
+        priorStoryCount === -1
+          ? "new"
+          : `+${stories.length - priorStoryCount}`;
+      appendVaultLog(vaultPath, {
+        type: "daily",
+        title: `Daily summary updated for ${date} (${delta})`,
+        details: `${stories.length} stories across ${sectors.length} sectors, ${tickerCount} tickers.`,
+      });
+    }
   } catch (err) {
     console.error("[obsidian] Failed to write daily summary:", err);
   }
@@ -246,7 +315,12 @@ export function writeMacroSnapshot(
       "",
     ].join("\n");
 
-    fs.writeFileSync(notePath, content, "utf-8");
+    writeFileAtomic(notePath, content);
+    appendVaultLog(vaultPath, {
+      type: "macro",
+      title: `Macro snapshot for ${date}`,
+      details: `Regime ${snapshot.regime} · VIX ${macroValue(snapshot.vix)} · 10Y ${macroValue(snapshot.tenY)} · DXY ${macroValue(snapshot.dxy)} (${snapshot.dxyTrend})`,
+    });
   } catch (err) {
     console.error("[obsidian] Failed to write macro snapshot:", err);
   }
@@ -296,7 +370,12 @@ export function writeEventsSnapshot(
       "",
     ].join("\n");
 
-    fs.writeFileSync(notePath, content, "utf-8");
+    writeFileAtomic(notePath, content);
+    appendVaultLog(vaultPath, {
+      type: "events",
+      title: `Events snapshot for ${date}`,
+      details: `${snapshot.earnings.length} earnings, ${snapshot.macroEvents.length} macro events.`,
+    });
   } catch (err) {
     console.error("[obsidian] Failed to write events snapshot:", err);
   }

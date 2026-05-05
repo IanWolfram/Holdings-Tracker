@@ -66,13 +66,25 @@ const CATALYST_RULES: Array<{ type: CatalystType; patterns: RegExp[] }> = [
   {
     type: "leadership",
     patterns: [
-      /\b(ceo|cfo|chairman|executive|founder|resign|resigns|resigned|appoint|appointed|management\s+change)\b/i,
+      /\b(ceo\s+(resigns?|steps?\s+down|depart|leave|ousted|replaced)|cfo\s+(resigns?|depart|leave)|chairman\s+(resigns?|steps?\s+down)|executive\s+(departure|resignation|shake-?up)|founder\s+(resigns?|steps?\s+down|depart)|appoint(?:s|ed)\s+(?:new\s+)?(?:ceo|cfo|chairman)|management\s+change)\b/i,
     ],
   },
   {
     type: "product-launch",
     patterns: [
-      /\b(launch|launches|launched|unveil|unveils|release|releases|rollout|introduce|introduced|beta)\b/i,
+      /\b(launches?\s+(?:new|its|a)|unveils?\s+(?:new|its|a)|releases?\s+(?:new|its|a)|rollouts?\s+(?:new|its)|introduces?\s+(?:new|its|a)|beta\s+(?:launch|release|program|test))\b/i,
+    ],
+  },
+  {
+    type: "earnings-revenue-decline",
+    patterns: [
+      /\b(revenue\s+(falls?|declines?|drops?|shrinks?|tumbles?|plummets?|craters?)|sales\s+(falls?|declines?|drops?|shrinks?))\b/i,
+    ],
+  },
+  {
+    type: "insider-activity",
+    patterns: [
+      /\b(insider\s+(buying|selling|purchase|sale|transaction|trade|activity)|section\s+16|form\s+4|director\s+(buys?|sells?))\b/i,
     ],
   },
   {

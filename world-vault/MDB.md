@@ -1,13 +1,36 @@
 ---
-date: "2026-04-30"
+date: "2026-05-04"
 type: ticker-knowledge
 ticker: MDB
 sector: Tech
 generated: true
+tags:
+  - ticker-hub
+  - mdb
+  - world-brain
 ---
 
-# MDB — Learned Patterns
+# MDB — Knowledge Hub
 
-When MDB announces direct operational investment in geographic expansion, particularly with quantified job creation and capital expenditure such as the €74M Ireland expansion adding 200 jobs, BUY signals consistently register at 0.82 confidence. Executive appointments to product leadership roles produce BUY signals at 0.78 confidence, while ecosystem compatibility upgrades from hyperscalers like Amazon DocumentDB generate the highest confidence BUY signals at 0.92. SELL signals are absent from this period; however, sector-wide sympathy weakness from peers like ServiceNow or IBM triggers only HOLD signals at 0.20 confidence, indicating MDB is resilient to broad tech selloffs without its own catalyst. Indirect sector tailwinds from hyperscaler AI data center trends produce HOLD signals at 0.50 confidence, as they lack company-specific fundamental data. Confidence calibration: operational investment catalysts score 0.82, executive appointments score 0.78, and ecosystem compatibility upgrades score 0.92, while speculative analysis without hard data never exceeds 0.50.
+> Tech · Last updated 2026-05-04
 
-_Last updated: 2026-04-30_
+## Verdict Trend (last 7 sessions)
+
+| Date | BUY | SELL | HOLD | Top Signal |
+|------|----:|-----:|-----:|------------|
+| 2026-05-04 | 1 | 0 | 0 | **BUY** 82% — MongoDB Could Be Setting Up for a Sharp Earnings Rebound |
+| 2026-04-30 | 1 | 0 | 4 | **BUY** 82% — MongoDB (MDB): 10 Best NASDAQ Stocks with the Highest Upside Potential |
+| 2026-04-29 | 1 | 0 | 4 | **BUY** 82% — MongoDB (MDB): 10 Best NASDAQ Stocks with the Highest Upside Potential |
+| 2026-04-28 | 0 | 0 | 1 | **HOLD** 50% — Carillon Scout Mid Cap Fund Q1 2026 Portfolio Review |
+| 2026-04-27 | 0 | 0 | 1 | **HOLD** 65% — Major SaaS Earnings Calendar: April – June |
+| 2026-04-26 | 3 | 0 | 2 | **BUY** 82% — MongoDB announces EUR74m Ireland expansion, 200 jobs, and new Cork off |
+
+## Top Recent Stories
+
+- **BUY** 82% — [[news/2026-04-30-mongodb-could-be-setting-up-for-a-sharp-earnings-r|MongoDB Could Be Setting Up for a Sharp Earnings Rebound]] _(2026-04-30)_
+
+## Learned Patterns
+
+When MDB announces direct operational investment in geographic expansion, such as the €74M Ireland expansion adding 200 jobs, it reliably triggers high-confidence BUY signals at 82% confidence. Pre-earnings setups with oversold conditions and low analyst bars also produce BUY signals at 82% confidence, while executive appointments to product leadership roles generate BUY signals at 78% confidence. SELL signals are rare for MDB, but sector-wide SaaS earnings misses or sympathy weakness from competitors like ServiceNow can create HOLD signals at 20-65% confidence, indicating contagion risk rather than company-specific deterioration. Amazon DocumentDB compatibility upgrades produce BUY signals at 92% confidence, reflecting that competitive validation from hyperscalers is a uniquely strong catalyst for MDB. Confidence calibration shows that operational investment catalysts consistently score 0.78-0.82, while competitive validation from hyperscalers scores 0.92, and pre-earnings setups score 0.82.
+
+_Last updated: 2026-05-04_

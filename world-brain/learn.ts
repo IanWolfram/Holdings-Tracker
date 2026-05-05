@@ -3,6 +3,13 @@ import path from "path";
 import { callMlxRaw, invalidateSystemPromptCache } from "./brain";
 import { getRecentResolvedPredictions } from "./predictions";
 import { runGraphPass } from "./graph";
+import { getMacroSnapshot } from "../lib/marketdata/macro";
+import {
+  appendVaultLog,
+  buildVerdictTrend,
+  findRecentContradictions,
+  findTopRecentStories,
+} from "./vault-meta";
 import type { AgentRunResult } from "../lib/agent/service";
 
 export interface VaultStory {
@@ -68,6 +75,7 @@ export function getRecentVaultStories(
         const fm = parseFrontmatter(content);
         if (fm.ticker?.toUpperCase() !== ticker.toUpperCase()) continue;
         if (!fm.verdict || !["BUY", "SELL", "HOLD"].includes(fm.verdict)) continue;
+        if (fm.analysisFailed === "true") continue;
 
         // Prefer the stored decayScore (written by obsidian.ts); fall back to
         // computing from the date so notes written before Phase 4 still filter.
@@ -166,13 +174,81 @@ export async function updateTickerKnowledgeFile(
   }
 
   const today = new Date().toISOString().split("T")[0];
-  const content =
-    `---\ndate: "${today}"\ntype: ticker-knowledge\nticker: ${ticker}\n` +
-    (sector ? `sector: ${sector}\n` : "") +
-    `generated: true\n---\n\n` +
-    `# ${ticker} — Learned Patterns\n\n` +
-    `${synthesis}\n\n` +
-    `_Last updated: ${today}_\n`;
+
+  const trend = buildVerdictTrend(vaultPath, ticker, 7);
+  const contradictions = findRecentContradictions(vaultPath, ticker, 5);
+  const topStories = findTopRecentStories(vaultPath, ticker, 8);
+
+  const trendBlock =
+    trend.length > 0
+      ? [
+          "## Verdict Trend (last 7 sessions)",
+          "",
+          "| Date | BUY | SELL | HOLD | Top Signal |",
+          "|------|----:|-----:|-----:|------------|",
+          ...trend.map((row) => {
+            const top = row.topSignal
+              ? `**${row.topSignal.verdict}** ${Math.round(row.topSignal.confidence * 100)}% — ${row.topSignal.headline.slice(0, 70)}`
+              : "—";
+            return `| ${row.date} | ${row.buys} | ${row.sells} | ${row.holds} | ${top} |`;
+          }),
+          "",
+        ].join("\n")
+      : "";
+
+  const contradictionBlock =
+    contradictions.length > 0
+      ? [
+          "## Open Contradictions",
+          "",
+          ...contradictions.map(
+            (a) =>
+              `- [[_alerts/${a.filename}]] — ${a.buys} BUY vs ${a.sells} SELL on ${a.date}`
+          ),
+          "",
+        ].join("\n")
+      : "";
+
+  const topStoriesBlock =
+    topStories.length > 0
+      ? [
+          "## Top Recent Stories",
+          "",
+          ...topStories.map(
+            (s) =>
+              `- **${s.verdict}** ${Math.round(s.confidence * 100)}% — [[news/${s.filename}|${s.headline.slice(0, 90)}]] _(${s.date})_`
+          ),
+          "",
+        ].join("\n")
+      : "";
+
+  const sections: string[] = [];
+  if (trendBlock) sections.push(trendBlock);
+  if (contradictionBlock) sections.push(contradictionBlock);
+  if (topStoriesBlock) sections.push(topStoriesBlock);
+  sections.push(`## Learned Patterns\n\n${synthesis}\n`);
+
+  const content = [
+    "---",
+    `date: "${today}"`,
+    "type: ticker-knowledge",
+    `ticker: ${ticker}`,
+    ...(sector ? [`sector: ${sector}`] : []),
+    "generated: true",
+    "tags:",
+    "  - ticker-hub",
+    `  - ${ticker.toLowerCase()}`,
+    "  - world-brain",
+    "---",
+    "",
+    `# ${ticker} — Knowledge Hub`,
+    "",
+    `> ${sector ?? "Uncategorized"} · Last updated ${today}`,
+    "",
+    sections.join("\n"),
+    `_Last updated: ${today}_`,
+    "",
+  ].join("\n");
 
   const filePath = path.join(resolveVaultPath(vaultPath), `${ticker}.md`);
   fs.writeFileSync(filePath, content, "utf-8");
@@ -229,12 +305,20 @@ export async function runMetaReflection(
     }
   } catch { /* prior insights are optional */ }
 
+  // Inject macro context (VIX, 10Y, DXY with week-over-week changes)
+  let macroBlock = "";
+  try {
+    const macro = await getMacroSnapshot();
+    macroBlock = `\n\nCurrent macro backdrop:\n${macro.summary}\nRegime: ${macro.regime}`;
+  } catch { /* macro data is optional */ }
+
   const userMessage =
     `Synthesize cross-ticker and macro patterns from today's analysis session.\n\n` +
     sessionSummary +
+    macroBlock +
     priorInsightsBlock +
     `\n\nWrite 3-6 sentences addressing:\n` +
-    `(1) The dominant macro or geopolitical theme driving signals across multiple tickers today\n` +
+    `(1) The dominant macro or geopolitical theme driving signals across multiple tickers today — reference specific macro indicators (VIX, 10Y, DXY) and their week-over-week changes if provided\n` +
     `(2) Cross-sector correlations — which sectors moved together or in opposition\n` +
     `(3) Signal calibration — what confidence levels appeared for which catalyst types, and whether today's calibration shifted from prior sessions\n` +
     `(4) The single most important anomaly or contradiction to monitor — make a specific, testable prediction if possible\n\n` +
@@ -273,6 +357,12 @@ export async function runMetaReflection(
 
   fs.writeFileSync(insightPath, content, "utf-8");
   console.log(`[learn] Session insight written to _insights/${today}.md`);
+
+  appendVaultLog(vaultPath, {
+    type: "insight",
+    title: `Session insights synthesized for ${today}`,
+    details: `Tickers: ${tickers}. Totals: ${sessionResult.totalBuys} BUY / ${sessionResult.totalSells} SELL / ${sessionResult.totalHolds} HOLD.`,
+  });
 
   invalidateSystemPromptCache();
 }

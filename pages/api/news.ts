@@ -15,15 +15,22 @@ export default async function handler(
     return res.status(400).json({ error: "ticker query param required" });
   }
 
+  const { newsService } = getServices();
+
   try {
-    const { newsService } = getServices();
     const deadline = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("news fetch timeout")), 300_000)
+      setTimeout(() => reject(new Error("news fetch timeout")), 20_000)
     );
     const stories = await Promise.race([newsService.getNewsForTicker(ticker), deadline]);
     res.status(200).json(stories);
   } catch (err) {
     console.error("[/api/news]", err);
-    res.status(500).json({ error: "Failed to fetch news" });
+    // Fall back to whatever's in the cache — far better than a 5-minute spinner.
+    const cached = newsService.getCachedNews(ticker);
+    if (cached && cached.length > 0) {
+      res.status(200).json(cached);
+      return;
+    }
+    res.status(504).json({ error: "Failed to fetch news" });
   }
 }

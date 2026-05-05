@@ -12,6 +12,9 @@ out/
 # Build
 dist/
 
+# Local disk cache (news, etc.)
+.cache/
+
 # OS
 .DS_Store
 .pm2/

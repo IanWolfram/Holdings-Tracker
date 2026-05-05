@@ -9,7 +9,7 @@ import type {
 } from "../types/predictions";
 import { FLAT_BAND_PCT, CORRECT_DIRECTION_MAGNITUDE_RATIO } from "../types/predictions";
 
-export const SUPPORTED_HORIZONS = [7] as const;
+export const SUPPORTED_HORIZONS = [1, 7, 30] as const;
 export type SupportedHorizon = (typeof SUPPORTED_HORIZONS)[number];
 const DEFAULT_HORIZON: SupportedHorizon = 7;
 
@@ -131,6 +131,21 @@ export function resolveEligiblePredictions(
     const predictions = loadPredictions(vaultPath, ticker, h);
     if (predictions.length === 0) continue;
 
+    const pending = predictions.filter((p) => p.status === "pending");
+    if (pending.length > 0) {
+      const now = new Date(nowMs).toISOString().split("T")[0];
+      const pendingAges = pending.map((p) => ({
+        id: p.id,
+        daysSince: Math.floor((nowMs - p.runAt) / 86_400_000),
+        horizon: p.horizonDays,
+      }));
+      console.log(
+        `[predictions] ${ticker}: ${pending.length} pending prediction(s), ages:`,
+        pendingAges.map((p) => `${p.daysSince}d/${p.horizon}d`).join(", "),
+        `as of ${now}`
+      );
+    }
+
     let changed = false;
     const updated = predictions.map((p) => {
       if (p.status !== "pending") return p;
@@ -143,6 +158,10 @@ export function resolveEligiblePredictions(
       const catalystTypes = derivePredictionCatalystTypes(p);
       changed = true;
       resolved++;
+
+      console.log(
+        `[predictions] Resolved ${p.id}: ${p.direction} → ${outcome} (predicted ${p.magnitudePct}%, actual ${actualPct.toFixed(2)}%)`
+      );
 
       return {
         ...p,

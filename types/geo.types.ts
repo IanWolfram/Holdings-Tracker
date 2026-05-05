@@ -24,6 +24,9 @@ export interface GeoStory {
   originCountryCode?: string;  // ISO alpha-2 of news geo-origin
   relevanceScore: number;      // 0-1, world-brain confidence
   isAnalyzed?: boolean;        // Hardware-native M5 verified status
+  analysisFailed?: boolean;    // True if analysis was a fallback HOLD
+  classificationSource?: "ai" | "keyword" | "vault";
+  confidenceBucket?: "high" | "medium" | "low" | "failed";
   catalystTypes?: CatalystType[];
 }
 

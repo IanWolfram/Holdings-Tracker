@@ -1,6 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const finnhub = require('finnhub') as Record<string, unknown>;
-
 export interface NewsArticle {
   headline: string;
   summary: string;
@@ -20,11 +17,12 @@ export interface Quote {
   timestamp: number;
 }
 
-// Lazy client — initialized on first use so the API key is read after env is loaded
-let _client: any = null;
-function getClient() {
-  if (!_client) _client = new (finnhub as any).DefaultApi(process.env.FINNHUB_API_KEY);
-  return _client;
+const BASE = "https://finnhub.io/api/v1";
+
+function requireKey(): string {
+  const key = process.env.FINNHUB_API_KEY;
+  if (!key) throw new Error("FINNHUB_API_KEY is not set");
+  return key;
 }
 
 function daysAgo(n: number): string {
@@ -38,85 +36,81 @@ function today(): string {
 }
 
 /**
- * Fetch company news using the Finnhub SDK
+ * Fetch company news using direct REST (avoids SDK Cloudflare issues)
  */
 export async function fetchFinnhubNews(ticker: string): Promise<NewsArticle[]> {
-  if (!process.env.FINNHUB_API_KEY) {
-    throw new Error("FINNHUB_API_KEY is not set");
+  const key = requireKey();
+  const url = `${BASE}/company-news?symbol=${ticker}&from=${daysAgo(7)}&to=${today()}&token=${key}`;
+
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    if (!Array.isArray(data)) return [];
+
+    const tickerLc = ticker.toLowerCase();
+    const seen = new Set<string>();
+    const articles: NewsArticle[] = [];
+
+    for (const item of data) {
+      const headline = item.headline?.trim() ?? "";
+      if (!headline || seen.has(headline)) continue;
+      seen.add(headline);
+
+      // Pre-filter: headline or summary must mention the ticker.
+      // Finnhub's symbol filter is usually precise but can occasionally
+      // return loosely-related articles.
+      const text = `${headline} ${item.summary ?? ""}`.toLowerCase();
+      if (!text.includes(tickerLc)) continue;
+
+      articles.push({
+        headline,
+        summary: item.summary?.trim() ?? "",
+        url: item.url ?? "",
+        datetime: item.datetime ?? 0,
+        source: "finnhub",
+      });
+      if (articles.length >= 50) break;
+    }
+
+    return articles;
+  } catch (err) {
+    console.error(`[finnhub] News fetch error for ${ticker}:`, err);
+    return [];
   }
-
-  return new Promise((resolve, reject) => {
-    getClient().companyNews(
-      ticker,
-      daysAgo(3),
-      today(),
-      (error: any, data: any, response: any) => {
-        if (error) {
-          reject(new Error(`Finnhub SDK error: ${error.message || error}`));
-          return;
-        }
-
-        if (!data || !Array.isArray(data)) {
-          resolve([]);
-          return;
-        }
-
-        // Deduplicate by headline, limit to 20
-        const seen = new Set<string>();
-        const articles: NewsArticle[] = [];
-
-        for (const item of data) {
-          const headline = item.headline?.trim() ?? "";
-          if (!headline || seen.has(headline)) continue;
-          seen.add(headline);
-          articles.push({
-            headline,
-            summary: item.summary?.trim() ?? "",
-            url: item.url ?? "",
-            datetime: item.datetime ?? 0,
-            source: "finnhub",
-          });
-          if (articles.length >= 20) break;
-        }
-
-        resolve(articles);
-      }
-    );
-  });
 }
 
 /**
- * Fetch real-time stock quote using the Finnhub SDK
+ * Fetch real-time stock quote using direct REST (avoids SDK Cloudflare issues)
  */
 export async function fetchQuote(ticker: string): Promise<Quote> {
-  if (!process.env.FINNHUB_API_KEY) {
-    throw new Error("FINNHUB_API_KEY is not set");
+  const key = requireKey();
+  const url = `${BASE}/quote?symbol=${ticker}&token=${key}`;
+
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    if (!data || data.c === undefined) {
+      throw new Error(`No quote data returned for ${ticker}`);
+    }
+
+    return {
+      currentPrice: data.c ?? 0,
+      change: data.d ?? 0,
+      percentChange: data.dp ?? 0,
+      high: data.h ?? 0,
+      low: data.l ?? 0,
+      open: data.o ?? 0,
+      previousClose: data.pc ?? 0,
+      timestamp: data.t ?? Math.floor(Date.now() / 1000),
+    };
+  } catch (err) {
+    console.error(`[finnhub] Quote fetch error for ${ticker}:`, err);
+    throw err;
   }
-
-  return new Promise((resolve, reject) => {
-    getClient().quote(ticker, (error: any, data: any, response: any) => {
-      if (error) {
-        reject(new Error(`Finnhub SDK error: ${error.message || error}`));
-        return;
-      }
-
-      if (!data) {
-        reject(new Error(`No quote data returned for ${ticker}`));
-        return;
-      }
-
-      resolve({
-        currentPrice: data.c ?? 0,
-        change: data.d ?? 0,
-        percentChange: data.dp ?? 0,
-        high: data.h ?? 0,
-        low: data.l ?? 0,
-        open: data.o ?? 0,
-        previousClose: data.pc ?? 0,
-        timestamp: data.t ?? Math.floor(Date.now() / 1000),
-      });
-    });
-  });
 }
 /**
  * Fetch historical stock candles using direct REST for better 2026 compatibility

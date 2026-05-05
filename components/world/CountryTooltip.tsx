@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
-import VerdictBadge from "@/components/VerdictBadge";
+import VerdictBadge from "@/components/bars/VerdictBadge";
 import type { CountryState, GeoStory } from "@/types/geo.types";
 
 // ---------------------------------------------------------------------------

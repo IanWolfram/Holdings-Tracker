@@ -1,9 +1,54 @@
 {
-  "updatedAt": "2026-04-29T20:11:34.542Z",
-  "totalResolved": 0,
-  "byTicker": {},
-  "byCatalyst": {},
-  "byConfidenceBucket": {},
-  "byHorizon": {},
-  "byEngine": {}
+  "updatedAt": "2026-05-05T17:26:48.368Z",
+  "totalResolved": 1,
+  "byTicker": {
+    "CHKP": {
+      "n": 1,
+      "correct": 0,
+      "partial": 0,
+      "incorrect": 1,
+      "winRate": 0,
+      "avgConfidence": 0.72
+    }
+  },
+  "byCatalyst": {
+    "technical": {
+      "n": 1,
+      "correct": 0,
+      "partial": 0,
+      "incorrect": 1,
+      "winRate": 0,
+      "avgConfidence": 0.72
+    }
+  },
+  "byConfidenceBucket": {
+    "0.7-0.8": {
+      "n": 1,
+      "correct": 0,
+      "partial": 0,
+      "incorrect": 1,
+      "winRate": 0,
+      "avgConfidence": 0.72
+    }
+  },
+  "byHorizon": {
+    "7d": {
+      "n": 1,
+      "correct": 0,
+      "partial": 0,
+      "incorrect": 1,
+      "winRate": 0,
+      "avgConfidence": 0.72
+    }
+  },
+  "byEngine": {
+    "deepseek_1776977666998": {
+      "n": 1,
+      "correct": 0,
+      "partial": 0,
+      "incorrect": 1,
+      "winRate": 0,
+      "avgConfidence": 0.72
+    }
+  }
 }

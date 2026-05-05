@@ -3,7 +3,7 @@ import path from "path";
 import { getPositions } from "../etrade";
 import { fetchCompanyProfile } from "../company-profile";
 import { getServices } from "@/src/registry";
-import { analyzeStory, callMlxRaw, UnifiedAnalysis } from "../../world-brain/brain";
+import { analyzeStory, callMlxRaw, UnifiedAnalysis, analysisStats } from "../../world-brain/brain";
 import { getRecentVaultStories, runLearningPass } from "../../world-brain/learn";
 import {
   resolveEligiblePredictions,
@@ -13,7 +13,9 @@ import {
   SUPPORTED_HORIZONS,
 } from "../../world-brain/predictions";
 import { updateCalibration } from "../../world-brain/calibration";
-import { classifyCatalystTypes } from "../../world-brain/catalyst-classifier";
+import { classifyCatalystTypesWithModelFallback as classifyCatalystTypes } from "../../world-brain/catalyst-classifier";
+import { computeConfidenceBucket } from "../../types/news.types";
+import { fetchFullArticleContent } from "../jina";
 import { ensureMlxServer } from "../mlx";
 import {
   writeStoryNote,
@@ -31,6 +33,7 @@ import {
   type EventsSnapshot,
 } from "../marketdata/events";
 import { runAlertsPass } from "../../world-brain/alerts";
+import { appendVaultLog, regenerateVaultIndex } from "../../world-brain/vault-meta";
 import { getActiveModel } from "../ai-config";
 import type { GeoStory, WorldData } from "@/types/geo.types";
 import type { ClassifiedStory } from "@/types/news.types";
@@ -87,10 +90,22 @@ export interface TickerAnalysisProgress {
   results?: TickerResult;
 }
 
-const tickerAnalysisMap = new Map<string, TickerAnalysisProgress>();
+const ANALYSIS_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+const tickerAnalysisMap = new Map<string, { data: TickerAnalysisProgress; expiresAt: number }>();
+
+function setTickerAnalysis(ticker: string, progress: TickerAnalysisProgress): void {
+  tickerAnalysisMap.set(ticker, { data: progress, expiresAt: Date.now() + ANALYSIS_TTL_MS });
+}
 
 export function getTickerAnalysisProgress(ticker: string): TickerAnalysisProgress | undefined {
-  return tickerAnalysisMap.get(ticker);
+  const entry = tickerAnalysisMap.get(ticker);
+  if (!entry) return undefined;
+  if (Date.now() > entry.expiresAt) {
+    tickerAnalysisMap.delete(ticker);
+    return undefined;
+  }
+  return entry.data;
 }
 
 export function getAgentProgress(): AgentProgress {
@@ -108,7 +123,7 @@ export async function runTickerAnalysis(ticker: string): Promise<TickerResult> {
   const upperTicker = ticker.toUpperCase();
 
   // Reject if same ticker is already being analyzed
-  const existing = tickerAnalysisMap.get(upperTicker);
+  const existing = getTickerAnalysisProgress(upperTicker);
   if (existing && existing.status === "running") {
     throw new Error(`Already analyzing ${upperTicker}`);
   }
@@ -121,7 +136,7 @@ export async function runTickerAnalysis(ticker: string): Promise<TickerResult> {
   // Ensure MLX is available
   await ensureMlxServer();
 
-  tickerAnalysisMap.set(upperTicker, {
+  setTickerAnalysis(upperTicker, {
     ticker: upperTicker,
     status: "running",
     articleIndex: 0,
@@ -134,8 +149,8 @@ export async function runTickerAnalysis(ticker: string): Promise<TickerResult> {
     const articles = await getServices().newsService.getNewsForTicker(upperTicker);
     const top = articles.filter((a) => a.isAnalyzed !== true).slice(0, 10);
 
-    tickerAnalysisMap.set(upperTicker, {
-      ...tickerAnalysisMap.get(upperTicker)!,
+    setTickerAnalysis(upperTicker, {
+      ...getTickerAnalysisProgress(upperTicker)!,
       totalArticles: top.length,
       message: top.length === 0 ? "No unanalyzed stories found." : `Analyzing ${top.length} stories...`,
     });
@@ -185,49 +200,75 @@ export async function runTickerAnalysis(ticker: string): Promise<TickerResult> {
     for (let i = 0; i < top.length; i++) {
       const article = top[i];
 
-      tickerAnalysisMap.set(upperTicker, {
-        ...tickerAnalysisMap.get(upperTicker)!,
+      if (!article.headline?.trim() || !article.url?.trim()) {
+        console.warn(`[agent] Skipping story with empty headline/URL for ${upperTicker}`);
+        continue;
+      }
+
+      setTickerAnalysis(upperTicker, {
+        ...getTickerAnalysisProgress(upperTicker)!,
         articleIndex: i + 1,
         currentHeadline: article.headline,
         message: `Analyzing: ${article.headline.slice(0, 40)}...`,
       });
 
-      const analysis = await analyzeStory(
-        upperTicker,
-        article.headline,
-        article.summary ?? "",
-        holdingTickers,
-        holdingSectors,
-        undefined, // no streaming for per-ticker runs
-        tickerContext,
-        recentVerdicts,
-        {
-          macro: macroSnapshot
-            ? {
-                vix: macroSnapshot.vix,
-                tenY: macroSnapshot.tenY,
-                dxy: macroSnapshot.dxy,
-                regime: macroSnapshot.regime,
-                summary: macroSnapshot.summary,
-              }
-            : undefined,
-          tickerState: tickerQuote
-            ? {
-                price: tickerQuote.price,
-                change1d: tickerQuote.change1d,
-                change5d: tickerQuote.change5d,
-                change30d: tickerQuote.change30d,
-                return52wHigh: tickerQuote.return52wHigh,
-                rsi14: tickerQuote.rsi14,
-                atr14: tickerQuote.atr14,
-              }
-            : undefined,
-        },
-      );
+      // Fetch full article text via Jina — gracefully degrade to summary on failure
+      const fullContent = await fetchFullArticleContent(article.url);
+      const enrichedSummary = fullContent
+        ? `${article.summary ?? ""}\n\n[Full Article]\n${fullContent.slice(0, 6000)}`
+        : (article.summary ?? "");
 
-      const catalystTypes = classifyCatalystTypes({
+      const analysis = await Promise.race([
+        analyzeStory(
+          upperTicker,
+          article.headline,
+          enrichedSummary,
+          holdingTickers,
+          holdingSectors,
+          undefined, // no streaming for per-ticker runs
+          tickerContext,
+          recentVerdicts,
+          {
+            macro: macroSnapshot
+              ? {
+                  vix: macroSnapshot.vix,
+                  tenY: macroSnapshot.tenY,
+                  dxy: macroSnapshot.dxy,
+                  regime: macroSnapshot.regime,
+                  summary: macroSnapshot.summary,
+                }
+              : undefined,
+            tickerState: tickerQuote
+              ? {
+                  price: tickerQuote.price,
+                  change1d: tickerQuote.change1d,
+                  change5d: tickerQuote.change5d,
+                  change30d: tickerQuote.change30d,
+                  return52wHigh: tickerQuote.return52wHigh,
+                  rsi14: tickerQuote.rsi14,
+                  atr14: tickerQuote.atr14,
+                }
+              : undefined,
+          }
+        ),
+        new Promise<UnifiedAnalysis>((_, reject) =>
+          setTimeout(() => reject(new Error("[agent] Per-ticker analysis timed out after 120s")), 120_000)
+        ),
+      ]).catch(() => ({
+        verdict: "HOLD" as const,
+        confidence: 0.5,
+        reason: "FALLBACK: Analysis timed out after 120s.",
+        sectorTags: [],
+        affectedTickers: [],
+        originCountryCode: null,
+        relevanceScore: 0,
+        geoSummary: "",
+        analysisFailed: true,
+      }));
+
+      const catalystTypes = await classifyCatalystTypes({
         headline: article.headline,
-        summary: article.summary ?? "",
+        summary: enrichedSummary,
         reason: analysis.reason,
         verdict: analysis.verdict,
       });
@@ -245,7 +286,7 @@ export async function runTickerAnalysis(ticker: string): Promise<TickerResult> {
         const geoStory: GeoStory = {
           ticker: upperTicker,
           headline: article.headline,
-          summary: article.summary ?? "",
+          summary: enrichedSummary,
           url: article.url,
           datetime: article.datetime,
           verdict: analysis.verdict,
@@ -254,7 +295,10 @@ export async function runTickerAnalysis(ticker: string): Promise<TickerResult> {
           source: article.source,
           originCountryCode: analysis.originCountryCode ?? profile?.countryCode,
           relevanceScore: analysis.relevanceScore,
-          isAnalyzed: Boolean(analysis.reason),
+          isAnalyzed: !analysis.analysisFailed,
+          analysisFailed: analysis.analysisFailed,
+          classificationSource: analysis.analysisFailed ? undefined : "ai",
+          confidenceBucket: computeConfidenceBucket(analysis.confidence, analysis.analysisFailed),
           catalystTypes,
         };
         writeStoryNote(geoStory, WORLD_VAULT_PATH, profile?.sector);
@@ -265,14 +309,17 @@ export async function runTickerAnalysis(ticker: string): Promise<TickerResult> {
         confidence: analysis.confidence,
         reason: analysis.reason ?? undefined,
         catalystTypes,
-        isAnalyzed: true,
+        isAnalyzed: !analysis.analysisFailed,
+        analysisFailed: analysis.analysisFailed,
+        classificationSource: analysis.analysisFailed ? undefined : "ai",
+        confidenceBucket: computeConfidenceBucket(analysis.confidence, analysis.analysisFailed),
         classifiedAt: new Date().toISOString(),
       });
     }
 
     const result: TickerResult = { ticker: upperTicker, verdicts };
-    tickerAnalysisMap.set(upperTicker, {
-      ...tickerAnalysisMap.get(upperTicker)!,
+    setTickerAnalysis(upperTicker, {
+      ...getTickerAnalysisProgress(upperTicker)!,
       status: "complete",
       results: result,
       message: "Analysis complete.",
@@ -282,8 +329,8 @@ export async function runTickerAnalysis(ticker: string): Promise<TickerResult> {
     return result;
   } catch (err) {
     console.error(`\x1b[31m[agent] Per-ticker analysis failed for ${upperTicker}:\x1b[0m`, err);
-    tickerAnalysisMap.set(upperTicker, {
-      ...tickerAnalysisMap.get(upperTicker)!,
+    setTickerAnalysis(upperTicker, {
+      ...getTickerAnalysisProgress(upperTicker)!,
       status: "error",
       message: (err as Error).message,
     });
@@ -331,18 +378,18 @@ async function runForecast(
   }
   if (!forecasterPrompt) return null;
 
-  const catalysts = verdicts.slice(0, 5).map((v) => ({
+  const catalystsRaw = await Promise.all(verdicts.slice(0, 5).map(async (v) => ({
     headline: v.headline.slice(0, 100),
     verdict: v.verdict,
     confidence: v.analysis.confidence,
-    catalystTypes: classifyCatalystTypes({
+    catalystTypes: await classifyCatalystTypes({
       headline: v.headline,
       reason: v.analysis.reason,
       verdict: v.verdict,
     }),
-  }));
+  })));
   const predictionCatalystTypes = uniqueCatalystTypes(
-    catalysts.flatMap((catalyst) => catalyst.catalystTypes ?? [])
+    catalystsRaw.flatMap((catalyst) => catalyst.catalystTypes ?? [])
   );
 
   // Self-calibration block uses outcomes from the same horizon — a 30-day
@@ -416,10 +463,10 @@ async function runForecast(
           ? Math.max(0, Math.min(1, parsed.confidence))
           : 0.5,
       reasoning: parsed.reasoning ?? "",
-      catalysts,
+      catalysts: catalystsRaw,
       catalystTypes:
         predictionCatalystTypes.length > 0 ? predictionCatalystTypes : ["other"],
-      engine: active.id,
+      engine: active.model,
       status: "pending",
     };
   } catch {
@@ -594,6 +641,11 @@ export async function runStockAgent(): Promise<AgentRunResult> {
 
         const article = top[i];
 
+        if (!article.headline?.trim() || !article.url?.trim()) {
+          console.warn(`[agent] Skipping story with empty headline/URL for ${pos.ticker}`);
+          continue;
+        }
+
         currentProgress = {
           ...currentProgress,
           ticker: pos.ticker,
@@ -604,44 +656,65 @@ export async function runStockAgent(): Promise<AgentRunResult> {
           streamText: "" // Reset stream text for the next story
         };
 
-        const analysis = await analyzeStory(
-          pos.ticker,
-          article.headline,
-          article.summary ?? "",
-          holdingTickers,
-          holdingSectors,
-          (chunk) => {
-            currentProgress.streamText = chunk;
-          },
-          tickerContext,
-          recentVerdicts,
-          {
-            macro: macroSnapshot
-              ? {
-                  vix: macroSnapshot.vix,
-                  tenY: macroSnapshot.tenY,
-                  dxy: macroSnapshot.dxy,
-                  regime: macroSnapshot.regime,
-                  summary: macroSnapshot.summary,
-                }
-              : undefined,
-            tickerState: tickerMarketQuote
-              ? {
-                  price: tickerMarketQuote.price,
-                  change1d: tickerMarketQuote.change1d,
-                  change5d: tickerMarketQuote.change5d,
-                  change30d: tickerMarketQuote.change30d,
-                  return52wHigh: tickerMarketQuote.return52wHigh,
-                  rsi14: tickerMarketQuote.rsi14,
-                  atr14: tickerMarketQuote.atr14,
-                }
-              : undefined,
-          }
-        );
+        // Fetch full article text via Jina — gracefully degrade to summary on failure
+        const fullContent = await fetchFullArticleContent(article.url);
+        const enrichedSummary = fullContent
+          ? `${article.summary ?? ""}\n\n[Full Article]\n${fullContent.slice(0, 6000)}`
+          : (article.summary ?? "");
 
-        const catalystTypes = classifyCatalystTypes({
+        const analysis = await Promise.race([
+          analyzeStory(
+            pos.ticker,
+            article.headline,
+            enrichedSummary,
+            holdingTickers,
+            holdingSectors,
+            (chunk) => {
+              currentProgress.streamText = chunk;
+            },
+            tickerContext,
+            recentVerdicts,
+            {
+              macro: macroSnapshot
+                ? {
+                    vix: macroSnapshot.vix,
+                    tenY: macroSnapshot.tenY,
+                    dxy: macroSnapshot.dxy,
+                    regime: macroSnapshot.regime,
+                    summary: macroSnapshot.summary,
+                  }
+                : undefined,
+              tickerState: tickerMarketQuote
+                ? {
+                    price: tickerMarketQuote.price,
+                    change1d: tickerMarketQuote.change1d,
+                    change5d: tickerMarketQuote.change5d,
+                    change30d: tickerMarketQuote.change30d,
+                    return52wHigh: tickerMarketQuote.return52wHigh,
+                    rsi14: tickerMarketQuote.rsi14,
+                    atr14: tickerMarketQuote.atr14,
+                  }
+                : undefined,
+            }
+          ),
+          new Promise<UnifiedAnalysis>((_, reject) =>
+            setTimeout(() => reject(new Error("[agent] Story analysis timed out after 120s")), 120_000)
+          ),
+        ]).catch(() => ({
+          verdict: "HOLD" as const,
+          confidence: 0.5,
+          reason: "FALLBACK: Analysis timed out after 120s.",
+          sectorTags: [],
+          affectedTickers: [],
+          originCountryCode: null,
+          relevanceScore: 0,
+          geoSummary: "",
+          analysisFailed: true,
+        }));
+
+        const catalystTypes = await classifyCatalystTypes({
           headline: article.headline,
-          summary: article.summary ?? "",
+          summary: enrichedSummary,
           reason: analysis.reason,
           verdict: analysis.verdict,
         });
@@ -662,7 +735,7 @@ export async function runStockAgent(): Promise<AgentRunResult> {
           const geoStory: GeoStory = {
             ticker: pos.ticker,
             headline: article.headline,
-            summary: article.summary ?? "",
+            summary: enrichedSummary,
             url: article.url,
             datetime: article.datetime,
             verdict: analysis.verdict,
@@ -671,7 +744,10 @@ export async function runStockAgent(): Promise<AgentRunResult> {
             source: article.source,
             originCountryCode: analysis.originCountryCode ?? profile?.countryCode,
             relevanceScore: analysis.relevanceScore,
-            isAnalyzed: Boolean(analysis.reason), // false if MLX returned a fallback (empty reason)
+            isAnalyzed: !analysis.analysisFailed,
+            analysisFailed: analysis.analysisFailed,
+            classificationSource: analysis.analysisFailed ? undefined : "ai",
+            confidenceBucket: computeConfidenceBucket(analysis.confidence, analysis.analysisFailed),
             catalystTypes,
           };
           allGeoStories.push(geoStory);
@@ -683,7 +759,10 @@ export async function runStockAgent(): Promise<AgentRunResult> {
             confidence: analysis.confidence,
             reason: analysis.reason ?? undefined,
             catalystTypes,
-            isAnalyzed: true,
+            isAnalyzed: !analysis.analysisFailed,
+            analysisFailed: analysis.analysisFailed,
+            classificationSource: analysis.analysisFailed ? undefined : "ai",
+            confidenceBucket: computeConfidenceBucket(analysis.confidence, analysis.analysisFailed),
             classifiedAt: new Date().toISOString(),
           });
         }
@@ -703,11 +782,11 @@ export async function runStockAgent(): Promise<AgentRunResult> {
           const tickerMarketQuote = marketQuoteCache[pos.ticker] ?? null;
           const currentPrice = quote?.currentPrice ?? tickerMarketQuote?.price ?? null;
           if (currentPrice !== null) {
-            const weeklyCutoff = startedAt - 7 * 86_400_000;
             for (const horizon of SUPPORTED_HORIZONS) {
               if (isCancelled) break;
+              const horizonCutoff = startedAt - horizon * 86_400_000;
               const existing = loadPredictions(WORLD_VAULT_PATH, pos.ticker, horizon);
-              const recentPrediction = existing.find((p) => p.runAt >= weeklyCutoff);
+              const recentPrediction = existing.find((p) => p.runAt >= horizonCutoff);
               if (recentPrediction) {
                 console.log(
                   `[agent] Skipping ${horizon}d forecast for ${pos.ticker} — predicted on ${new Date(recentPrediction.runAt).toDateString()}`
@@ -742,7 +821,11 @@ export async function runStockAgent(): Promise<AgentRunResult> {
 
       tickerResults.push({ ticker: pos.ticker, verdicts });
     }
-    
+
+    // Log analysis success/failure rate
+    const { total, succeeded, failed, retried } = analysisStats;
+    console.log(`\x1b[2m[agent] Analysis: ${succeeded}/${total} succeeded, ${failed} failed, ${retried} retried\x1b[0m`);
+
     if (WORLD_VAULT_PATH && allGeoStories.length > 0) {
       const today = new Date().toISOString().split("T")[0];
       const dummyWorldData = { profiles, countries: {}, fetchedAt: Date.now() } as unknown as WorldData;
@@ -784,6 +867,18 @@ export async function runStockAgent(): Promise<AgentRunResult> {
         });
       } catch (err) {
         console.error("[agent] Alerts pass failed (non-fatal):", err);
+      }
+
+      try {
+        const tickers = result.tickerResults.map((t) => t.ticker).join(", ");
+        appendVaultLog(WORLD_VAULT_PATH, {
+          type: "lint",
+          title: `Agent run complete for ${runDate}`,
+          details: `Tickers: ${tickers}. ${result.totalBuys} BUY / ${result.totalSells} SELL / ${result.totalHolds} HOLD.`,
+        });
+        regenerateVaultIndex(WORLD_VAULT_PATH);
+      } catch (err) {
+        console.error("[agent] Index regen failed (non-fatal):", err);
       }
     }
 

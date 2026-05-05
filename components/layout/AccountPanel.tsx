@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import { useEffect } from "react";
-import AIEngineSelector from "@/components/layout/AIEngineSelector";
 import { useAccountSettings } from "@/hooks/useAccountSettings";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -221,7 +220,13 @@ export default function AccountPanel({
 
             {/* AI Engine */}
             <PanelSection title="AI Engine" icon="psychology">
-              <AIEngineSelector />
+              <div className="flex items-center gap-2 px-1 py-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
+                <div>
+                  <p className="font-mono text-[11px] font-bold text-white">DeepSeek</p>
+                  <p className="font-mono text-[9px] text-slate-500">deepseek-chat</p>
+                </div>
+              </div>
             </PanelSection>
 
             {/* Data Sources */}
@@ -230,7 +235,6 @@ export default function AccountPanel({
                 <div>
                   <StatusRow label="Finnhub" configured={settings.dataSources.finnhub} />
                   <StatusRow label="Polygon" configured={settings.dataSources.polygon} />
-                  <StatusRow label="Twitter / X" configured={settings.dataSources.twitter} />
                   <StatusRow label="NewsAPI" configured={settings.dataSources.newsapi} />
                   <StatusRow label="FRED" configured={settings.dataSources.fred} />
                 </div>

@@ -12,7 +12,7 @@ export const MOCK_NEWS: Record<string, ClassifiedStory[]> = {
       url: "#", verdict: "BUY", confidence: 0.91, classifiedAt: new Date().toISOString(),
     },
     {
-      ticker: "BR", source: "twitter", datetime: h(3), author: "FinancialTimes",
+      ticker: "BR", source: "polygon", datetime: h(3), author: "FinancialTimes",
       headline: "BR stock upgrades from two analysts following strong wealth management platform adoption numbers.",
       summary: "BR stock upgrades from two analysts following strong wealth management platform adoption numbers.",
       url: "#", verdict: "BUY", confidence: 0.78, classifiedAt: new Date().toISOString(),
@@ -39,7 +39,7 @@ export const MOCK_NEWS: Record<string, ClassifiedStory[]> = {
       url: "#", verdict: "BUY", confidence: 0.88, classifiedAt: new Date().toISOString(),
     },
     {
-      ticker: "GLD", source: "twitter", datetime: h(5), author: "KitcoNews",
+      ticker: "GLD", source: "polygon", datetime: h(5), author: "KitcoNews",
       headline: "Central banks globally added 290 tonnes of gold in Q1 — strongest quarter in decades.",
       summary: "Central banks globally added 290 tonnes of gold in Q1 — strongest quarter in decades.",
       url: "#", verdict: "BUY", confidence: 0.85, classifiedAt: new Date().toISOString(),
@@ -57,16 +57,10 @@ export const MOCK_NEWS: Record<string, ClassifiedStory[]> = {
       url: "#", verdict: "BUY", confidence: 0.80, classifiedAt: new Date().toISOString(),
     },
     {
-      ticker: "GLD", source: "twitter", datetime: h(48), author: "BloombergMkts",
+      ticker: "GLD", source: "polygon", datetime: h(48), author: "BloombergMkts",
       headline: "Geopolitical tensions in Middle East driving safe-haven flows into gold and treasuries.",
       summary: "Geopolitical tensions in Middle East driving safe-haven flows into gold and treasuries.",
       url: "#", verdict: "BUY", confidence: 0.74, classifiedAt: new Date().toISOString(),
-    },
-    {
-      ticker: "GLD", source: "reddit", datetime: h(9), author: "u/goldbugsunite",
-      headline: "GLD vs physical gold — which do you hold and why?",
-      summary: "GLD vs physical gold — which do you hold and why?\n\nWith gold at all-time highs I keep going back and forth. GLD is more liquid but you don't own the metal. Curious what r/investing thinks.",
-      url: "#", verdict: "HOLD", confidence: 0.55, classifiedAt: new Date().toISOString(),
     },
     {
       ticker: "GLD", source: "newsapi", datetime: h(15),
@@ -84,7 +78,7 @@ export const MOCK_NEWS: Record<string, ClassifiedStory[]> = {
       url: "#", verdict: "BUY", confidence: 0.94, classifiedAt: new Date().toISOString(),
     },
     {
-      ticker: "MSFT", source: "twitter", datetime: h(4), author: "SatNadella",
+      ticker: "MSFT", source: "polygon", datetime: h(4), author: "SatNadella",
       headline: "Copilot for Microsoft 365 reaches 1 million paid seats — fastest enterprise adoption in company history.",
       summary: "Copilot for Microsoft 365 reaches 1 million paid seats — fastest enterprise adoption in company history.",
       url: "#", verdict: "BUY", confidence: 0.89, classifiedAt: new Date().toISOString(),
@@ -102,16 +96,10 @@ export const MOCK_NEWS: Record<string, ClassifiedStory[]> = {
       url: "#", verdict: "BUY", confidence: 0.82, classifiedAt: new Date().toISOString(),
     },
     {
-      ticker: "MSFT", source: "twitter", datetime: h(50), author: "WSJMarkets",
+      ticker: "MSFT", source: "polygon", datetime: h(50), author: "WSJMarkets",
       headline: "Analyst consensus on MSFT remains Strong Buy with average PT of $520.",
       summary: "Analyst consensus on MSFT remains Strong Buy with average PT of $520.",
       url: "#", verdict: "HOLD", confidence: 0.58, classifiedAt: new Date().toISOString(),
-    },
-    {
-      ticker: "MSFT", source: "reddit", datetime: h(7), author: "u/techbull99",
-      headline: "Microsoft's AI push is unlike anything I've seen — here's why I'm doubling my position",
-      summary: "Microsoft's AI push is unlike anything I've seen — here's why I'm doubling my position\n\nAzure OpenAI usage is exploding at my company. Every enterprise team wants Copilot. The moat is real.",
-      url: "#", verdict: "BUY", confidence: 0.76, classifiedAt: new Date().toISOString(),
     },
     {
       ticker: "MSFT", source: "newsapi", datetime: h(11),
@@ -129,7 +117,7 @@ export const MOCK_NEWS: Record<string, ClassifiedStory[]> = {
       url: "#", verdict: "HOLD", confidence: 0.55, classifiedAt: new Date().toISOString(),
     },
     {
-      ticker: "RBL", source: "twitter", datetime: h(12), author: "SmallCapDaily",
+      ticker: "RBL", source: "polygon", datetime: h(12), author: "SmallCapDaily",
       headline: "RBL misses Q2 revenue estimates by 8%, cites softer-than-expected ad market.",
       summary: "RBL misses Q2 revenue estimates by 8%, cites softer-than-expected ad market.",
       url: "#", verdict: "SELL", confidence: 0.76, classifiedAt: new Date().toISOString(),
@@ -150,7 +138,7 @@ export const MOCK_NEWS: Record<string, ClassifiedStory[]> = {
       url: "#", verdict: "BUY", confidence: 0.70, classifiedAt: new Date().toISOString(),
     },
     {
-      ticker: "RPI", source: "twitter", datetime: h(14), author: "MacroAlerts",
+      ticker: "RPI", source: "polygon", datetime: h(14), author: "MacroAlerts",
       headline: "Real returns on inflation-protected instruments turn positive for first time since 2021.",
       summary: "Real returns on inflation-protected instruments turn positive for first time since 2021.",
       url: "#", verdict: "BUY", confidence: 0.66, classifiedAt: new Date().toISOString(),
@@ -171,7 +159,7 @@ export const MOCK_NEWS: Record<string, ClassifiedStory[]> = {
       url: "#", verdict: "BUY", confidence: 0.85, classifiedAt: new Date().toISOString(),
     },
     {
-      ticker: "AAPL", source: "twitter", datetime: h(5), author: "MinchiKuo",
+      ticker: "AAPL", source: "polygon", datetime: h(5), author: "MinchiKuo",
       headline: "Apple iPhone 17 Pro shipments tracking 12% ahead of iPhone 16 Pro cycle at same point.",
       summary: "Apple iPhone 17 Pro shipments tracking 12% ahead of iPhone 16 Pro cycle at same point.",
       url: "#", verdict: "BUY", confidence: 0.82, classifiedAt: new Date().toISOString(),
@@ -198,7 +186,7 @@ export const MOCK_NEWS: Record<string, ClassifiedStory[]> = {
       url: "#", verdict: "BUY", confidence: 0.95, classifiedAt: new Date().toISOString(),
     },
     {
-      ticker: "NVDA", source: "twitter", datetime: h(6), author: "SemiAnalysis",
+      ticker: "NVDA", source: "polygon", datetime: h(6), author: "SemiAnalysis",
       headline: "NVIDIA H200 lead over AMD MI300X widens further — CUDA moat remains intact in enterprise deployments.",
       summary: "NVIDIA H200 lead over AMD MI300X widens further — CUDA moat remains intact in enterprise deployments.",
       url: "#", verdict: "BUY", confidence: 0.88, classifiedAt: new Date().toISOString(),
@@ -208,12 +196,6 @@ export const MOCK_NEWS: Record<string, ClassifiedStory[]> = {
       headline: "US export controls tighten on advanced AI chips to China — NVIDIA estimates $5.5B revenue impact",
       summary: "Commerce Dept rule affects H100, H200, and Blackwell sales to mainland China buyers.",
       url: "#", verdict: "SELL", confidence: 0.78, classifiedAt: new Date().toISOString(),
-    },
-    {
-      ticker: "NVDA", source: "reddit", datetime: h(20), author: "u/AIInvestor42",
-      headline: "NVDA is the picks-and-shovels play of the AI gold rush — my thesis for $1200 PT",
-      summary: "NVDA is the picks-and-shovels play of the AI gold rush — my thesis for $1200 PT\n\nEvery major AI lab, cloud, and enterprise is buying more GPUs than analysts model. CUDA lock-in is real.",
-      url: "#", verdict: "BUY", confidence: 0.74, classifiedAt: new Date().toISOString(),
     },
     {
       ticker: "NVDA", source: "newsapi", datetime: h(36),
@@ -231,7 +213,7 @@ export const MOCK_NEWS: Record<string, ClassifiedStory[]> = {
       url: "#", verdict: "BUY", confidence: 0.86, classifiedAt: new Date().toISOString(),
     },
     {
-      ticker: "JPM", source: "twitter", datetime: h(9), author: "WSJMarkets",
+      ticker: "JPM", source: "polygon", datetime: h(9), author: "WSJMarkets",
       headline: "Jamie Dimon warns of stagflation risks in annual shareholder letter — calls it 'the most dangerous macro backdrop in 40 years'.",
       summary: "Jamie Dimon warns of stagflation risks in annual shareholder letter — calls it 'the most dangerous macro backdrop in 40 years'.",
       url: "#", verdict: "SELL", confidence: 0.60, classifiedAt: new Date().toISOString(),
@@ -258,7 +240,7 @@ export const MOCK_NEWS: Record<string, ClassifiedStory[]> = {
       url: "#", verdict: "BUY", confidence: 0.84, classifiedAt: new Date().toISOString(),
     },
     {
-      ticker: "XOM", source: "twitter", datetime: h(12), author: "EnergyIntelGroup",
+      ticker: "XOM", source: "polygon", datetime: h(12), author: "EnergyIntelGroup",
       headline: "Brent crude slips to $78 on OPEC+ production hike signals — energy majors under pressure.",
       summary: "Brent crude slips to $78 on OPEC+ production hike signals — energy majors under pressure.",
       url: "#", verdict: "SELL", confidence: 0.71, classifiedAt: new Date().toISOString(),
@@ -285,7 +267,7 @@ export const MOCK_NEWS: Record<string, ClassifiedStory[]> = {
       url: "#", verdict: "BUY", confidence: 0.92, classifiedAt: new Date().toISOString(),
     },
     {
-      ticker: "AMZN", source: "twitter", datetime: h(7), author: "TechCrunch",
+      ticker: "AMZN", source: "polygon", datetime: h(7), author: "TechCrunch",
       headline: "Amazon Alexa+ with Claude integration reaches 50M households in 90 days — fastest AI consumer rollout ever.",
       summary: "Amazon Alexa+ with Claude integration reaches 50M households in 90 days — fastest AI consumer rollout ever.",
       url: "#", verdict: "BUY", confidence: 0.86, classifiedAt: new Date().toISOString(),
@@ -295,12 +277,6 @@ export const MOCK_NEWS: Record<string, ClassifiedStory[]> = {
       headline: "FTC renewed antitrust scrutiny targets Amazon marketplace seller fees and Buy Box algorithm",
       summary: "Investigation could force structural changes to Amazon's third-party marketplace if settlement not reached.",
       url: "#", verdict: "SELL", confidence: 0.66, classifiedAt: new Date().toISOString(),
-    },
-    {
-      ticker: "AMZN", source: "reddit", datetime: h(32), author: "u/cloudwatch_bull",
-      headline: "AWS Bedrock wins are bigger than anyone realizes — here's what the enterprise sales data shows",
-      summary: "AWS Bedrock wins are bigger than anyone realizes — here's what the enterprise sales data shows\n\nEvery CTO I talk to is consolidating AI inference on Bedrock. The stickiness rivals Azure OpenAI.",
-      url: "#", verdict: "BUY", confidence: 0.76, classifiedAt: new Date().toISOString(),
     },
   ],
 
@@ -312,7 +288,7 @@ export const MOCK_NEWS: Record<string, ClassifiedStory[]> = {
       url: "#", verdict: "BUY", confidence: 0.73, classifiedAt: new Date().toISOString(),
     },
     {
-      ticker: "RXD", source: "twitter", datetime: h(8), author: "ETFTrends",
+      ticker: "RXD", source: "polygon", datetime: h(8), author: "ETFTrends",
       headline: "Inverse healthcare ETFs see elevated volume as pharma names sell off on Medicare news.",
       summary: "Inverse healthcare ETFs see elevated volume as pharma names sell off on Medicare news.",
       url: "#", verdict: "BUY", confidence: 0.81, classifiedAt: new Date().toISOString(),
@@ -339,7 +315,7 @@ export const MOCK_NEWS: Record<string, ClassifiedStory[]> = {
       url: "#", verdict: "BUY", confidence: 0.88, classifiedAt: new Date().toISOString(),
     },
     {
-      ticker: "ITUB", source: "twitter", datetime: h(9), author: "BrazilFinanceDesk",
+      ticker: "ITUB", source: "polygon", datetime: h(9), author: "BrazilFinanceDesk",
       headline: "Brazil Selic rate held at 13.75% — positive for bank net interest margins heading into H2.",
       summary: "Brazil Selic rate held at 13.75% — positive for bank net interest margins heading into H2.",
       url: "#", verdict: "BUY", confidence: 0.79, classifiedAt: new Date().toISOString(),
@@ -366,7 +342,7 @@ export const MOCK_NEWS: Record<string, ClassifiedStory[]> = {
       url: "#", verdict: "BUY", confidence: 0.86, classifiedAt: new Date().toISOString(),
     },
     {
-      ticker: "TM", source: "twitter", datetime: h(11), author: "AutoAnalyst",
+      ticker: "TM", source: "polygon", datetime: h(11), author: "AutoAnalyst",
       headline: "Toyota's solid-state battery timeline slips to 2028 — EV transition risk lingers.",
       summary: "Toyota's solid-state battery timeline slips to 2028 — EV transition risk lingers.",
       url: "#", verdict: "SELL", confidence: 0.68, classifiedAt: new Date().toISOString(),
@@ -393,7 +369,7 @@ export const MOCK_NEWS: Record<string, ClassifiedStory[]> = {
       url: "#", verdict: "BUY", confidence: 0.91, classifiedAt: new Date().toISOString(),
     },
     {
-      ticker: "INFY", source: "twitter", datetime: h(7), author: "TechCrunchIndia",
+      ticker: "INFY", source: "polygon", datetime: h(7), author: "TechCrunchIndia",
       headline: "Infosys wins $2.1B multi-year digital transformation contract with European financial consortium.",
       summary: "Infosys wins $2.1B multi-year digital transformation contract with European financial consortium.",
       url: "#", verdict: "BUY", confidence: 0.87, classifiedAt: new Date().toISOString(),
@@ -403,12 +379,6 @@ export const MOCK_NEWS: Record<string, ClassifiedStory[]> = {
       headline: "US H-1B visa scrutiny intensifies — Indian IT firms face higher operating costs for US delivery",
       summary: "Proposed H-1B reforms could add $150M-$200M in annual costs for Infosys's US workforce.",
       url: "#", verdict: "SELL", confidence: 0.65, classifiedAt: new Date().toISOString(),
-    },
-    {
-      ticker: "INFY", source: "reddit", datetime: h(33), author: "u/emergingmktsinvestor",
-      headline: "INFY is the safest play on India's tech boom — here's my 3-year thesis",
-      summary: "INFY is the safest play on India's tech boom — here's my 3-year thesis\n\nWith global enterprises pouring money into AI transformation, INFY's delivery model and margin profile look increasingly compelling.",
-      url: "#", verdict: "BUY", confidence: 0.72, classifiedAt: new Date().toISOString(),
     },
   ],
 
@@ -420,7 +390,7 @@ export const MOCK_NEWS: Record<string, ClassifiedStory[]> = {
       url: "#", verdict: "BUY", confidence: 0.83, classifiedAt: new Date().toISOString(),
     },
     {
-      ticker: "LVMH", source: "twitter", datetime: h(14), author: "LuxuryIntelligence",
+      ticker: "LVMH", source: "polygon", datetime: h(14), author: "LuxuryIntelligence",
       headline: "Chinese luxury spending down 12% YoY in March — LVMH China exposure at 26% of revenue.",
       summary: "Chinese luxury spending down 12% YoY in March — LVMH China exposure at 26% of revenue.",
       url: "#", verdict: "SELL", confidence: 0.74, classifiedAt: new Date().toISOString(),
@@ -447,7 +417,7 @@ export const MOCK_NEWS: Record<string, ClassifiedStory[]> = {
       url: "#", verdict: "BUY", confidence: 0.89, classifiedAt: new Date().toISOString(),
     },
     {
-      ticker: "005930", source: "twitter", datetime: h(10), author: "SemiAnalysis",
+      ticker: "005930", source: "polygon", datetime: h(10), author: "SemiAnalysis",
       headline: "Samsung foundry losing ground to TSMC at 3nm — yield gap still 15-20 percentage points behind.",
       summary: "Samsung foundry losing ground to TSMC at 3nm — yield gap still 15-20 percentage points behind.",
       url: "#", verdict: "SELL", confidence: 0.72, classifiedAt: new Date().toISOString(),
@@ -468,7 +438,7 @@ export const MOCK_NEWS: Record<string, ClassifiedStory[]> = {
       url: "#", verdict: "BUY", confidence: 0.84, classifiedAt: new Date().toISOString(),
     },
     {
-      ticker: "CNQ", source: "twitter", datetime: h(15), author: "EnergyIntelGroup",
+      ticker: "CNQ", source: "polygon", datetime: h(15), author: "EnergyIntelGroup",
       headline: "WTI crude falls below $75 on demand concerns — Canadian heavy oil differentials widen.",
       summary: "WTI crude falls below $75 on demand concerns — Canadian heavy oil differentials widen.",
       url: "#", verdict: "SELL", confidence: 0.70, classifiedAt: new Date().toISOString(),
@@ -489,7 +459,7 @@ export const MOCK_NEWS: Record<string, ClassifiedStory[]> = {
       url: "#", verdict: "BUY", confidence: 0.87, classifiedAt: new Date().toISOString(),
     },
     {
-      ticker: "BHP", source: "twitter", datetime: h(13), author: "MiningWeekly",
+      ticker: "BHP", source: "polygon", datetime: h(13), author: "MiningWeekly",
       headline: "Iron ore price slides to $98/tonne as Chinese steel output data disappoints for third straight month.",
       summary: "Iron ore price slides to $98/tonne as Chinese steel output data disappoints for third straight month.",
       url: "#", verdict: "SELL", confidence: 0.75, classifiedAt: new Date().toISOString(),
@@ -526,7 +496,7 @@ export const MOCK_PENDING: Record<string, ClassifiedStory[]> = {
       verdict: "HOLD", confidence: 0, classifiedAt: "",
     },
     {
-      ticker: "JPM", source: "twitter", datetime: h(2), author: "FT_Markets",
+      ticker: "JPM", source: "polygon", datetime: h(2), author: "FT_Markets",
       headline: "Fed minutes show renewed debate over rate path — bank stocks slide pre-market.",
       summary: "", url: "#",
       verdict: "HOLD", confidence: 0, classifiedAt: "",
@@ -544,7 +514,7 @@ export const MOCK_PENDING: Record<string, ClassifiedStory[]> = {
       verdict: "HOLD", confidence: 0, classifiedAt: "",
     },
     {
-      ticker: "JPM", source: "twitter", datetime: h(11), author: "BloombergTV",
+      ticker: "JPM", source: "polygon", datetime: h(11), author: "BloombergTV",
       headline: "Jamie Dimon sells $150M in JPM shares — largest insider sale in a decade.",
       summary: "", url: "#",
       verdict: "HOLD", confidence: 0, classifiedAt: "",

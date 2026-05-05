@@ -1,4 +1,4 @@
-import AgentTrigger from "@/components/AgentTrigger";
+import AgentTrigger from "@/components/triggers/AgentTrigger";
 import TopBarDivider from "@/components/layout/TopBarDivider";
 
 interface ConnectionControlsProps {

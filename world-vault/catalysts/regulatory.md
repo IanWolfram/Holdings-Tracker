@@ -15,11 +15,26 @@ tags:
 
 Win rate: insufficient resolved predictions yet.
 Recent stories tagged with this catalyst: 25
-Verdict mix: 7 BUY / 5 SELL / 13 HOLD
+Verdict mix: 4 BUY / 2 SELL / 19 HOLD
 
 ## Recent Stories
+- [2026-05-05] **HOLD** 50.0% — [[HOOD]] — DraftKings Conference: Execs Debate Prediction Markets, Regulation and Sportsbook Edge
+- [2026-05-04] **HOLD** 50.0% — [[CHKP]] — Norwegian Cruise Line Holdings Ltd. Investigated for Securities Fraud Violations by Block & Leviton:
+- [2026-05-04] **HOLD** 50.0% — [[HOOD]] — Planet Ventures Appoints Dr. Bora Uygun as Head of Space Investments and Grants Options and RSUs
+- [2026-05-04] **HOLD** 50.0% — [[HOOD]] — Prediction Market ETFs Delayed As SEC Demands More Disclosure
+- [2026-05-04] **HOLD** 50.0% — [[PLTR]] — Stock Market Today, May 4: Strait of Hormuz Tensions Weigh on Stocks at Midday
+- [2026-05-04] **HOLD** 50.0% — [[HOOD]] — US SEC review delays first prediction-market ETFs
+- [2026-05-01] **SELL** 78.0% — [[CHKP]] — Check Point Software Technologies Ltd. Investigated for Securities Fraud Violations by Block & Levit
+- [2026-05-01] **HOLD** 55.0% — [[HOOD]] — Coinbase, Robinhood Back Push To Ban Casino Games From Prediction Markets
+- [2026-05-01] **BUY** 72.0% — [[CHKP]] — Healthcare Cybersecurity Market: $97.79 Billion by 2031 with Cloud Security Segment Expanding at 18.
+- [2026-05-01] **BUY** 72.0% — [[HOOD]] — SEC Semiannual Reporting Proposal Clears White House Review
+- [2026-05-01] **HOLD** 50.0% — [[HOOD]] — SEON CEO: Prediction markets can forecast the future. Can they survive their own manipulation proble
 - [2026-04-30] **HOLD** 50.0% — [[HOOD]] — Alphabet Inc. (GOOG) Faces Deeper Regulatory Scrutiny in Brazil Antitrust Review
+- [2026-04-30] **HOLD** 50.0% — [[TSLA]] — Elon Musk Admits xAI 'Partly Distilled' OpenAI Models: What Do Prediction Markets Say About The Laws
 - [2026-04-30] **BUY** 72.0% — [[HOOD]] — Gemini sets sights on derivatives expansion after winning key U.S. regulatory approval
+- [2026-04-30] **SELL** 82.0% — [[TSLA]] — The Dawn Project Report to Congress: Tesla's Self-Driving Software Has Been Involved in 59 Deaths, U
+- [2026-04-30] **HOLD** 50.0% — [[TSLA]] — These Low IV Stocks May Be Setting Up for an Explosive Move
+- [2026-04-29] **HOLD** 50.0% — [[HOOD]] — Robinhood Markets Inc (HOOD) Q1 2026 Earnings Call Highlights: Strong Revenue Growth and ...
 - [2026-04-29] **HOLD** 50.0% — [[HOOD]] — Stocks making the biggest moves midday: GE HealthCare Technologies, Bloom Energy, Seagate, Teradyne,
 - [2026-04-29] **HOLD** 50.0% — [[HOOD]] — These S&P500 stocks that are showing activity before the opening bell on Wednesday.
 - [2026-04-29] **HOLD** 50.0% — [[HOOD]] — US Equity Futures Largely Flat Pre-Bell as Traders Await Tech Earnings, Fed Rate Decision
@@ -28,18 +43,3 @@ Verdict mix: 7 BUY / 5 SELL / 13 HOLD
 - [2026-04-28] **BUY** 72.0% — [[HOOD]] — E-Brokerage Market Share Analysis and Growth Outlook (2026-2031) Featuring Profiles of Key Players -
 - [2026-04-27] **HOLD** 50.0% — [[HOOD]] — Calls of the Day: Doordash, Rollins, GE Vernova and Robinhood Markets
 - [2026-04-27] **HOLD** 20.0% — [[HOOD]] — Earnings live updates:  Domino's stock falls as busy 'Magnificent 7' earnings week begins
-- [2026-04-27] **BUY** 85.0% — [[HOOD]] — Robinhood Faces Looser Day Trading Rules And New Legal Uncertainty
-- [2026-04-27] **BUY** 85.0% — [[HOOD]] — Robinhood Gets In-Principle Approval From MAS for Singapore Launch
-- [2026-04-27] **SELL** 72.0% — [[HOOD]] — Robinhood Stock Could Suffer After Users Report Phishing Incident
-- [2026-04-27] **SELL** 72.0% — [[HOOD]] — Robinhood suffers phishing attempt ahead of quarterly earnings
-- [2026-04-27] **HOLD** 50.0% — [[HOOD]] — The Ithaka Group 1Q26 Performance: Contributors And Detractors
-- [2026-04-27] **HOLD** 50.0% — [[HOOD]] — WHCD shooting, DOJ ends Powell probe, Musk vs. Altman and more in Morning Squawk
-- [2026-04-26] **BUY** 85.0% — [[HOOD]] — The SEC Just Scrapped the $25,000 Rule That Kept New Traders From Going Into Debt
-- [2026-04-26] **HOLD** 50.0% — [[HOOD]] — What market has wrong about Figma and Claude Design
-- [2026-04-25] **BUY** 88.0% — [[HOOD]] — Does Robinhood (HOOD) Really Democratize AI Investing With Its OpenAI Stake And Singapore Expansion?
-- [2026-04-24] **SELL** 75.0% — [[HOOD]] — 'CFTC Sues New York to Assert Prediction Market Jurisdiction' - Bloomberg Law
-- [2026-04-24] **SELL** 75.0% — [[HOOD]] — Coinbase Hit With Second State Lawsuit In 48 Hours As Wisconsin Joins Prediction Market Crackdown
-- [2026-04-24] **HOLD** 50.0% — [[HOOD]] — Cramer looks ahead to next week's big tech earnings
-- [2026-04-24] **HOLD** 50.0% — [[HOOD]] — Investors Heavily Search Robinhood Markets, Inc. (HOOD): Here is What You Need to Know
-- [2026-04-24] **SELL** 80.0% — [[PLTR]] — Palantir Faces SNB Divestment Push
-- [2026-04-24] **BUY** 72.0% — [[PLTR]] — Palantir is reportedly helping the IRS investigate financial crimes

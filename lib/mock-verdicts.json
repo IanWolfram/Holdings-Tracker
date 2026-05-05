@@ -14,7 +14,7 @@
     },
     {
       "ticker": "BR",
-      "source": "twitter",
+      "source": "polygon",
       "datetime": 1776110099,
       "author": "FinancialTimes",
       "headline": "BR stock upgrades from two analysts following strong wealth management platform adoption numbers.",
@@ -64,7 +64,7 @@
     },
     {
       "ticker": "GLD",
-      "source": "twitter",
+      "source": "polygon",
       "datetime": 1776102899,
       "author": "KitcoNews",
       "headline": "Central banks globally added 290 tonnes of gold in Q1 — strongest quarter in decades.",
@@ -101,7 +101,7 @@
     },
     {
       "ticker": "GLD",
-      "source": "twitter",
+      "source": "polygon",
       "datetime": 1775948099,
       "author": "BloombergMkts",
       "headline": "Geopolitical tensions in Middle East driving safe-haven flows into gold and treasuries.",
@@ -111,19 +111,6 @@
       "confidence": 0.9,
       "classifiedAt": "2026-04-13T23:20:16.220Z",
       "reason": "Safe-haven flows are actively driving capital into gold amidst escalating geopolitical tensions in the Middle East."
-    },
-    {
-      "ticker": "GLD",
-      "source": "reddit",
-      "datetime": 1776088499,
-      "author": "u/goldbugsunite",
-      "headline": "GLD vs physical gold — which do you hold and why?",
-      "summary": "GLD vs physical gold — which do you hold and why?\n\nWith gold at all-time highs I keep going back and forth. GLD is more liquid but you don't own the metal. Curious what r/investing thinks.",
-      "url": "#",
-      "verdict": "HOLD",
-      "confidence": 0.6,
-      "classifiedAt": "2026-04-13T23:21:22.867Z",
-      "reason": "The headline presents an open comparison of GLD's liquidity versus physical ownership, providing no definitive directional catalyst."
     },
     {
       "ticker": "GLD",
@@ -153,7 +140,7 @@
     },
     {
       "ticker": "MSFT",
-      "source": "twitter",
+      "source": "polygon",
       "datetime": 1776106499,
       "author": "SatNadella",
       "headline": "Copilot for Microsoft 365 reaches 1 million paid seats — fastest enterprise adoption in company history.",
@@ -190,7 +177,7 @@
     },
     {
       "ticker": "MSFT",
-      "source": "twitter",
+      "source": "polygon",
       "datetime": 1775940899,
       "author": "WSJMarkets",
       "headline": "Analyst consensus on MSFT remains Strong Buy with average PT of $520.",
@@ -200,19 +187,6 @@
       "confidence": 0.88,
       "classifiedAt": "2026-04-13T23:29:15.015Z",
       "reason": "The maintained Strong Buy rating, coupled with the $520 target, reinforces strong institutional conviction in MSFT's upside potential."
-    },
-    {
-      "ticker": "MSFT",
-      "source": "reddit",
-      "datetime": 1776095699,
-      "author": "u/techbull99",
-      "headline": "Microsoft's AI push is unlike anything I've seen — here's why I'm doubling my position",
-      "summary": "Microsoft's AI push is unlike anything I've seen — here's why I'm doubling my position\n\nAzure OpenAI usage is exploding at my company. Every enterprise team wants Copilot. The moat is real.",
-      "url": "#",
-      "verdict": "BUY",
-      "confidence": 0.9,
-      "classifiedAt": "2026-04-13T23:30:31.272Z",
-      "reason": "Exploding Azure OpenAI usage and massive enterprise demand for Copilot confirm MSFT's AI moat and future revenue growth."
     },
     {
       "ticker": "MSFT",
@@ -242,7 +216,7 @@
     },
     {
       "ticker": "RBL",
-      "source": "twitter",
+      "source": "polygon",
       "datetime": 1776077699,
       "author": "SmallCapDaily",
       "headline": "RBL misses Q2 revenue estimates by 8%, cites softer-than-expected ad market.",
@@ -281,7 +255,7 @@
     },
     {
       "ticker": "RPI",
-      "source": "twitter",
+      "source": "polygon",
       "datetime": 1776070499,
       "author": "MacroAlerts",
       "headline": "Real returns on inflation-protected instruments turn positive for first time since 2021.",
@@ -317,7 +291,7 @@
     },
     {
       "ticker": "RXD",
-      "source": "twitter",
+      "source": "polygon",
       "datetime": 1776092099,
       "author": "ETFTrends",
       "headline": "Inverse healthcare ETFs see elevated volume as pharma names sell off on Medicare news.",

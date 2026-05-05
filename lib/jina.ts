@@ -1,4 +1,8 @@
 export async function fetchFullArticleContent(url: string): Promise<string | null> {
+  if (!url?.trim()) {
+    console.warn("[jina] Skipping extraction for empty URL");
+    return null;
+  }
   try {
     const jinaUrl = `https://r.jina.ai/${encodeURIComponent(url)}`;
     const res = await fetch(jinaUrl, {

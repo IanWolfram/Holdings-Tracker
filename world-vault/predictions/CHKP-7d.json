@@ -23,6 +23,10 @@
       "technical"
     ],
     "engine": "deepseek_1776977666998",
-    "status": "pending"
+    "status": "resolved",
+    "resolvedAt": 1778002005204,
+    "priceAtResolution": 115.3,
+    "actualPct": -16.61,
+    "outcome": "INCORRECT"
   }
 ]

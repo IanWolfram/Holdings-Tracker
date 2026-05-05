@@ -3,8 +3,8 @@ type: sector
 name: "Biotechnology"
 momentum: neutral
 todayBuyPct: 0.0000
-rolling7dBuyPct: 0.1667
-rolling30dBuyPct: 0.1667
+rolling7dBuyPct: 0.0833
+rolling30dBuyPct: 0.0625
 tags:
   - sector
   - graph
@@ -15,7 +15,7 @@ tags:
 Tickers: [[VKTX]]
 
 ## Breadth
-- Today: 3 stories, 0.0% BUY
-- Rolling 7d: 6 stories, 16.7% BUY
-- Rolling 30d: 6 stories, 16.7% BUY
+- Today: 1 stories, 0.0% BUY
+- Rolling 7d: 12 stories, 8.3% BUY
+- Rolling 30d: 16 stories, 6.3% BUY
 - Momentum: **neutral**

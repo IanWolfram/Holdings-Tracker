@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Pulse** (Holdings Tracker) — a real-time financial portfolio dashboard that aggregates E*TRADE positions, fetches news from Finnhub and Twitter/X, and classifies sentiment using a hardware-native Apple MLX AI engine. Built with Next.js 16 App Router, React 19, Tailwind CSS 4, SWR, and Framer Motion.
+**Pulse** (Holdings Tracker) — a real-time financial portfolio dashboard that aggregates E*TRADE positions, fetches news from Finnhub, Polygon, and NewsAPI, and classifies sentiment using a hardware-native Apple MLX AI engine. Built with Next.js 16 App Router, React 19, Tailwind CSS 4, SWR, and Framer Motion.
 
 ## Commands
 
@@ -37,8 +37,8 @@ E*TRADE API ──→ lib/etrade.ts ──→ /api/positions ──→ Dashboard
                                          │
 Finnhub API ──→ lib/finnhub.ts ─┐
                                  ├→ lib/news.ts ──→ /api/news?ticker=X ──→ PositionCard → NewsCard
-Twitter/X API ─→ lib/twitter.ts ┘        │
-                                          └→ lib/classifier.ts → lib/world-brain/brain.ts (MLX Native) ──→ VerdictBadge
+Polygon API ──→ lib/polygon.ts ─┤        │
+                                 └→ lib/classifier.ts → lib/world-brain/brain.ts (MLX Native) ──→ VerdictBadge
 ```
 
 - **`app/page.tsx`** — Client component (Dashboard) that polls `/api/positions`, then fetches news per ticker via `/api/news`. Uses `useCallback`/`useEffect` with `setInterval` for auto-refresh.

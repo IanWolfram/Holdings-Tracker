@@ -4,12 +4,12 @@ import React, { useMemo } from "react";
 import MobileHeader from "./MobileHeader";
 import MobileBottomNav from "./MobileBottomNav";
 import MobilePositionCard from "./MobilePositionCard";
-import AddProposedCard from "@/components/AddProposedCard";
+import AddProposedCard from "@/components/cards/AddProposedCard";
 import type { Position } from "@/types/position.types";
 import type { ClassifiedStory } from "@/types/news.types";
 import type { ProposedPositionEntry } from "@/hooks/useProposedPositions";
 
-import EmptyState from "@/components/EmptyState";
+import EmptyState from "@/components/layout/EmptyState";
 
 interface MobileDashboardProps {
   positions: Position[];

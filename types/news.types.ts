@@ -2,6 +2,13 @@ import type { CatalystType } from "./predictions";
 
 export type Verdict = "BUY" | "SELL" | "HOLD";
 
+export function computeConfidenceBucket(confidence: number, analysisFailed?: boolean): "high" | "medium" | "low" | "failed" {
+  if (analysisFailed) return "failed";
+  if (confidence >= 0.75) return "high";
+  if (confidence >= 0.60) return "medium";
+  return "low";
+}
+
 export interface Classification {
   verdict: Verdict;
   confidence: number;
@@ -12,6 +19,9 @@ export interface Classification {
   classifiedAt: string;
   isAnalyzed?: boolean;
   fromVault?: boolean;
+  analysisFailed?: boolean;
+  classificationSource?: "ai" | "keyword" | "vault";
+  confidenceBucket?: "high" | "medium" | "low" | "failed";
 }
 
 export interface ClassifiedStory extends Classification {
@@ -21,8 +31,10 @@ export interface ClassifiedStory extends Classification {
   url: string;
   datetime: number;
   author?: string;
-  source: "finnhub" | "twitter" | "reddit" | "newsapi";
+  source: "finnhub" | "newsapi" | "polygon";
+  originalSource?: string; // Original provider for vault stories (e.g., "finnhub", "reddit")
   isAnalyzed?: boolean;     // True if hardware-native DeepSeek analysis was performed
+  analysisFailed?: boolean; // True if analysis was a fallback HOLD
   catalystTypes?: CatalystType[];
   duplicates?: ClassifiedStory[]; // Same-event stories collapsed under this canonical
 }

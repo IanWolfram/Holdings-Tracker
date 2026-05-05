@@ -18,8 +18,8 @@ export interface AppConfig {
   finnhub: {
     apiKey: string | undefined;
   };
-  twitter: {
-    bearerToken: string | undefined;
+  polygon: {
+    apiKey: string | undefined;
   };
   newsapi: {
     apiKey: string | undefined;
@@ -56,8 +56,8 @@ export function buildConfig(): AppConfig {
     finnhub: {
       apiKey: process.env.FINNHUB_API_KEY,
     },
-    twitter: {
-      bearerToken: process.env.TWITTER_BEARER_TOKEN,
+    polygon: {
+      apiKey: process.env.POLYGON_API_KEY,
     },
     newsapi: {
       apiKey: process.env.NEWSAPI_API_KEY,

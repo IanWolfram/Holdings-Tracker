@@ -16,7 +16,7 @@
 import { readFileSync, existsSync } from "fs";
 import { resolve } from "path";
 import type { UnifiedAnalysis } from "../world-brain/brain";
-import { runStockAgent } from "../lib/agent/service";
+import { runStockAgent, runTickerAnalysis } from "../lib/agent/service";
 
 // Load .env.local synchronously before main() runs any lib code
 const envPath = resolve(process.cwd(), ".env.local");
@@ -28,6 +28,13 @@ if (existsSync(envPath)) {
     }
   }
 }
+
+// Parse --ticker flag from CLI args
+const cliArgs = process.argv.slice(2);
+const tickerIndex = cliArgs.indexOf("--ticker");
+const tickerArg = tickerIndex !== -1 && tickerIndex + 1 < cliArgs.length
+  ? cliArgs[tickerIndex + 1].toUpperCase()
+  : null;
 
 // ── ANSI helpers ─────────────────────────────────────────────────────────────
 
@@ -104,6 +111,27 @@ async function main(): Promise<void> {
   console.log(`\n${B}${C}Pulse — Stock Agent${R}`);
   console.log(hr("═"));
   console.log(`${D}Engine: ${B}MLX (Native M5)${R}  ${D}│  Model: ${B}${model}${R}`);
+
+  // Single-ticker mode via --ticker flag
+  if (tickerArg) {
+    console.log(`${D}Mode: single-ticker${R}  ${D}│  Ticker: ${B}${tickerArg}${R}`);
+    console.log(hr("─"));
+    const result = await runTickerAnalysis(tickerArg);
+    if (!result) {
+      console.log(`${RD}${B}No results for ${tickerArg}. Check that the ticker is in your portfolio.${R}`);
+      return;
+    }
+    console.log(`\n${B}${C}── ${tickerArg}${R}`);
+    if (result.verdicts.length === 0) {
+      console.log(`  ${D}No recent news found.${R}`);
+    } else {
+      result.verdicts.forEach((v, i) => {
+        renderStory(i + 1, v.headline, v.analysis, tickerArg);
+      });
+    }
+    console.log(hr("═") + "\n");
+    return;
+  }
 
   // Use the shared service for the heavy lifting
   // The service handles positions, profiles, news, and brain calls

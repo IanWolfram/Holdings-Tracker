@@ -1,17 +1,17 @@
 {
-  "updatedAt": "2026-04-30T18:45:49.535Z",
+  "updatedAt": "2026-05-05T17:44:00.002Z",
   "bySector": {
     "Financial Services": {
       "tickers": [
         "HOOD"
       ],
-      "todayCount": 21,
-      "todayBuyPct": 0.2857,
-      "rolling7dCount": 155,
-      "rolling7dBuyPct": 0.271,
-      "rolling30dCount": 239,
-      "rolling30dBuyPct": 0.2552,
-      "momentum": "neutral"
+      "todayCount": 10,
+      "todayBuyPct": 0,
+      "rolling7dCount": 144,
+      "rolling7dBuyPct": 0.1597,
+      "rolling30dCount": 292,
+      "rolling30dBuyPct": 0.2226,
+      "momentum": "weak"
     },
     "Tech": {
       "tickers": [
@@ -22,12 +22,12 @@
         "MSFT",
         "PLTR"
       ],
-      "todayCount": 79,
-      "todayBuyPct": 0.5316,
-      "rolling7dCount": 307,
-      "rolling7dBuyPct": 0.3844,
-      "rolling30dCount": 422,
-      "rolling30dBuyPct": 0.3555,
+      "todayCount": 30,
+      "todayBuyPct": 0,
+      "rolling7dCount": 349,
+      "rolling7dBuyPct": 0.3266,
+      "rolling30dCount": 560,
+      "rolling30dBuyPct": 0.3125,
       "momentum": "neutral"
     },
     "Professional Services": {
@@ -35,10 +35,10 @@
         "BR",
         "MMS"
       ],
-      "todayCount": 7,
-      "todayBuyPct": 0.4286,
-      "rolling7dCount": 24,
-      "rolling7dBuyPct": 0.2917,
+      "todayCount": 0,
+      "todayBuyPct": 0,
+      "rolling7dCount": 15,
+      "rolling7dBuyPct": 0.4,
       "rolling30dCount": 33,
       "rolling30dBuyPct": 0.2424,
       "momentum": "neutral"
@@ -47,37 +47,50 @@
       "tickers": [
         "JPM"
       ],
-      "todayCount": 5,
-      "todayBuyPct": 0.2,
-      "rolling7dCount": 41,
-      "rolling7dBuyPct": 0.2195,
+      "todayCount": 0,
+      "todayBuyPct": 0,
+      "rolling7dCount": 32,
+      "rolling7dBuyPct": 0.2813,
       "rolling30dCount": 43,
       "rolling30dBuyPct": 0.2558,
-      "momentum": "weak"
+      "momentum": "neutral"
     },
     "Semiconductors": {
       "tickers": [
         "NVDA"
       ],
-      "todayCount": 36,
-      "todayBuyPct": 0.4444,
-      "rolling7dCount": 79,
-      "rolling7dBuyPct": 0.481,
+      "todayCount": 0,
+      "todayBuyPct": 0,
+      "rolling7dCount": 72,
+      "rolling7dBuyPct": 0.4722,
       "rolling30dCount": 81,
       "rolling30dBuyPct": 0.4815,
       "momentum": "neutral"
     },
+    "Biotechnology": {
+      "tickers": [
+        "VKTX"
+      ],
+      "todayCount": 1,
+      "todayBuyPct": 0,
+      "rolling7dCount": 12,
+      "rolling7dBuyPct": 0.0833,
+      "rolling30dCount": 16,
+      "rolling30dBuyPct": 0.0625,
+      "momentum": "neutral"
+    },
     "Automobiles": {
       "tickers": [
-        "TM"
+        "TM",
+        "TSLA"
       ],
       "todayCount": 0,
       "todayBuyPct": 0,
-      "rolling7dCount": 5,
-      "rolling7dBuyPct": 0.4,
-      "rolling30dCount": 5,
-      "rolling30dBuyPct": 0.4,
-      "momentum": "neutral"
+      "rolling7dCount": 22,
+      "rolling7dBuyPct": 0.1818,
+      "rolling30dCount": 25,
+      "rolling30dBuyPct": 0.2,
+      "momentum": "weak"
     },
     "Unknown": {
       "tickers": [
@@ -85,22 +98,10 @@
       ],
       "todayCount": 0,
       "todayBuyPct": 0,
-      "rolling7dCount": 1,
-      "rolling7dBuyPct": 1,
+      "rolling7dCount": 0,
+      "rolling7dBuyPct": 0,
       "rolling30dCount": 1,
       "rolling30dBuyPct": 1,
-      "momentum": "neutral"
-    },
-    "Biotechnology": {
-      "tickers": [
-        "VKTX"
-      ],
-      "todayCount": 3,
-      "todayBuyPct": 0,
-      "rolling7dCount": 6,
-      "rolling7dBuyPct": 0.1667,
-      "rolling30dCount": 6,
-      "rolling30dBuyPct": 0.1667,
       "momentum": "neutral"
     }
   }

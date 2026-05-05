@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import dynamic from "next/dynamic";
-import TopBar from "@/components/TopBar";
+import TopBar from "@/components/layout/TopBar";
 import WorldSidebar from "@/components/world/WorldSidebar";
 import WorldOverlays from "@/components/world/WorldOverlays";
 import { useWorldData } from "@/hooks/useWorldData";
@@ -170,7 +170,7 @@ export default function WorldPage() {
         verdict: "SELL",
         confidence: 0.85,
         reason: "Yield reductions directly correlate to lowered cap-ex on heavy machinery.",
-        source: "reddit",
+        source: "newsapi",
         originCountryCode: "BR",
         relevanceScore: 0.91
       },

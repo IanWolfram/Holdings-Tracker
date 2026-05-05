@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getPositionsSafe } from "@/lib/etrade";
-import { getNewsForTicker, type ClassifiedStory } from "@/lib/news";
+import { getServices } from "@/src/registry";
+import type { ClassifiedStory } from "@/lib/news";
 import type { TickerDigest } from "@/lib/telegram";
 import { sendTelegramMessage, buildDigestMessage } from "@/lib/telegram";
 
@@ -14,10 +14,11 @@ export default async function handler(
 
   // Trigger full portfolio digest
   try {
-    const { positions } = await getPositionsSafe();
+    const { portfolioService, newsService } = getServices();
+    const { positions } = await portfolioService.getPositionsSafe();
     const tickers = positions.map((p) => p.ticker);
 
-    const allNews = await Promise.all(tickers.map((t) => getNewsForTicker(t)));
+    const allNews = await Promise.all(tickers.map((t) => newsService.getNewsForTicker(t)));
 
     const digests: TickerDigest[] = tickers.map((ticker, i) => {
       const stories = allNews[i];

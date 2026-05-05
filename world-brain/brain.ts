@@ -79,6 +79,7 @@ export interface UnifiedAnalysis {
   originCountryCode: string | null;
   relevanceScore: number;
   geoSummary: string;
+  analysisFailed: boolean;
 }
 
 export interface StoryMacroContext {
@@ -162,9 +163,20 @@ async function consumeStream(
 import type { Verdict } from "@/types/news.types";
 import { getActiveModel, getModelKey } from "../lib/ai-config";
 import { isAiHealthy } from "../lib/ai-health";
-import { withInferenceSemaphore } from "../lib/classifier";
+import { withInferenceSemaphore, withCloudSemaphore } from "../lib/classifier";
 import { WORLD_VAULT_PATH } from "../lib/constants";
 import { buildCalibrationBlock } from "./calibration";
+
+// ---------------------------------------------------------------------------
+// Analysis failure counters (exported for observability)
+// ---------------------------------------------------------------------------
+
+export const analysisStats = {
+  total: 0,
+  succeeded: 0,
+  failed: 0,
+  retried: 0,
+};
 
 // ---------------------------------------------------------------------------
 // Correlated holdings — read _graph/correlations.json and surface top peers.
@@ -175,7 +187,8 @@ interface CorrelationReportShape {
   tickers?: string[];
 }
 
-let correlationCache: { data: CorrelationReportShape | null; mtimeMs: number } | null = null;
+let correlationCache: { data: CorrelationReportShape | null; mtimeMs: number; expiresAt: number } | null = null;
+const CORRELATION_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 function loadCorrelationReport(): CorrelationReportShape | null {
   if (!WORLD_VAULT_PATH) return null;
@@ -188,15 +201,15 @@ function loadCorrelationReport(): CorrelationReportShape | null {
   } catch {
     return null;
   }
-  if (correlationCache && correlationCache.mtimeMs === stat.mtimeMs) {
+  if (correlationCache && correlationCache.mtimeMs === stat.mtimeMs && Date.now() < correlationCache.expiresAt) {
     return correlationCache.data;
   }
   try {
     const parsed = JSON.parse(fs.readFileSync(corrPath, "utf-8")) as CorrelationReportShape;
-    correlationCache = { data: parsed, mtimeMs: stat.mtimeMs };
+    correlationCache = { data: parsed, mtimeMs: stat.mtimeMs, expiresAt: Date.now() + CORRELATION_CACHE_TTL_MS };
     return parsed;
   } catch {
-    correlationCache = { data: null, mtimeMs: stat.mtimeMs };
+    correlationCache = { data: null, mtimeMs: stat.mtimeMs, expiresAt: Date.now() + CORRELATION_CACHE_TTL_MS };
     return null;
   }
 }
@@ -231,6 +244,8 @@ function findRecentVerdictForTicker(
       }
       if (fm.ticker?.toUpperCase() !== upper) continue;
       if (!fm.verdict || !["BUY", "SELL", "HOLD"].includes(fm.verdict)) continue;
+      if (fm.analysisFailed === "true") continue;
+      if (fm.confidence === "0.50" && fm.verdict === "HOLD" && fm.analysisFailed !== "false") continue;
       const confidence = parseFloat(fm.confidence ?? "0.5") || 0.5;
       return { verdict: fm.verdict, confidence, date: fm.date ?? file.slice(0, 10) };
     } catch {
@@ -291,37 +306,45 @@ export function invalidateCorrelationCache(): void {
   correlationCache = null;
 }
 
-async function callMlxRawInternal(systemPromptText: string, userMessage: string): Promise<string> {
+async function callMlxRawInternal(systemPromptText: string, userMessage: string, retries = 2): Promise<string> {
   const baseUrl = process.env.MLX_BASE_URL ?? "http://localhost:8080/v1";
   const model = process.env.MLX_MODEL ?? "mlx-community/DeepSeek-R1-Distill-Qwen-14B-4bit";
 
   if (!(await isAiHealthy("mlx", baseUrl))) return "";
 
-  try {
-    const raw = await withInferenceSemaphore(async () => {
-      const res = await fetch(`${baseUrl}/chat/completions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: "system", content: systemPromptText },
-            { role: "user", content: userMessage },
-          ],
-          temperature: 0.3,
-          max_tokens: 1024,
-          stream: true,
-        }),
-        signal: AbortSignal.timeout(300_000),
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const raw = await withInferenceSemaphore(async () => {
+        const res = await fetch(`${baseUrl}/chat/completions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: "system", content: systemPromptText },
+              { role: "user", content: userMessage },
+            ],
+            temperature: 0.3,
+            max_tokens: 1024,
+            stream: true,
+          }),
+          signal: AbortSignal.timeout(300_000),
+        });
+        if (!res.ok) throw new Error(`MLX HTTP ${res.status}`);
+        return consumeStream(res);
       });
-      if (!res.ok) throw new Error(`MLX HTTP ${res.status}`);
-      return consumeStream(res);
-    });
-    return stripThink(raw);
-  } catch (err) {
-    console.error("[brain] callMlxRawInternal error:", err);
-    return "";
+      return stripThink(raw);
+    } catch (err) {
+      if (attempt < retries) {
+        const delay = 1000 * Math.pow(2, attempt);
+        console.warn(`[brain] MLX call failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms:`, err);
+        await new Promise((r) => setTimeout(r, delay));
+      } else {
+        console.error("[brain] callMlxRawInternal error after retries:", err);
+      }
+    }
   }
+  return "";
 }
 
 // ---------------------------------------------------------------------------
@@ -334,7 +357,8 @@ async function callDeepSeekRawInternal(
   onChunk?: (text: string) => void,
   modelOverride?: string,
   apiKeyOverride?: string,
-  baseUrlOverride?: string
+  baseUrlOverride?: string,
+  retries = 2
 ): Promise<string> {
   const apiKey = apiKeyOverride ?? process.env.DEEPSEEK_API_KEY;
   if (!apiKey) {
@@ -345,35 +369,50 @@ async function callDeepSeekRawInternal(
   const model = modelOverride ?? "deepseek-chat";
   const baseUrl = baseUrlOverride ?? "https://api.deepseek.com/v1";
 
-  try {
-    const res = await fetch(`${baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: "system", content: systemPromptText },
-          { role: "user", content: userMessage },
-        ],
-        temperature: 0.3,
-        max_tokens: 1024,
-        stream: true,
-      }),
-      signal: AbortSignal.timeout(120_000),
-    });
-    if (!res.ok) {
-      const errText = await res.text().catch(() => "");
-      throw new Error(`DeepSeek HTTP ${res.status}: ${errText}`);
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(`${baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: systemPromptText },
+            { role: "user", content: userMessage },
+          ],
+          temperature: 0.3,
+          max_tokens: 2048,
+          stream: true,
+        }),
+        signal: AbortSignal.timeout(120_000),
+      });
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        const retryable = res.status === 429 || res.status >= 500;
+        if (retryable && attempt < retries) {
+          const delay = 1000 * Math.pow(2, attempt);
+          console.warn(`[brain] DeepSeek HTTP ${res.status} (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms`);
+          await new Promise((r) => setTimeout(r, delay));
+          continue;
+        }
+        throw new Error(`DeepSeek HTTP ${res.status}: ${errText}`);
+      }
+      const raw = await consumeStream(res, onChunk);
+      return stripThink(raw);
+    } catch (err) {
+      if (attempt < retries && !(err instanceof Error && err.message.startsWith("DeepSeek HTTP"))) {
+        const delay = 1000 * Math.pow(2, attempt);
+        console.warn(`[brain] DeepSeek call failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms:`, err);
+        await new Promise((r) => setTimeout(r, delay));
+      } else if (attempt >= retries) {
+        console.error("[brain] callDeepSeekRawInternal error after retries:", err);
+      }
     }
-    const raw = await consumeStream(res, onChunk);
-    return stripThink(raw);
-  } catch (err) {
-    console.error("[brain] callDeepSeekRawInternal error:", err);
-    return "";
   }
+  return "";
 }
 
 // ---------------------------------------------------------------------------
@@ -386,7 +425,9 @@ export async function callMlxRaw(systemPromptText: string, userMessage: string):
   if (active.provider === "deepseek" || active.provider === "openai") {
     const apiKey = getModelKey(active.id);
     const baseUrl = active.provider === "openai" ? "https://api.openai.com/v1" : "https://api.deepseek.com/v1";
-    return callDeepSeekRawInternal(systemPromptText, userMessage, undefined, active.model, apiKey, baseUrl);
+    return withCloudSemaphore(() =>
+      callDeepSeekRawInternal(systemPromptText, userMessage, undefined, active.model, apiKey, baseUrl)
+    );
   }
   return callMlxRawInternal(systemPromptText, userMessage);
 }
@@ -446,19 +487,22 @@ export async function analyzeStory(
   recentVerdicts?: Array<{ headline: string; verdict: string; confidence: number; reason: string }>,
   marketContext?: StoryMarketContext
 ): Promise<UnifiedAnalysis> {
+  analysisStats.total++;
   const active = getActiveModel();
   const activeApiKey = active.provider === "deepseek" ? getModelKey(active.id) : undefined;
 
   if (active.provider === "deepseek" || active.provider === "openai") {
     if (!activeApiKey) {
       console.warn(`[brain] Model "${active.name}" has no API key — falling back.`);
-      return fallbackAnalysis();
+      analysisStats.failed++;
+      return fallbackAnalysis(undefined, ticker, headline, summary);
     }
   } else {
     const baseUrl = process.env.MLX_BASE_URL ?? "http://localhost:8080/v1";
     if (!(await isAiHealthy("mlx", baseUrl))) {
       console.warn(`[brain] MLX engine at ${baseUrl} is not responding.`);
-      return fallbackAnalysis();
+      analysisStats.failed++;
+      return fallbackAnalysis(undefined, ticker, headline, summary);
     }
   }
 
@@ -506,37 +550,52 @@ export async function analyzeStory(
   }
 
   let raw = "";
-  try {
-    if (active.provider === "deepseek" || active.provider === "openai") {
-      const baseUrl = active.provider === "openai" ? "https://api.openai.com/v1" : "https://api.deepseek.com/v1";
-      raw = await callDeepSeekRawInternal(getSystemPrompt(), userMessage, onStream, active.model, activeApiKey, baseUrl);
-    } else {
-      raw = await withInferenceSemaphore(async () => {
-        const baseUrl = process.env.MLX_BASE_URL ?? "http://localhost:8080/v1";
-        const model = process.env.MLX_MODEL ?? "mlx-community/DeepSeek-R1-Distill-Qwen-14B-4bit";
+  const MAX_RETRIES = 3;
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      if (active.provider === "deepseek" || active.provider === "openai") {
+        const baseUrl = active.provider === "openai" ? "https://api.openai.com/v1" : "https://api.deepseek.com/v1";
+        raw = await withCloudSemaphore(() =>
+          callDeepSeekRawInternal(getSystemPrompt(), userMessage, onStream, active.model, activeApiKey, baseUrl)
+        );
+      } else {
+        raw = await withInferenceSemaphore(async () => {
+          const baseUrl = process.env.MLX_BASE_URL ?? "http://localhost:8080/v1";
+          const model = process.env.MLX_MODEL ?? "mlx-community/DeepSeek-R1-Distill-Qwen-14B-4bit";
 
-        const res = await fetch(`${baseUrl}/chat/completions`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model,
-            messages: [
-              { role: "system", content: getSystemPrompt() },
-              { role: "user", content: userMessage },
-            ],
-            temperature: 0.1,
-            max_tokens: 4096,
-            stream: true,
-          }),
-          signal: AbortSignal.timeout(300_000),
+          const res = await fetch(`${baseUrl}/chat/completions`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model,
+              messages: [
+                { role: "system", content: getSystemPrompt() },
+                { role: "user", content: userMessage },
+              ],
+              temperature: 0.3,
+              max_tokens: 2048,
+              stream: true,
+            }),
+            signal: AbortSignal.timeout(300_000),
+          });
+          if (!res.ok) throw new Error(`MLX HTTP ${res.status}`);
+          return consumeStream(res, onStream);
         });
-        if (!res.ok) throw new Error(`MLX HTTP ${res.status}`);
-        return consumeStream(res, onStream);
-      });
+      }
+      if (raw) break;
+      console.warn(`[brain] Empty response for ${ticker} (attempt ${attempt + 1}/${MAX_RETRIES})`);
+    } catch (err) {
+      console.error(`[brain] inference error (attempt ${attempt + 1}/${MAX_RETRIES}):`, err);
     }
-  } catch (err) {
-    console.error(`[brain] inference error:`, err);
-    return fallbackAnalysis();
+    if (attempt < MAX_RETRIES - 1) {
+      analysisStats.retried++;
+      const delay = 1000 * Math.pow(2, attempt);
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  if (!raw) {
+    analysisStats.failed++;
+    return fallbackAnalysis(undefined, ticker, headline, summary);
   }
 
   try {
@@ -573,6 +632,7 @@ export async function analyzeStory(
       ? parsed.verdict
       : "HOLD") as Verdict;
 
+    analysisStats.succeeded++;
     return {
       verdict,
       confidence: typeof parsed.confidence === "number"
@@ -584,24 +644,37 @@ export async function analyzeStory(
       originCountryCode: typeof parsed.origin_country_code === "string"
         ? parsed.origin_country_code : null,
       relevanceScore: typeof parsed.relevance_score === "number"
-        ? Math.max(0, Math.min(1, parsed.relevance_score)) : 0,
+        ? Math.max(0, Math.min(1, parsed.relevance_score)) : computeHeuristicRelevance(ticker, headline, summary ?? ""),
       geoSummary: parsed.geo_summary ?? "",
+      analysisFailed: false,
     };
   } catch {
     console.error("[brain] JSON parse failed, raw:", raw.slice(0, 200));
-    return fallbackAnalysis();
+    analysisStats.failed++;
+    return fallbackAnalysis(undefined, ticker, headline, summary);
   }
 }
 
-function fallbackAnalysis(): UnifiedAnalysis {
+function computeHeuristicRelevance(ticker: string, headline: string, summary: string): number {
+  const upper = ticker.toUpperCase();
+  const headlineUpper = headline.toUpperCase();
+  const summaryUpper = (summary ?? "").toUpperCase();
+  if (headlineUpper.includes(upper)) return 0.85;
+  if (summaryUpper.includes(upper)) return 0.65;
+  return 0.3;
+}
+
+function fallbackAnalysis(reason?: string, ticker?: string, headline?: string, summary?: string): UnifiedAnalysis {
+  const baseReason = reason ?? "Analysis unavailable — defaulting to HOLD.";
   return {
     verdict: "HOLD",
     confidence: 0.5,
-    reason: "",
+    reason: `FALLBACK: ${baseReason}`,
     sectorTags: [],
     affectedTickers: [],
     originCountryCode: null,
-    relevanceScore: 0,
+    relevanceScore: ticker ? computeHeuristicRelevance(ticker, headline ?? "", summary ?? "") : 0,
     geoSummary: "",
+    analysisFailed: true,
   };
 }

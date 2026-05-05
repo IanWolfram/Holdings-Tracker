@@ -1,6 +1,6 @@
 "use client";
 
-import DesktopDashboard from "@/components/DesktopDashboard";
+import DesktopDashboard from "@/components/layout/DesktopDashboard";
 import MobileDashboard from "@/components/mobile/MobileDashboard";
 import { useDashboardData } from "@/hooks/useDashboardData";
 

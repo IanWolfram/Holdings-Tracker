@@ -1,6 +1,6 @@
 import React from "react";
-import NewsCard from "@/components/NewsCard";
-import NewsCollapsible from "@/components/NewsCollapsible";
+import NewsCard from "@/components/cards/NewsCard";
+import NewsCollapsible from "@/components/news/NewsCollapsible";
 import NewspaperIcon from "@/components/icons/NewspaperIcon";
 import BriefcaseIcon from "@/components/icons/BriefcaseIcon";
 import ChevronDownIcon from "@/components/icons/ChevronDownIcon";
@@ -34,7 +34,7 @@ export default function WorldSidebar({
 }: WorldSidebarProps) {
   const toClassifiedStory = (story: GeoStory): ClassifiedStory => {
     const normalizedSource: ClassifiedStory["source"] =
-      story.source === "reddit" || story.source === "twitter" || story.source === "newsapi"
+      story.source === "polygon" || story.source === "newsapi"
         ? story.source
         : "finnhub";
 

@@ -4,6 +4,10 @@ import {
   DUPLICATE_MIN_TOKENS,
 } from "@/lib/constants";
 
+// Thresholds
+const SAME_ARTICLE_JACCARD = 0.80; // Same article from different source → silently absorb
+const SAME_HEADLINE_MIN_LEN = 15; // Minimum headline length for exact-match dedup
+
 const STOPWORDS = new Set([
   "the", "and", "for", "with", "this", "that", "its", "from", "but", "not",
   "also", "more", "new", "are", "was", "were", "been", "has", "have", "had",
@@ -19,10 +23,9 @@ const TRACKING_PARAMS = new Set([
 ]);
 
 const SOURCE_PRIORITY: Record<string, number> = {
-  finnhub: 3,
-  newsapi: 2,
-  reddit: 1,
-  twitter: 0,
+  polygon: 3,  // Polygon has fuller summaries
+  finnhub: 2,  // Finnhub summaries are often truncated mid-sentence
+  newsapi: 1,
 };
 
 export function canonicalizeUrl(url: string): string {
@@ -96,8 +99,24 @@ class UnionFind {
   }
 }
 
+function summaryCompleteness(summary: string | undefined): number {
+  if (!summary) return 0;
+  const trimmed = summary.trim();
+  if (!trimmed) return 0;
+  const lastChar = trimmed[trimmed.length - 1];
+  // Complete sentence gets higher score
+  const endsWithPunctuation = /[.!?]/.test(lastChar) ? 1 : 0;
+  // Longer summaries are generally more informative
+  const lengthScore = Math.min(trimmed.length / 500, 1);
+  return endsWithPunctuation + lengthScore;
+}
+
 function pickCanonical(cluster: ClassifiedStory[]): ClassifiedStory {
   return [...cluster].sort((a, b) => {
+    // Prefer stories with more complete summaries
+    const sa = summaryCompleteness(a.summary);
+    const sb = summaryCompleteness(b.summary);
+    if (Math.abs(sa - sb) > 0.5) return sb - sa;
     const pa = SOURCE_PRIORITY[a.source] ?? -1;
     const pb = SOURCE_PRIORITY[b.source] ?? -1;
     if (pa !== pb) return pb - pa;
@@ -111,6 +130,14 @@ function pickCanonical(cluster: ClassifiedStory[]): ClassifiedStory {
   })[0];
 }
 
+function normalizeHeadline(h: string): string {
+  return h
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function dedupeStories(
   stories: ClassifiedStory[],
   companyName?: string,
@@ -122,31 +149,104 @@ export function dedupeStories(
     tokenize(`${s.headline} ${s.summary ?? ""}`, s.ticker, companyName),
   );
   const urls = stories.map((s) => canonicalizeUrl(s.url));
-  const uf = new UnionFind(n);
 
+  // Phase 1: Exact URL dedup — same article from different providers.
+  // Silently absorb: pick the best version, discard the rest (no +1 badge).
+  const exactDeduped: ClassifiedStory[] = [];
+  const seenUrls = new Map<string, ClassifiedStory[]>();
   for (let i = 0; i < n; i++) {
-    for (let j = i + 1; j < n; j++) {
-      const s1 = stories[i];
-      const s2 = stories[j];
-      
-      // Don't dedupe across major source types (e.g. don't merge a Reddit post into a Finnhub article)
-      const isSocial1 = s1.source === "reddit" || s1.source === "twitter";
-      const isSocial2 = s2.source === "reddit" || s2.source === "twitter";
-      if (isSocial1 !== isSocial2) continue;
+    const url = urls[i];
+    if (!url) { exactDeduped.push(stories[i]); continue; }
+    if (!seenUrls.has(url)) {
+      seenUrls.set(url, [stories[i]]);
+    } else {
+      seenUrls.get(url)!.push(stories[i]);
+    }
+  }
+  for (const group of seenUrls.values()) {
+    if (group.length === 1) {
+      exactDeduped.push(group[0]);
+    } else {
+      // Same article from multiple providers — pick the best, silently absorb the rest
+      exactDeduped.push(pickCanonical(group));
+    }
+  }
 
-      const sameUrl = urls[i] && urls[j] && urls[i] === urls[j];
-      const sim = jaccard(tokens[i], tokens[j]);
-      if (sameUrl || sim >= DUPLICATE_SIMILARITY_THRESHOLD) {
+  // Phase 1.5: Same article, different URL — same headline or near-identical content.
+  // Silently absorb (no +1 badge): the story is the same, just surfaced by different providers.
+  if (exactDeduped.length > 1) {
+    const articleTokens = exactDeduped.map((s) =>
+      tokenize(`${s.headline} ${s.summary ?? ""}`, s.ticker, companyName),
+    );
+    const articleUF = new UnionFind(exactDeduped.length);
+
+    for (let i = 0; i < exactDeduped.length; i++) {
+      for (let j = i + 1; j < exactDeduped.length; j++) {
+        const a = exactDeduped[i];
+        const b = exactDeduped[j];
+
+        // Check 1: Identical normalized headline (catches different-URL, same-article)
+        const hlA = normalizeHeadline(a.headline);
+        const hlB = normalizeHeadline(b.headline);
+        if (hlA.length >= SAME_HEADLINE_MIN_LEN && hlA === hlB) {
+          articleUF.union(i, j);
+          continue;
+        }
+
+        // Check 2: Near-identical Jaccard similarity (catches slight headline variations)
+        const sim = jaccard(articleTokens[i], articleTokens[j]);
+        if (sim >= SAME_ARTICLE_JACCARD) {
+          articleUF.union(i, j);
+        }
+      }
+    }
+
+    const articleClusters = new Map<number, ClassifiedStory[]>();
+    for (let i = 0; i < exactDeduped.length; i++) {
+      const root = articleUF.find(i);
+      if (!articleClusters.has(root)) articleClusters.set(root, []);
+      articleClusters.get(root)!.push(exactDeduped[i]);
+    }
+
+    const afterArticleDedup: ClassifiedStory[] = [];
+    for (const cluster of articleClusters.values()) {
+      if (cluster.length === 1) {
+        afterArticleDedup.push(cluster[0]);
+      } else {
+        // Same article — silently absorb, pick the best version
+        afterArticleDedup.push(pickCanonical(cluster));
+      }
+    }
+
+    // Replace exactDeduped with article-deduped result
+    exactDeduped.length = 0;
+    exactDeduped.push(...afterArticleDedup);
+  }
+
+  // Phase 2: Topic similarity dedup — different articles about the same general topic.
+  // These get the +1 badge to indicate additional coverage from other sources.
+  if (exactDeduped.length <= 1) return exactDeduped;
+
+  const m = exactDeduped.length;
+  const topicTokens = exactDeduped.map((s) =>
+    tokenize(`${s.headline} ${s.summary ?? ""}`, s.ticker, companyName),
+  );
+  const uf = new UnionFind(m);
+
+  for (let i = 0; i < m; i++) {
+    for (let j = i + 1; j < m; j++) {
+      const sim = jaccard(topicTokens[i], topicTokens[j]);
+      if (sim >= DUPLICATE_SIMILARITY_THRESHOLD) {
         uf.union(i, j);
       }
     }
   }
 
   const clusters = new Map<number, ClassifiedStory[]>();
-  for (let i = 0; i < n; i++) {
+  for (let i = 0; i < m; i++) {
     const root = uf.find(i);
     if (!clusters.has(root)) clusters.set(root, []);
-    clusters.get(root)!.push(stories[i]);
+    clusters.get(root)!.push(exactDeduped[i]);
   }
 
   const result: ClassifiedStory[] = [];
@@ -159,14 +259,6 @@ export function dedupeStories(
     const dupes = cluster
       .filter((s) => s !== canonical)
       .sort((a, b) => (b.datetime ?? 0) - (a.datetime ?? 0));
-
-    const minT = Math.min(...cluster.map((s) => s.datetime ?? 0));
-    const maxT = Math.max(...cluster.map((s) => s.datetime ?? 0));
-    if (maxT - minT > 24 * 60 * 60) {
-      console.warn(
-        `[dedupe] Cluster spans >24h for ${canonical.ticker}: "${canonical.headline}" (${cluster.length} stories)`,
-      );
-    }
 
     result.push({ ...canonical, duplicates: dupes });
   }

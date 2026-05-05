@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import TopBar from "@/components/TopBar";
-import AIEngineSelector from "@/components/layout/AIEngineSelector";
-import type { AgentProgress } from "@/lib/agent/service";
+import TopBar from "@/components/layout/TopBar";
+import { useAgentStatus } from "@/hooks/useAgentStatus";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -44,7 +43,7 @@ function formatRelativeTime(ts: number): string {
 }
 
 export default function AgentDashboard() {
-  const [agentState, setAgentState] = useState<AgentProgress>({ status: "idle" });
+  const { state: agentState } = useAgentStatus();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string>("");
   const [input, setInput] = useState("");
@@ -90,19 +89,6 @@ export default function AgentDashboard() {
     if (popupOpen) document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [popupOpen]);
-
-  // Poll background agent status
-  useEffect(() => {
-    const fetchState = async () => {
-      try {
-        const res = await fetch("/api/agent/run");
-        if (res.ok) setAgentState(await res.json());
-      } catch {}
-    };
-    fetchState();
-    const interval = setInterval(fetchState, 3000);
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -279,7 +265,6 @@ export default function AgentDashboard() {
           }`}>
             {agentState.status}
           </span>
-          <AIEngineSelector />
           {/* Chevron */}
           <span className={`material-symbols-outlined text-[15px] text-slate-600 transition-transform duration-200 ${agentExpanded ? "rotate-180" : ""}`}>
             expand_more

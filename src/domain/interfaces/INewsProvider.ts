@@ -4,7 +4,7 @@ export interface RawNewsItem {
   url: string;
   datetime: number;
   author?: string;
-  source: "finnhub" | "twitter" | "reddit" | "newsapi";
+  source: "finnhub" | "polygon" | "newsapi";
 }
 
 export interface INewsProvider {

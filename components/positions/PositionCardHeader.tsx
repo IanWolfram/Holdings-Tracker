@@ -1,7 +1,7 @@
 import React from "react";
 import Sparkline from "@/components/ui/Sparkline";
-import { TerminalCube } from "@/components/world/StockLogoCube";
-import SentimentBar from "@/components/SentimentBar";
+import StockLogo from "@/components/ui/StockLogo";
+import SentimentBar from "@/components/bars/SentimentBar";
 import type { SentimentDirection } from "@/lib/utils/sentiment";
 import { formatCurrency, formatPercent, formatGainLoss } from "@/lib/utils/format";
 
@@ -118,7 +118,7 @@ export default function PositionCardHeader({
         // ---------- COMPACT HEADER ----------
         <div className="px-[9px] pt-[7px] pb-[5px]">
           <div className="grid grid-cols-[auto_1fr_auto] gap-3 items-center">
-            <TerminalCube ticker={ticker} size={32} spinning={hovered} />
+            <StockLogo ticker={ticker} size={32} />
             <div className="min-w-0 flex flex-col gap-[1px]">
               <div className="flex items-baseline gap-1.5">
                 <h1 className="font-mono text-[14px] font-black text-white tracking-tighter leading-none">
@@ -153,7 +153,7 @@ export default function PositionCardHeader({
         <div className="p-3 pb-2">
           <div className="grid grid-cols-[auto_1fr_auto] gap-4 items-start">
             <div className="flex flex-col items-center gap-1.5 shrink-0">
-              <TerminalCube ticker={ticker} size={48} spinning={hovered} />
+              <StockLogo ticker={ticker} size={48} />
             </div>
             <div className="min-w-0 flex flex-col gap-0.5">
               <h1 className="font-mono text-[18px] font-black text-white tracking-tighter leading-none">

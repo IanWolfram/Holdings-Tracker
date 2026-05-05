@@ -3,9 +3,10 @@
  */
 
 // Free tier: 5 calls/minute = 1 per 12 s. Use 13 s to stay safely under.
+// Override via POLYGON_RATE_MS env var on paid tiers.
 let polygonQueue: Promise<void> = Promise.resolve();
 let lastPolygonCallAt = 0;
-const POLYGON_RATE_MS = 13_000;
+const POLYGON_RATE_MS = Number(process.env.POLYGON_RATE_MS) || 13_000;
 
 function enqueuePolygon<T>(fn: () => Promise<T>): Promise<T> {
   const result = polygonQueue.then(async () => {
@@ -66,6 +67,71 @@ export async function fetchCandlesPolygon(
       return [];
     } catch (err) {
       console.error(`[polygon] Error for ${ticker}:`, err);
+      return [];
+    }
+  });
+}
+
+/**
+ * Fetch news articles from Polygon.io for a given ticker.
+ * Polygon's news coverage is broader than Finnhub for smaller-cap stocks.
+ * An optional companyName enables tighter relevance pre-filtering.
+ */
+export async function fetchPolygonNews(ticker: string, companyName?: string): Promise<Array<{
+  headline: string;
+  summary: string;
+  url: string;
+  datetime: number;
+  source: "polygon";
+}>> {
+  const apiKey = process.env.POLYGON_API_KEY;
+  if (!apiKey) return [];
+
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const publishedGte = sevenDaysAgo.toISOString().split("T")[0];
+  const url = `https://api.polygon.io/v2/reference/news?ticker=${ticker}&published_utc.gte=${publishedGte}&limit=50&apiKey=${apiKey}`;
+
+  return enqueuePolygon(async () => {
+    try {
+      const res = await fetchWithRetry(url);
+      if (!res.ok) throw new Error(`Polygon news HTTP ${res.status}`);
+      const data = await res.json();
+
+      if (!Array.isArray(data.results)) return [];
+
+      // Polygon's ticker filter is very loose — it returns articles that are
+      // only tangentially tagged with the ticker.  Pre-filter at the source
+      // level so we don't waste time classifying irrelevant stories.
+      // (A thorough relevance check using the full company name happens in
+      // lib/news.ts after all sources are merged.)
+      const tickerLc = ticker.toLowerCase();
+      const nameTerms = companyName
+        ? companyName.toLowerCase().split(/\s+/).filter(w => w.length >= 3)
+        : [];
+
+      const isRelevant = (r: any) => {
+        const text = `${r.title ?? ""} ${r.description ?? ""}`.toLowerCase();
+        if (text.includes(tickerLc)) return true;
+        return nameTerms.some(term => text.includes(term));
+      };
+
+      return data.results.filter(isRelevant).map((r: any) => ({
+        headline: (r.title ?? "").trim(),
+        summary: (r.description ?? "").trim(),
+        url: (r.article_url ?? "").trim(),
+        datetime: r.published_utc
+          ? Math.floor(new Date(r.published_utc).getTime() / 1000)
+          : 0,
+        source: "polygon" as const,
+      })).filter((s: { headline: string; summary: string; url: string; datetime: number; source: "polygon" }) => {
+        if (!s.headline) { console.warn("[polygon] Skipping story with empty headline"); return false; }
+        if (!s.url) { console.warn("[polygon] Skipping story with empty URL:", s.headline.slice(0, 60)); return false; }
+        if (!Number.isFinite(s.datetime) || s.datetime <= 0) { console.warn("[polygon] Skipping story with invalid datetime:", s.headline.slice(0, 60)); return false; }
+        return true;
+      });
+    } catch (err) {
+      console.error(`[polygon] News fetch error for ${ticker}:`, err);
       return [];
     }
   });

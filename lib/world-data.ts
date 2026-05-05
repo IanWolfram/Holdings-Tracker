@@ -1,4 +1,4 @@
-import { getNewsForTicker } from "./news";
+import { getServices } from "@/src/registry";
 import { fetchCompanyProfile } from "./company-profile";
 import { writeStoryNote, writeDailySummary } from "../world-brain/obsidian";
 import { WORLD_CACHE_TTL_MS, WORLD_VAULT_PATH } from "./constants";
@@ -46,15 +46,16 @@ export async function getWorldData(
   );
 
   // ── 2. Collect already-classified stories (no new Ollama calls) ───────────
-  // getNewsForTicker() uses its own 5-min cache and already ran the
+  // NewsService uses its own 5-min cache and already ran the
   // Economic Brain classifier. We reuse those results directly.
   const allGeoStories: GeoStory[] = [];
+  const { newsService } = getServices();
 
   const newsResults = await Promise.all(
     positions.map(async (p) => {
       try {
         const sector = profiles[p.ticker]?.sector;
-        return await getNewsForTicker(p.ticker, sector);
+        return await newsService.getNewsForTicker(p.ticker, sector);
       } catch {
         return [];
       }
@@ -171,17 +172,14 @@ export async function getWorldData(
   }
 
   // ── 6. Kick off background world-brain enrichment (non-blocking) ──────────
-  // This runs AFTER we've returned the fast response. It will refine
-  // geo-origin inference via the AI Brain and update the cache for next poll.
-  // DISABLED: Background enrichment is no longer automatic. 
-  // It must be triggered manually via the Stock Agent (Pulse) to avoid unexpected AI costs/load.
-  /*
-  if (!enrichmentLock) {
+  // Re-enriches geo-origin via AI Brain and updates the cache for next poll.
+  // Controlled by ENABLE_BACKGROUND_ENRICHMENT env var (default: false to avoid
+  // unexpected AI costs). Set to "true" to enable automatic enrichment after each poll.
+  if (process.env.ENABLE_BACKGROUND_ENRICHMENT === "true" && !enrichmentLock) {
     enrichmentLock = runBackgroundEnrichment(data, positions, profiles)
       .catch((err) => console.error("[world-data] Background enrichment error:", err))
       .finally(() => { enrichmentLock = null; });
   }
-  */
 
   return data;
 }
@@ -212,9 +210,8 @@ async function runBackgroundEnrichment(
     for (const position of positions) {
       let stories: ClassifiedStory[] = [];
       try {
-        const { getNewsForTicker } = await import("./news");
         const sector = profiles[position.ticker]?.sector;
-        stories = await getNewsForTicker(position.ticker, sector);
+        stories = await getServices().newsService.getNewsForTicker(position.ticker, sector);
       } catch {
         continue;
       }

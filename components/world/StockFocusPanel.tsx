@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import VerdictBadge from "@/components/VerdictBadge";
+import VerdictBadge from "@/components/bars/VerdictBadge";
 import CompanyLogo from "@/components/ui/CompanyLogo";
 import Sparkline from "@/components/ui/Sparkline";
 import { formatCurrency, formatPercent, formatGainLoss } from "@/lib/utils/format";

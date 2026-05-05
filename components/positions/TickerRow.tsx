@@ -2,8 +2,8 @@ import React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { ClassifiedStory } from "@/types/news.types";
 import type { HotTicker } from "@/types/market-data.types";
-import NewsCard from "@/components/NewsCard";
-import EmptyState from "@/components/EmptyState";
+import NewsCard from "@/components/cards/NewsCard";
+import EmptyState from "@/components/layout/EmptyState";
 import ChangeBar from "@/components/ui/ChangeBar";
 
 interface TickerRowProps {

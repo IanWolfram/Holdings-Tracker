@@ -145,8 +145,9 @@ async function detectContradictions(
 ): Promise<number> {
   let count = 0;
   for (const tr of tickerResults) {
-    const buys = tr.verdicts.filter((v) => v.verdict === "BUY");
-    const sells = tr.verdicts.filter((v) => v.verdict === "SELL");
+    const nonFailed = tr.verdicts.filter((v) => !v.analysis.analysisFailed);
+    const buys = nonFailed.filter((v) => v.verdict === "BUY");
+    const sells = nonFailed.filter((v) => v.verdict === "SELL");
     if (buys.length >= 1 && sells.length >= 1 && buys.length + sells.length >= 2) {
       const resolution = await resolveContradictionWithMetaAnalyst(
         tr.ticker,
@@ -263,7 +264,7 @@ function detectClusteringAnomalies(
       if (entry.todayCount < 3) continue; // need a real sample today
       if (entry.rolling30dCount < 5) continue; // need a real baseline
       const delta = entry.todayBuyPct - entry.rolling30dBuyPct;
-      if (Math.abs(delta) >= 0.5) {
+      if (Math.abs(delta) >= 0.3) {
         writeBreadthFlipAlert(vaultPath, date, sector, entry, delta);
         breadthFlips += 1;
       }
@@ -281,12 +282,12 @@ function detectClusteringAnomalies(
 
   for (const tr of tickerResults) {
     const todayBuys = tr.verdicts.filter((v) => v.verdict === "BUY").length;
-    if (todayBuys < 5) continue;
+    if (todayBuys < 3) continue;
     const history = perTickerHistory.get(tr.ticker.toUpperCase()) ?? [];
-    if (history.length < 5) continue;
+    if (history.length < 3) continue;
     const total = history.reduce((sum, n) => sum + n, 0);
     const avg = total / history.length;
-    if (todayBuys >= Math.max(5, avg * 5)) {
+    if (todayBuys >= Math.max(3, avg * 3)) {
       writeTickerClusterAlert(vaultPath, date, tr.ticker, todayBuys, avg);
       tickerClusters += 1;
     }

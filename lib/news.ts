@@ -1,13 +1,16 @@
 import fs from "fs";
 import path from "path";
 import { fetchFinnhubNews } from "./finnhub";
-import { fetchRedditPosts } from "./reddit";
+import { fetchPolygonNews } from "./polygon";
 import { fetchNewsAPIArticles } from "./newsapi";
 import { getCompanyName } from "./company-names";
 import { classifyNews } from "./classifier";
 import { MOCK_NEWS } from "./mock-news";
 import { NEWS_CACHE_TTL_MS, WORLD_VAULT_PATH } from "./constants";
+import { dedupeStories } from "./utils/dedupeStories";
+import { getVaultStoriesForTicker } from "./vault-stories";
 import { writeStoryNote } from "../world-brain/obsidian";
+import { buildRelevanceProfile, isRelevantToTicker } from "./relevance";
 import type { ClassifiedStory } from "@/types/news.types";
 import type { GeoStory } from "@/types/geo.types";
 export type { ClassifiedStory } from "@/types/news.types";
@@ -25,7 +28,7 @@ function loadMockVerdicts(): Record<string, ClassifiedStory[]> | null {
 // Load once per process
 const MOCK_VERDICTS = loadMockVerdicts();
 
-const NEWS_WINDOW_S = 14 * 24 * 60 * 60; // seconds
+const NEWS_WINDOW_S = 7 * 24 * 60 * 60; // seconds
 
 function withinNewsWindow(stories: ClassifiedStory[]): ClassifiedStory[] {
   const cutoff = Math.floor(Date.now() / 1000) - NEWS_WINDOW_S;
@@ -37,26 +40,28 @@ const cache = new Map<string, { data: ClassifiedStory[]; expiresAt: number }>();
 
 export async function getNewsForTicker(
   ticker: string,
-  sector?: string
+  sector?: string,
+  options?: { mock?: boolean }
 ): Promise<ClassifiedStory[]> {
   const cached = cache.get(ticker);
   if (cached && Date.now() < cached.expiresAt) return cached.data;
 
   const companyName = await getCompanyName(ticker);
 
-  // Reddit needs no API key — always attempt it
   // Only attempt keyed sources when their credentials are present
-  const [finnhubArticles, redditPosts, newsAPIArticles] = await Promise.all([
+  const [finnhubArticles, polygonArticles, newsAPIArticles] = await Promise.all([
     process.env.FINNHUB_API_KEY
       ? fetchFinnhubNews(ticker).catch((err) => {
           console.error(`[news] Finnhub error for ${ticker}:`, err);
           return [];
         })
       : [],
-    fetchRedditPosts(ticker, companyName, sector).catch((err) => {
-      console.error(`[news] Reddit error for ${ticker}:`, err);
-      return [];
-    }),
+    process.env.POLYGON_API_KEY
+      ? fetchPolygonNews(ticker, companyName).catch((err) => {
+          console.error(`[news] Polygon news error for ${ticker}:`, err);
+          return [];
+        })
+      : [],
     process.env.NEWSAPI_API_KEY
       ? fetchNewsAPIArticles(ticker, companyName).catch((err) => {
           console.error(`[news] NewsAPI error for ${ticker}:`, err);
@@ -68,7 +73,7 @@ export async function getNewsForTicker(
   // If all real sources came back empty, classify and cache mock news so
   // tooltips still show AI reasoning instead of being empty
   const totalRealStories =
-    finnhubArticles.length + redditPosts.length + newsAPIArticles.length;
+    finnhubArticles.length + polygonArticles.length + newsAPIArticles.length;
   if (totalRealStories === 0) {
     // Use pre-classified verdicts if available (run scripts/review-verdicts.ts --save to generate)
     if (MOCK_VERDICTS?.[ticker]) {
@@ -90,6 +95,7 @@ export async function getNewsForTicker(
   }
 
   const cutoff = Math.floor(Date.now() / 1000) - NEWS_WINDOW_S;
+  const profile = buildRelevanceProfile(ticker, companyName);
 
   const stories = [
     ...finnhubArticles.map((a) => ({
@@ -100,14 +106,13 @@ export async function getNewsForTicker(
       datetime: a.datetime,
       source: "finnhub" as const,
     })),
-    ...redditPosts.map((p) => ({
+    ...polygonArticles.map((a) => ({
       ticker,
-      headline: p.text.split("\n")[0].slice(0, 120),
-      summary: p.text,
-      url: p.url,
-      datetime: p.datetime,
-      author: p.author,
-      source: "reddit" as const,
+      headline: a.headline,
+      summary: a.summary,
+      url: a.url,
+      datetime: a.datetime,
+      source: "polygon" as const,
     })),
     ...newsAPIArticles.map((a) => ({
       ticker,
@@ -117,7 +122,10 @@ export async function getNewsForTicker(
       datetime: a.datetime,
       source: "newsapi" as const,
     })),
-  ].filter((s) => s.datetime >= cutoff);
+  ].filter((s) => {
+    if (s.datetime < cutoff) return false;
+    return isRelevantToTicker(s.headline, s.summary ?? "", profile);
+  });
 
   // Classify stories in parallel (fast keyword/vault lookup)
   const classified = await Promise.all(
@@ -126,7 +134,8 @@ export async function getNewsForTicker(
       const result = { ...s, ...cls };
       
       // PERSISTENCE: If newly analyzed by the brain, remember it in the vault
-      if (result.isAnalyzed && !result.fromVault && WORLD_VAULT_PATH) {
+      // Skip vault writes for mock data to avoid polluting the knowledge base
+      if (result.isAnalyzed && !result.fromVault && WORLD_VAULT_PATH && !options?.mock) {
         await writeStoryNote(result as unknown as GeoStory, WORLD_VAULT_PATH, sector);
       }
       return result;
@@ -134,7 +143,10 @@ export async function getNewsForTicker(
   );
 
   // Sort newest first, drop anything older than 30 days
-  const recent = withinNewsWindow(classified).sort((a, b) => b.datetime - a.datetime);
+  const vaultStories = await getVaultStoriesForTicker(ticker, 7);
+  const allClassified = [...classified, ...vaultStories];
+  const deduped = dedupeStories(allClassified, await getCompanyName(ticker));
+  const recent = withinNewsWindow(deduped).sort((a, b) => b.datetime - a.datetime);
 
   cache.set(ticker, { data: recent, expiresAt: Date.now() + NEWS_CACHE_TTL_MS });
   return recent;

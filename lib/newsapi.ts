@@ -45,7 +45,14 @@ export async function fetchNewsAPIArticles(
 
   const raw = json.articles ?? [];
 
-  // Deduplicate by headline, limit 10
+  // Pre-filter: article must mention the ticker or a significant company-name
+  // term.  NewsAPI's full-text search is fuzzy and can return loosely-related
+  // results that don't actually discuss the requested stock.
+  const tickerLc = ticker.toLowerCase();
+  const nameTerms = companyName
+    ? companyName.toLowerCase().split(/\s+/).filter(w => w.length >= 3)
+    : [];
+
   const seen = new Set<string>();
   const articles: NewsAPIArticle[] = [];
 
@@ -53,6 +60,11 @@ export async function fetchNewsAPIArticles(
     const headline = item.title?.trim() ?? "";
     if (!headline || headline === "[Removed]" || seen.has(headline)) continue;
     seen.add(headline);
+
+    const text = `${headline} ${item.description ?? ""}`.toLowerCase();
+    const tickerHit = text.includes(tickerLc);
+    const nameHit = nameTerms.some(term => text.includes(term));
+    if (!tickerHit && !nameHit) continue;
 
     articles.push({
       headline,

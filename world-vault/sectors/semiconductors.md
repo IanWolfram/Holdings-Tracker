@@ -2,8 +2,8 @@
 type: sector
 name: "Semiconductors"
 momentum: neutral
-todayBuyPct: 0.4444
-rolling7dBuyPct: 0.4810
+todayBuyPct: 0.0000
+rolling7dBuyPct: 0.4722
 rolling30dBuyPct: 0.4815
 tags:
   - sector
@@ -15,7 +15,7 @@ tags:
 Tickers: [[NVDA]]
 
 ## Breadth
-- Today: 36 stories, 44.4% BUY
-- Rolling 7d: 79 stories, 48.1% BUY
+- Today: 0 stories, 0.0% BUY
+- Rolling 7d: 72 stories, 47.2% BUY
 - Rolling 30d: 81 stories, 48.1% BUY
 - Momentum: **neutral**

@@ -23,6 +23,8 @@ const BUY_KEYWORDS = [
   "outperform", "buy", "strong", "growth", "raises guidance", "raises forecast",
   "partnership", "launches", "expands", "acquires", "acquisition", "wins",
   "positive", "profit", "revenue up", "earnings beat", "bullish", "breakthrough",
+  "surge", "soar", "rally", "outperform", "overweight", "beats consensus",
+  "record revenue", "bullish thesis",
 ];
 
 const SELL_KEYWORDS = [
@@ -30,6 +32,8 @@ const SELL_KEYWORDS = [
   "sell", "lawsuit", "sued", "investigation", "fraud", "scandal", "departure",
   "resigns", "exits", "cuts guidance", "cuts forecast", "loss", "decline",
   "warning", "recall", "breach", "hack", "layoffs", "bearish", "disappoints",
+  "plunge", "plummets", "cut to", "underweight", "sell rating", "below estimates",
+  "revenue decline", "guidance cut",
 ];
 
 export function keywordClassify(headline: string, summary: string): Classification {
@@ -38,28 +42,58 @@ export function keywordClassify(headline: string, summary: string): Classificati
   const sellHits = SELL_KEYWORDS.filter((k) => text.includes(k)).length;
 
   if (buyHits === 0 && sellHits === 0) {
-    return { verdict: "HOLD", confidence: 0.5, reason: undefined, classifiedAt: new Date().toISOString(), isAnalyzed: false };
+    return { verdict: "HOLD", confidence: 0.5, reason: undefined, classifiedAt: new Date().toISOString(), isAnalyzed: false, classificationSource: "keyword" };
   }
   if (buyHits > sellHits) {
-    return { verdict: "BUY", confidence: Math.min(0.5 + buyHits * 0.1, 0.9), reason: undefined, classifiedAt: new Date().toISOString(), isAnalyzed: false };
+    return { verdict: "BUY", confidence: Math.min(0.5 + buyHits * 0.1, 0.7), reason: undefined, classifiedAt: new Date().toISOString(), isAnalyzed: false, classificationSource: "keyword" };
   }
   if (sellHits > buyHits) {
-    return { verdict: "SELL", confidence: Math.min(0.5 + sellHits * 0.1, 0.9), reason: undefined, classifiedAt: new Date().toISOString(), isAnalyzed: false };
+    return { verdict: "SELL", confidence: Math.min(0.5 + sellHits * 0.1, 0.7), reason: undefined, classifiedAt: new Date().toISOString(), isAnalyzed: false, classificationSource: "keyword" };
   }
-  return { verdict: "HOLD", confidence: 0.5, reason: undefined, classifiedAt: new Date().toISOString(), isAnalyzed: false };
+  return { verdict: "HOLD", confidence: 0.5, reason: undefined, classifiedAt: new Date().toISOString(), isAnalyzed: false, classificationSource: "keyword" };
 }
 
 // ---------------------------------------------------------------------------
-// Global Ollama semaphore — serialize all requests (Ollama is single-threaded)
+// Inference concurrency control
 // ---------------------------------------------------------------------------
+// MLX runs on a single-threaded GPU — all MLX calls must be serialized.
+// Cloud API calls (DeepSeek, OpenAI) can run concurrently with a limit.
 
-let inferenceQueue: Promise<unknown> = Promise.resolve();
+let mlxQueue: Promise<unknown> = Promise.resolve();
 
+/** Serialize MLX inference calls (single-threaded GPU constraint). */
 export function withInferenceSemaphore<T>(fn: () => Promise<T>): Promise<T> {
-  const result: Promise<T> = inferenceQueue.then(() => fn(), () => fn());
-  // Advance the queue but ignore errors so future requests aren't blocked
-  inferenceQueue = result.then(() => undefined, () => undefined);
+  const result: Promise<T> = mlxQueue.then(() => fn(), () => fn());
+  mlxQueue = result.then(() => undefined, () => undefined);
   return result;
+}
+
+const MAX_CONCURRENT_CLOUD = 4;
+let cloudActive = 0;
+let cloudQueue: Array<() => void> = [];
+
+/** Limit cloud API inference calls to MAX_CONCURRENT_CLOUD concurrent. */
+export function withCloudSemaphore<T>(fn: () => Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const run = () => {
+      cloudActive++;
+      fn()
+        .then(resolve)
+        .catch(reject)
+        .finally(() => {
+          cloudActive--;
+          if (cloudQueue.length > 0) {
+            const next = cloudQueue.shift()!;
+            next();
+          }
+        });
+    };
+    if (cloudActive < MAX_CONCURRENT_CLOUD) {
+      run();
+    } else {
+      cloudQueue.push(run);
+    }
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -75,7 +109,7 @@ export async function classifyNews(
   // 1. Check verified vault first
   if (url) {
     const cached = await findInVault(url);
-    if (cached) return cached;
+    if (cached) return { ...cached, classificationSource: "vault" as const };
   }
 
   // 2. Keyword fallback — the agent runs MLX analysis separately via analyzeStory.

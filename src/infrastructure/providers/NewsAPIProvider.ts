@@ -10,7 +10,8 @@ export class NewsAPIProvider implements INewsProvider {
         ? `${ticker} OR "${name}"`
         : ticker;
     const query = encodeURIComponent(queryTerms);
-    const url = `https://newsapi.org/v2/everything?q=${query}&language=en&sortBy=publishedAt&pageSize=10`;
+    const from = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+const url = `https://newsapi.org/v2/everything?q=${query}&language=en&sortBy=publishedAt&pageSize=50&from=${from}`;
 
     const res = await fetch(url, {
       headers: { "X-Api-Key": this.apiKey },
@@ -33,12 +34,25 @@ export class NewsAPIProvider implements INewsProvider {
 
     const raw = json.articles ?? [];
     const seen = new Set<string>();
+    const tickerLc = ticker.toLowerCase();
+    const nameTerms = companyName
+      ? companyName.toLowerCase().split(/\s+/).filter(w => w.length >= 3)
+      : [];
     const articles: RawNewsItem[] = [];
 
     for (const item of raw) {
       const headline = item.title?.trim() ?? "";
       if (!headline || headline === "[Removed]" || seen.has(headline)) continue;
       seen.add(headline);
+
+      // Pre-filter: article must mention the ticker or a significant
+      // company-name term.  NewsAPI's full-text search is fuzzy and can
+      // return loosely-related results.
+      const text = `${headline} ${item.description ?? ""}`.toLowerCase();
+      const tickerHit = text.includes(tickerLc);
+      const nameHit = nameTerms.some(term => text.includes(term));
+      if (!tickerHit && !nameHit) continue;
+
       articles.push({
         headline,
         summary: item.description?.trim() ?? "",
@@ -48,7 +62,7 @@ export class NewsAPIProvider implements INewsProvider {
           : 0,
         source: "newsapi",
       });
-      if (articles.length >= 10) break;
+      if (articles.length >= 50) break;
     }
 
     return articles;

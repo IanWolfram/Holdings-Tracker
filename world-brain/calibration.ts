@@ -229,7 +229,7 @@ function pctString(rate: number): string {
 
 export function buildCalibrationBlock(ticker: string, vaultPath: string): string {
   const report = loadCalibrationReport(vaultPath);
-  if (!report || report.totalResolved < 5) return "";
+  if (!report || report.totalResolved < 2) return "";
 
   const overallCorrect = Object.values(report.byTicker).reduce(
     (sum, stats) => sum + stats.correct,
@@ -261,6 +261,10 @@ export function buildCalibrationBlock(ticker: string, vaultPath: string): string
     "## Your Calibration",
     `You have made ${report.totalResolved} resolved predictions. Overall win rate: ${pctString(overallRate)}.`,
   ];
+
+  if (report.totalResolved < 5) {
+    lines.push("_Cold-start: too few resolved predictions for reliable calibration. Treat these stats as preliminary._");
+  }
 
   if (buckets.length > 0) {
     lines.push("By confidence bucket:");

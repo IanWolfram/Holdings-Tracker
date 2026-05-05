@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import PositionCard from "@/components/PositionCard";
+import PositionCard from "@/components/cards/PositionCard";
 import type { CompanyProfile } from "@/types/geo.types";
 import type { Position } from "@/types/position.types";
 import type { ClassifiedStory } from "@/types/news.types";
