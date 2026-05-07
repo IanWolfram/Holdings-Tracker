@@ -6,7 +6,7 @@ verdict: HOLD
 confidence: 0.50
 relevance: 0.00
 decayScore: 0.1689
-verified: true
+verified: false
 country: US
 source: polygon
 url: "https://www.fool.com/investing/2026/04/22/got-2000-these-financial-stocks-are-worth-consider/?source=iedfolrf0000001"

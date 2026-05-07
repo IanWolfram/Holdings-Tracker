@@ -15,8 +15,8 @@ import fs from "fs";
 import path from "path";
 import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
-import { resolveVaultPath } from "../lib/constants";
 import { loadCalibrationReport, type CalibrationStats } from "../world-brain/calibration";
+import { FsVaultStore } from "../lib/vault/store";
 import { CATALYST_TYPES, type CatalystType } from "../types/predictions";
 
 interface CatalystExpectation {
@@ -103,8 +103,8 @@ interface RecalibrateProposal {
   catalystsTotal: number;
 }
 
-function buildProposal(vaultPath: string): RecalibrateProposal | null {
-  const report = loadCalibrationReport(vaultPath);
+async function buildProposal(store: FsVaultStore): Promise<RecalibrateProposal | null> {
+  const report = await loadCalibrationReport(store);
   if (!report) return null;
 
   const today = new Date().toISOString().slice(0, 10);
@@ -220,16 +220,16 @@ async function main(): Promise<void> {
 
   const apply = process.argv.includes("--apply");
   const vaultPathRaw = process.env.WORLD_VAULT_PATH ?? "./world-vault";
-  const vaultPath = resolveVaultPath(vaultPathRaw) ?? vaultPathRaw;
+  const store = new FsVaultStore(vaultPathRaw);
 
-  const calibrationFile = path.join(vaultPath, "_metrics", "calibration.json");
-  if (!fs.existsSync(calibrationFile)) {
-    console.error(`[recalibrate] calibration.json not found at ${calibrationFile}.`);
+  const calibrationExists = await store.exists("_metrics/calibration.json");
+  if (!calibrationExists) {
+    console.error(`[recalibrate] calibration.json not found in vault.`);
     console.error(`[recalibrate] Run \`npm run backfill -- --apply\` or a live agent run first.`);
     process.exit(1);
   }
 
-  const proposal = buildProposal(vaultPath);
+  const proposal = await buildProposal(store);
   if (!proposal) {
     console.error("[recalibrate] Failed to load calibration report.");
     process.exit(1);

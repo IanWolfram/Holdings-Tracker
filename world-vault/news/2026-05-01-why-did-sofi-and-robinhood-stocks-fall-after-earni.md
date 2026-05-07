@@ -6,7 +6,7 @@ verdict: HOLD
 confidence: 0.50
 relevance: 0.00
 decayScore: 0.6148
-verified: true
+verified: false
 country: US
 source: polygon
 url: "https://www.fool.com/investing/2026/05/01/why-did-sofi-and-robinhood-stocks-fall-after-earni/?source=iedfolrf0000001"

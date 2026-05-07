@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getQuotes } from "@/lib/market-data";
+import { requireUser } from "@/lib/auth/requireUser";
 import type { QuoteData, HotTicker } from "@/types/market-data.types";
 
 export type { HotTicker };
@@ -49,6 +50,9 @@ export default async function handler(
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
+
+  const user = await requireUser(req, res);
+  if (!user) return;
 
   try {
     const tickers = await fetchTrendingTickers();

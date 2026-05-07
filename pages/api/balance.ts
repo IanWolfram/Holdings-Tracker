@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getCashBalance } from "@/lib/etrade";
+import { requireUser } from "@/lib/auth/requireUser";
 
 const MOCK_CASH = 2_847.32;
 
@@ -10,6 +11,9 @@ export default async function handler(
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
+
+  const user = await requireUser(req, res);
+  if (!user) return;
 
   try {
     const isMock = process.env.ETRADE_ENV === "mock";

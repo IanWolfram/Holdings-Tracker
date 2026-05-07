@@ -1,6 +1,5 @@
 "use client";
 
-import AccountIconDiv from "@/components/layout/AccountIconDiv";
 import AccountPanel from "@/components/layout/AccountPanel";
 import AccountSummary from "@/components/layout/AccountSummary";
 import ConnectionControls from "@/components/layout/ConnectionControls";
@@ -150,7 +149,6 @@ export default function TopBar({
         )}
 
         {/* ── Segmented market cluster + Account icon ── */}
-        <div className="flex items-center gap-1.5">
         <div className="flex items-center rounded-md overflow-hidden bg-white/[0.03] border border-white/[0.07] h-14">
           {/* State */}
           <div className="flex items-center gap-2 px-3 py-1.5">
@@ -180,11 +178,9 @@ export default function TopBar({
             timeStr={timeStr}
             onRefresh={onRefresh}
             refreshing={refreshing}
-            calibratedAt={calibration.updatedAt}
-            calibrationResolved={calibration.totalResolved}
+            accountPanelOpen={accountPanelOpen}
+            setAccountPanelOpen={setAccountPanelOpen}
           />
-        </div>
-        <AccountIconDiv onClick={() => setAccountPanelOpen(true)} isOpen={accountPanelOpen} />
         </div>
       </div>
 

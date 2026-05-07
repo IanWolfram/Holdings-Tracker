@@ -6,7 +6,7 @@ verdict: HOLD
 confidence: 0.50
 relevance: 0.00
 decayScore: 0.9666
-verified: true
+verified: false
 country: US
 source: polygon
 url: "https://www.benzinga.com/pressreleases/26/05/n52253952/ai-defense-spending-surge-puts-a-premium-on-proprietary-vision-tech-and-one-nasdaq-player-just-fil?utm_source=benzinga_taxonomy&utm_medium=rss_feed_free&utm_content=taxonomy_rss&utm_campaign=channel"

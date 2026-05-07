@@ -2,35 +2,78 @@ import { getServices } from "@/src/registry";
 import { fetchCompanyProfile } from "./company-profile";
 import { writeStoryNote, writeDailySummary } from "../world-brain/obsidian";
 import { WORLD_CACHE_TTL_MS, WORLD_VAULT_PATH } from "./constants";
+import { FsVaultStore } from "@/lib/vault/store";
 import type { WorldData, GeoStory, CountryState, CompanyProfile } from "@/types/geo.types";
 import type { Position } from "@/types/position.types";
 import type { ClassifiedStory } from "@/types/news.types";
 
 // ---------------------------------------------------------------------------
-// 15-minute module-level cache
+// Stale-while-revalidate world-data cache
 // ---------------------------------------------------------------------------
 
 let worldCache: { data: WorldData; expiresAt: number } | null = null;
 
 // Background enrichment lock — Promise-based to prevent TOCTOU race
 let enrichmentLock: Promise<void> | null = null;
+// Background revalidation lock — prevents duplicate refreshes
+let revalidationLock: Promise<void> | null = null;
 
-// ---------------------------------------------------------------------------
-// FAST PATH: Build WorldData using only already-classified stories
-// No new Ollama calls. Stories from getNewsForTicker() already have
-// BUY/SELL/HOLD verdicts from the Economic Brain. We map them to the
-// company's HQ country as the default geo-origin.
-// World-brain enrichment (geo-origin inference) runs async in background.
-// ---------------------------------------------------------------------------
-
+/**
+ * SWR-style fetch: returns cached data immediately (even if stale),
+ * and kicks off background revalidation if the cache is stale or empty.
+ */
 export async function getWorldData(
   positions: Position[],
   opts?: { mock?: boolean }
 ): Promise<WorldData> {
+  // Return fresh cache immediately
   if (worldCache && Date.now() < worldCache.expiresAt) return worldCache.data;
 
+  // Return stale cache immediately, trigger background revalidation
+  if (worldCache) {
+    if (!revalidationLock) {
+      revalidationLock = refreshWorldData(positions, opts)
+        .then(() => {})
+        .catch((err) => console.error("[world-data] Background revalidation failed:", err))
+        .finally(() => { revalidationLock = null; });
+    }
+    return worldCache.data;
+  }
+
+  // No cache at all — must fetch blocking
+  return refreshWorldData(positions, opts);
+}
+
+/**
+ * Force-invalidate cache (used by the manual refresh endpoint).
+ * Returns immediately; the next getWorldData call will fetch fresh data.
+ */
+export function invalidateWorldCache(): void {
+  worldCache = null;
+}
+
+/**
+ * Force a fresh fetch regardless of cache state (used by /api/world-refresh).
+ */
+export async function forceRefreshWorldData(
+  positions: Position[],
+  opts?: { mock?: boolean }
+): Promise<WorldData> {
+  worldCache = null;
+  return refreshWorldData(positions, opts);
+}
+
+// ---------------------------------------------------------------------------
+// Core data-building logic (extracted from old getWorldData)
+// ---------------------------------------------------------------------------
+
+async function refreshWorldData(
+  positions: Position[],
+  opts?: { mock?: boolean }
+): Promise<WorldData> {
   if (positions.length === 0) {
     const empty: WorldData = { countries: {}, profiles: {}, fetchedAt: Date.now() };
+    worldCache = { data: empty, expiresAt: Date.now() + WORLD_CACHE_TTL_MS };
     return empty;
   }
 
@@ -46,8 +89,6 @@ export async function getWorldData(
   );
 
   // ── 2. Collect already-classified stories (no new Ollama calls) ───────────
-  // NewsService uses its own 5-min cache and already ran the
-  // Economic Brain classifier. We reuse those results directly.
   const allGeoStories: GeoStory[] = [];
   const { newsService } = getServices();
 
@@ -64,7 +105,6 @@ export async function getWorldData(
 
   for (const stories of newsResults) {
     for (const story of stories) {
-      // Default geo-origin = ticker's HQ country (fast, no Ollama needed)
       const profile = profiles[story.ticker];
       const defaultCountryCode = profile?.countryCode ?? undefined;
 
@@ -78,10 +118,7 @@ export async function getWorldData(
         confidence: story.confidence,
         reason: story.reason,
         source: story.source,
-        // Use existing originCountryCode if world-brain already enriched it,
-        // otherwise default to HQ country
         originCountryCode: story.originCountryCode ?? defaultCountryCode,
-        // Use existing relevanceScore if set, otherwise use confidence
         relevanceScore: story.relevanceScore ?? story.confidence,
         isAnalyzed: story.isAnalyzed,
       };
@@ -91,13 +128,12 @@ export async function getWorldData(
   }
 
   // ── 3. Write individual story notes to Obsidian vault ────────────────────
-  // Never write vault artifacts from mock positions
   if (WORLD_VAULT_PATH && allGeoStories.length > 0 && !opts?.mock) {
-    const vaultPath = WORLD_VAULT_PATH;
+    const store = new FsVaultStore(WORLD_VAULT_PATH);
     await Promise.all(
       allGeoStories.map((story) => {
         const sector = profiles[story.ticker]?.sector;
-        return writeStoryNote(story, vaultPath, sector ?? undefined);
+        return writeStoryNote(story, store, sector ?? undefined);
       })
     );
   }
@@ -105,41 +141,27 @@ export async function getWorldData(
   // ── 4. Build country states ───────────────────────────────────────────────
   const countries: Record<string, CountryState> = {};
 
-  // HQ countries from profiles
   for (const [ticker, profile] of Object.entries(profiles)) {
     const code = profile.countryCode;
     if (!countries[code]) {
       countries[code] = {
-        countryCode: code,
-        netVerdict: null,
-        netScore: 0,
-        stories: [],
-        isHQCountry: true,
-        hqTickers: [],
-        totalPositionValue: 0,
+        countryCode: code, netVerdict: null, netScore: 0,
+        stories: [], isHQCountry: true, hqTickers: [], totalPositionValue: 0,
       };
     }
     countries[code].isHQCountry = true;
-    if (!countries[code].hqTickers.includes(ticker)) {
-      countries[code].hqTickers.push(ticker);
-    }
+    if (!countries[code].hqTickers.includes(ticker)) countries[code].hqTickers.push(ticker);
     const pos = positions.find((p) => p.ticker === ticker);
     countries[code].totalPositionValue += pos?.marketValue ?? 0;
   }
 
-  // News stories → their geo-origin country
   for (const story of allGeoStories) {
     if (!story.originCountryCode) continue;
     const code = story.originCountryCode;
     if (!countries[code]) {
       countries[code] = {
-        countryCode: code,
-        netVerdict: null,
-        netScore: 0,
-        stories: [],
-        isHQCountry: false,
-        hqTickers: [],
-        totalPositionValue: 0,
+        countryCode: code, netVerdict: null, netScore: 0,
+        stories: [], isHQCountry: false, hqTickers: [], totalPositionValue: 0,
       };
     }
     countries[code].stories.push(story);
@@ -147,10 +169,7 @@ export async function getWorldData(
 
   // ── 5. Compute net sentiment per country ──────────────────────────────────
   for (const state of Object.values(countries)) {
-    if (state.stories.length === 0) {
-      state.netVerdict = null;
-      continue;
-    }
+    if (state.stories.length === 0) { state.netVerdict = null; continue; }
     const score =
       state.stories.reduce((acc, s) => {
         const dir = s.verdict === "BUY" ? 1 : s.verdict === "SELL" ? -1 : 0;
@@ -164,17 +183,14 @@ export async function getWorldData(
   const data: WorldData = { countries, profiles, fetchedAt: Date.now() };
   worldCache = { data, expiresAt: Date.now() + WORLD_CACHE_TTL_MS };
 
-  // Write daily summary now that `data` is available
-  // Never write vault artifacts from mock positions
+  // Write daily summary
   if (WORLD_VAULT_PATH && allGeoStories.length > 0 && !opts?.mock) {
     const today = new Date().toISOString().split("T")[0];
-    writeDailySummary(today, allGeoStories, WORLD_VAULT_PATH, data);
+    const store = new FsVaultStore(WORLD_VAULT_PATH);
+    await writeDailySummary(today, allGeoStories, store, data);
   }
 
   // ── 6. Kick off background world-brain enrichment (non-blocking) ──────────
-  // Re-enriches geo-origin via AI Brain and updates the cache for next poll.
-  // Controlled by ENABLE_BACKGROUND_ENRICHMENT env var (default: false to avoid
-  // unexpected AI costs). Set to "true" to enable automatic enrichment after each poll.
   if (process.env.ENABLE_BACKGROUND_ENRICHMENT === "true" && !enrichmentLock) {
     enrichmentLock = runBackgroundEnrichment(data, positions, profiles)
       .catch((err) => console.error("[world-data] Background enrichment error:", err))
@@ -186,7 +202,6 @@ export async function getWorldData(
 
 // ---------------------------------------------------------------------------
 // Background enrichment — runs async, updates cache when done
-// World-brain AI calls happen here, not on the critical path
 // ---------------------------------------------------------------------------
 
 async function runBackgroundEnrichment(
@@ -198,13 +213,13 @@ async function runBackgroundEnrichment(
 
   try {
     const { analyzeStory } = await import("../world-brain/brain");
+    const store = WORLD_VAULT_PATH ? new FsVaultStore(WORLD_VAULT_PATH) : null;
 
     const holdingTickers = positions.map((p) => p.ticker);
     const holdingSectors = [
       ...new Set(Object.values(profiles).map((p) => p.sector).filter(Boolean)),
     ];
 
-    // Re-fetch cached stories (already in memory, no API calls)
     const allEnriched: GeoStory[] = [];
 
     for (const position of positions) {
@@ -217,22 +232,15 @@ async function runBackgroundEnrichment(
       }
 
       for (const story of stories) {
-        // Skip if already enriched with a non-HQ country
         const profile = profiles[story.ticker];
         const hqCode = profile?.countryCode;
         const alreadyEnriched =
           story.originCountryCode && story.originCountryCode !== hqCode;
         if (alreadyEnriched) {
           allEnriched.push({
-            ticker: story.ticker,
-            headline: story.headline,
-            summary: story.summary ?? "",
-            url: story.url,
-            datetime: story.datetime,
-            verdict: story.verdict,
-            confidence: story.confidence,
-            reason: story.reason,
-            source: story.source,
+            ticker: story.ticker, headline: story.headline, summary: story.summary ?? "",
+            url: story.url, datetime: story.datetime, verdict: story.verdict,
+            confidence: story.confidence, reason: story.reason, source: story.source,
             originCountryCode: story.originCountryCode ?? undefined,
             relevanceScore: story.relevanceScore ?? story.confidence,
           });
@@ -242,26 +250,19 @@ async function runBackgroundEnrichment(
         let analysis;
         try {
           analysis = await analyzeStory(
-            story.ticker,
-            story.headline,
-            story.summary ?? "",
-            holdingTickers,
-            holdingSectors
+            store!, story.ticker, story.headline, story.summary ?? "",
+            holdingTickers, holdingSectors
           );
         } catch {
           analysis = null;
         }
 
         allEnriched.push({
-          ticker: story.ticker,
-          headline: story.headline,
-          summary: story.summary ?? "",
-          url: story.url,
-          datetime: story.datetime,
+          ticker: story.ticker, headline: story.headline, summary: story.summary ?? "",
+          url: story.url, datetime: story.datetime,
           verdict: analysis?.verdict ?? story.verdict,
           confidence: analysis?.confidence ?? story.confidence,
-          reason: analysis?.reason || story.reason,
-          source: story.source,
+          reason: analysis?.reason || story.reason, source: story.source,
           originCountryCode: analysis?.originCountryCode ?? hqCode,
           relevanceScore: analysis?.relevanceScore ?? 0,
         });
@@ -307,7 +308,6 @@ async function runBackgroundEnrichment(
       state.netVerdict = score > 0.15 ? "BUY" : score < -0.15 ? "SELL" : "HOLD";
     }
 
-    // Update cache with enriched data — client picks this up on next 15-min poll
     const enriched: WorldData = {
       countries,
       profiles: baseData.profiles,
@@ -318,11 +318,4 @@ async function runBackgroundEnrichment(
   } catch (err) {
     console.error("[world-data] Enrichment failed:", err);
   }
-}
-
-/**
- * Invalidate the world cache (call after manual refresh).
- */
-export function invalidateWorldCache(): void {
-  worldCache = null;
 }

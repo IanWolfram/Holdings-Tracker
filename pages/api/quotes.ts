@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getQuotes } from "@/lib/market-data";
+import { requireUser } from "@/lib/auth/requireUser";
 import type { QuoteData } from "@/types/market-data.types";
 
 export default async function handler(
@@ -9,6 +10,9 @@ export default async function handler(
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
+
+  const user = await requireUser(req, res);
+  if (!user) return;
 
   const raw = typeof req.query.tickers === "string" ? req.query.tickers : "";
   if (!raw) {

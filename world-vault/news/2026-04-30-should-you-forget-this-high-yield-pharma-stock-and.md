@@ -6,7 +6,7 @@ verdict: HOLD
 confidence: 0.50
 relevance: 0.15
 decayScore: 0.5210
-verified: true
+verified: false
 country: US
 source: polygon
 url: "https://www.fool.com/investing/2026/04/30/should-you-forget-this-high-yield-pharma-stock-and/?source=iedfolrf0000001"

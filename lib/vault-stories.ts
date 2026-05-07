@@ -1,6 +1,6 @@
 import { getVaultIndex, type VaultEntry } from "./vault-index";
 import type { ClassifiedStory } from "@/types/news.types";
-import { resolveVaultPath } from "./constants";
+import { getVaultStore } from "./vault/store";
 
 const DEFAULT_WINDOW_DAYS = 7;
 
@@ -41,10 +41,8 @@ export async function getVaultStoriesForTicker(
   ticker: string,
   windowDays: number = DEFAULT_WINDOW_DAYS
 ): Promise<ClassifiedStory[]> {
-  const vaultPath = resolveVaultPath("world-vault");
-  if (!vaultPath) return [];
-
-  const index = await getVaultIndex(vaultPath);
+  const store = await getVaultStore("system");
+  const index = await getVaultIndex(store);
   const cutoff = Math.floor(Date.now() / 1000) - (windowDays * 24 * 60 * 60);
   const upper = ticker.toUpperCase();
 

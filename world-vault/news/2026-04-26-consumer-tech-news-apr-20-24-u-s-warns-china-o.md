@@ -6,7 +6,7 @@ verdict: HOLD
 confidence: 0.50
 relevance: 0.00
 decayScore: 0.3037
-verified: true
+verified: false
 country: US
 source: polygon
 url: "https://www.benzinga.com/markets/tech/26/04/52052642/consumer-tech-news-apr-20-24-u-s-warns-china-over-ai-theft-big-tech-faces-political-scrutiny-over-ai?utm_source=benzinga_taxonomy&utm_medium=rss_feed_free&utm_content=taxonomy_rss&utm_campaign=channel"

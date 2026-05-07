@@ -6,7 +6,7 @@ verdict: HOLD
 confidence: 0.50
 relevance: 0.00
 decayScore: 0.9654
-verified: true
+verified: false
 country: US
 source: polygon
 url: "https://www.investing.com/analysis/earnings-soar-while-the-economy-heats-up-200679621"

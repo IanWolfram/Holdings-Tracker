@@ -1,86 +1,6 @@
 "use client";
 
-import type { CompanyProfile } from "@/types/geo.types";
 import React, { useState } from "react";
-
-const FACE_TRANSFORMS = (half: number) => [
-  `translateZ(${half}px)`,
-  `rotateY(180deg) translateZ(${half}px)`,
-  `rotateY(90deg) translateZ(${half}px)`,
-  `rotateY(-90deg) translateZ(${half}px)`,
-  `rotateX(90deg) translateZ(${half}px)`,
-  `rotateX(-90deg) translateZ(${half}px)`,
-];
-
-
-// ============ World Variant (multiple cubes on globe) ============
-
-interface WorldCubeProps {
-  profiles: CompanyProfile[];
-}
-
-export default function StockLogoCube({ profiles }: WorldCubeProps) {
-  if (profiles.length === 0) return null;
-
-  return (
-    <div
-      id="marker-cubes"
-      style={{
-        position: "fixed",
-        inset: 0,
-        pointerEvents: "none",
-        zIndex: 42,
-      }}
-    >
-      <style>{`
-        .mc-wrap.spinning { animation: mc-bounce 2.2s ease-in-out infinite; }
-        .mc-inner { transition: none; }
-        @keyframes mc-bounce {
-          0%, 100% { transform: translateY(0); }
-          50%      { transform: translateY(-3px); }
-        }
-      `}</style>
-      {profiles.map((p) => (
-        <WorldStockCube key={p.ticker} profile={p} />
-      ))}
-    </div>
-  );
-}
-
-function WorldStockCube({ profile }: { profile: CompanyProfile }) {
-  const [logoFailed, setLogoFailed] = useState(false);
-  const initials = profile.ticker
-    .replace(/[^A-Z0-9]/gi, "")
-    .slice(0, 2)
-    .toUpperCase();
-  const logoUrl = `https://assets.parqet.com/logos/symbol/${encodeURIComponent(profile.ticker)}?format=svg`;
-
-  return (
-    <div
-      id={`marker-cube-${profile.ticker}`}
-      className="marker-cube-pos"
-      data-ticker={profile.ticker}
-      style={{
-        position: "absolute",
-        left: 0,
-        top: 0,
-        opacity: 0,
-        willChange: "transform, opacity",
-        pointerEvents: "none",
-        perspective: 200,
-      }}
-    >
-      <CubeInner
-        size={26}
-        logoUrl={logoUrl}
-        initials={initials}
-        logoFailed={logoFailed}
-        setLogoFailed={setLogoFailed}
-        variant="world"
-      />
-    </div>
-  );
-}
 
 // ============ Terminal Variant (single cube for UI) ============
 
@@ -90,7 +10,7 @@ interface TerminalCubeProps {
   spinning?: boolean;
 }
 
-export function TerminalCube({ ticker, size = 36, spinning = false }: TerminalCubeProps) {
+export default function TerminalCube({ ticker, size = 36, spinning = false }: TerminalCubeProps) {
   const [logoFailed, setLogoFailed] = useState(false);
   const [is3D, setIs3D] = useState(false);
   const [animClass, setAnimClass] = useState("");
@@ -99,18 +19,13 @@ export function TerminalCube({ ticker, size = 36, spinning = false }: TerminalCu
 
   const POP_DURATION = 1.4; // seconds for the pop-out transition
 
-  // When hover starts: pop out into 3D, then start spin after transition
-  // When hover ends: stop spin immediately, collapse back to 2D
   React.useEffect(() => {
     if (spinning) {
-      // Start 3D pop-out transition
       setIs3D(true);
       setAnimClass("");
-      // Start spinning after the pop-out finishes
       const t = setTimeout(() => setAnimClass("tc-spinning"), POP_DURATION * 1000);
       return () => clearTimeout(t);
     } else {
-      // Stop spin, collapse back
       setAnimClass("");
       setIs3D(false);
     }
@@ -156,7 +71,6 @@ export function TerminalCube({ ticker, size = 36, spinning = false }: TerminalCu
           initials={initials}
           logoFailed={logoFailed}
           setLogoFailed={setLogoFailed}
-          variant="terminal"
           flat={!is3D}
         />
       </div>
@@ -172,19 +86,13 @@ interface CubeInnerProps {
   initials: string;
   logoFailed: boolean;
   setLogoFailed: (failed: boolean) => void;
-  variant: "world" | "terminal";
   flat?: boolean;
 }
 
-function CubeInner({ size, logoUrl, initials, logoFailed, setLogoFailed, variant, flat = false }: CubeInnerProps) {
-  const half = size / 2;
-  const borderRadius = 0;
-
-  // Flat 2D mode - just show a single face
+function CubeInner({ size, logoUrl, initials, logoFailed, setLogoFailed, flat = false }: CubeInnerProps) {
   if (flat) {
     return (
       <div
-        className={variant === "world" ? "mc-wrap" : undefined}
         style={{
           width: size,
           height: size,
@@ -197,7 +105,6 @@ function CubeInner({ size, logoUrl, initials, logoFailed, setLogoFailed, variant
             position: "absolute",
             inset: 0,
             background: "#000",
-            borderRadius: borderRadius,
             overflow: "hidden",
           }}
         >
@@ -206,7 +113,6 @@ function CubeInner({ size, logoUrl, initials, logoFailed, setLogoFailed, variant
               style={{
                 position: "absolute",
                 inset: 0,
-                borderRadius: 0,
                 backgroundImage: `url(${logoUrl})`,
                 backgroundSize: "100% 100%",
                 backgroundPosition: "center",
@@ -228,10 +134,9 @@ function CubeInner({ size, logoUrl, initials, logoFailed, setLogoFailed, variant
               <span
                 style={{
                   fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: variant === "world" ? 8 : Math.round(size * 0.28),
+                  fontSize: Math.round(size * 0.28),
                   fontWeight: 700,
                   color: "#00FF88",
-                  ...(variant === "world" && { textShadow: "0 0 4px rgba(0,255,136,0.4)" }),
                 }}
               >
                 {initials}
@@ -255,10 +160,9 @@ function CubeInner({ size, logoUrl, initials, logoFailed, setLogoFailed, variant
     );
   }
 
-  // 3D cube mode - show all 6 faces
+  // 3D sphere mode
   return (
     <div
-      className={variant === "world" ? "mc-wrap" : undefined}
       style={{
         width: size,
         height: size,
@@ -266,9 +170,7 @@ function CubeInner({ size, logoUrl, initials, logoFailed, setLogoFailed, variant
         transformStyle: "preserve-3d",
       }}
     >
-      {/* Rotation wrapper for world cubes (globe animation targets .mc-inner) */}
       <div
-        className={variant === "world" ? "mc-inner" : undefined}
         style={{
           width: size,
           height: size,
@@ -276,35 +178,35 @@ function CubeInner({ size, logoUrl, initials, logoFailed, setLogoFailed, variant
           transformStyle: "preserve-3d",
         }}
       >
-      {/* Main 6 faces */}
-      {FACE_TRANSFORMS(half).map((ft, i) => (
         <div
-          key={`face-${i}`}
           style={{
+            width: size,
+            height: size,
             position: "absolute",
             inset: 0,
-            backfaceVisibility: "hidden",
-            background: "#000",
-            borderRadius: borderRadius,
+            background: "radial-gradient(circle at 35% 25%, rgba(255,255,255,0.15) 0%, transparent 50%), #0a0a0a",
+            borderRadius: "50%",
             overflow: "hidden",
-            transform: ft,
+            boxShadow: `
+              inset -4px -4px 12px rgba(0,0,0,0.6),
+              inset 3px 3px 8px rgba(255,255,255,0.12),
+              2px 4px 12px rgba(0,0,0,0.4)
+            `,
           }}
         >
-          {/* Logo background fills entire face */}
           {!logoFailed && (
             <div
               style={{
                 position: "absolute",
-                inset: 0,
-                borderRadius: 0,
+                inset: "8%",
+                borderRadius: "50%",
                 backgroundImage: `url(${logoUrl})`,
-                backgroundSize: "100% 100%",
+                backgroundSize: "contain",
                 backgroundPosition: "center",
                 backgroundRepeat: "no-repeat",
               }}
             />
           )}
-          {/* Sharp logo centered on top */}
           <div
             style={{
               position: "relative",
@@ -319,10 +221,9 @@ function CubeInner({ size, logoUrl, initials, logoFailed, setLogoFailed, variant
               <span
                 style={{
                   fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: variant === "world" ? 8 : Math.round(size * 0.28),
+                  fontSize: Math.round(size * 0.28),
                   fontWeight: 700,
                   color: "#00FF88",
-                  ...(variant === "world" && { textShadow: "0 0 4px rgba(0,255,136,0.4)" }),
                 }}
               >
                 {initials}
@@ -342,7 +243,6 @@ function CubeInner({ size, logoUrl, initials, logoFailed, setLogoFailed, variant
             )}
           </div>
         </div>
-      ))}
       </div>
     </div>
   );

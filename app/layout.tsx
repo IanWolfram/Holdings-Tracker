@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { UserAccountProvider } from "@/components/providers/UserAccountProvider";
 
 export const metadata: Metadata = {
   title: "Pulse | Precision Ledger Terminal",
@@ -22,7 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="flex flex-col min-h-screen bg-[#111317] text-[#e2e2e6] antialiased">
-        {children}
+        <UserAccountProvider>{children}</UserAccountProvider>
       </body>
     </html>
   );

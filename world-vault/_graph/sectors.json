@@ -1,18 +1,6 @@
 {
-  "updatedAt": "2026-05-05T17:44:00.002Z",
+  "updatedAt": "2026-05-06T14:25:59.195Z",
   "bySector": {
-    "Financial Services": {
-      "tickers": [
-        "HOOD"
-      ],
-      "todayCount": 10,
-      "todayBuyPct": 0,
-      "rolling7dCount": 144,
-      "rolling7dBuyPct": 0.1597,
-      "rolling30dCount": 292,
-      "rolling30dBuyPct": 0.2226,
-      "momentum": "weak"
-    },
     "Tech": {
       "tickers": [
         "AAPL",
@@ -22,13 +10,13 @@
         "MSFT",
         "PLTR"
       ],
-      "todayCount": 30,
+      "todayCount": 2,
       "todayBuyPct": 0,
-      "rolling7dCount": 349,
-      "rolling7dBuyPct": 0.3266,
-      "rolling30dCount": 560,
-      "rolling30dBuyPct": 0.3125,
-      "momentum": "neutral"
+      "rolling7dCount": 304,
+      "rolling7dBuyPct": 0.2895,
+      "rolling30dCount": 540,
+      "rolling30dBuyPct": 0.2963,
+      "momentum": "weak"
     },
     "Professional Services": {
       "tickers": [
@@ -37,41 +25,29 @@
       ],
       "todayCount": 0,
       "todayBuyPct": 0,
-      "rolling7dCount": 15,
-      "rolling7dBuyPct": 0.4,
-      "rolling30dCount": 33,
-      "rolling30dBuyPct": 0.2424,
+      "rolling7dCount": 10,
+      "rolling7dBuyPct": 0.3,
+      "rolling30dCount": 29,
+      "rolling30dBuyPct": 0.2759,
       "momentum": "neutral"
     },
-    "Banking": {
+    "Financial Services": {
       "tickers": [
-        "JPM"
+        "HOOD"
       ],
-      "todayCount": 0,
+      "todayCount": 2,
       "todayBuyPct": 0,
-      "rolling7dCount": 32,
-      "rolling7dBuyPct": 0.2813,
-      "rolling30dCount": 43,
-      "rolling30dBuyPct": 0.2558,
-      "momentum": "neutral"
-    },
-    "Semiconductors": {
-      "tickers": [
-        "NVDA"
-      ],
-      "todayCount": 0,
-      "todayBuyPct": 0,
-      "rolling7dCount": 72,
-      "rolling7dBuyPct": 0.4722,
-      "rolling30dCount": 81,
-      "rolling30dBuyPct": 0.4815,
-      "momentum": "neutral"
+      "rolling7dCount": 137,
+      "rolling7dBuyPct": 0.1606,
+      "rolling30dCount": 291,
+      "rolling30dBuyPct": 0.2302,
+      "momentum": "weak"
     },
     "Biotechnology": {
       "tickers": [
         "VKTX"
       ],
-      "todayCount": 1,
+      "todayCount": 0,
       "todayBuyPct": 0,
       "rolling7dCount": 12,
       "rolling7dBuyPct": 0.0833,
@@ -91,6 +67,30 @@
       "rolling30dCount": 25,
       "rolling30dBuyPct": 0.2,
       "momentum": "weak"
+    },
+    "Banking": {
+      "tickers": [
+        "JPM"
+      ],
+      "todayCount": 0,
+      "todayBuyPct": 0,
+      "rolling7dCount": 22,
+      "rolling7dBuyPct": 0.1364,
+      "rolling30dCount": 41,
+      "rolling30dBuyPct": 0.2195,
+      "momentum": "weak"
+    },
+    "Semiconductors": {
+      "tickers": [
+        "NVDA"
+      ],
+      "todayCount": 0,
+      "todayBuyPct": 0,
+      "rolling7dCount": 49,
+      "rolling7dBuyPct": 0.4286,
+      "rolling30dCount": 64,
+      "rolling30dBuyPct": 0.4375,
+      "momentum": "neutral"
     },
     "Unknown": {
       "tickers": [

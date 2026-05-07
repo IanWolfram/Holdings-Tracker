@@ -44,7 +44,8 @@ export interface HQMarkerState {
   clusterPeers: string[];
   separationT: number;
   focusT: number;
-  spinAngle: number;
+  spinSpeed: number;
+  sphereGroup: THREE.Group | null;
   visible: boolean;
   renderedVisible: boolean;
 }

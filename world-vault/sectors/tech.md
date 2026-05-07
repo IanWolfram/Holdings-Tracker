@@ -1,10 +1,10 @@
 ---
 type: sector
 name: "Tech"
-momentum: neutral
+momentum: weak
 todayBuyPct: 0.0000
-rolling7dBuyPct: 0.3266
-rolling30dBuyPct: 0.3125
+rolling7dBuyPct: 0.2895
+rolling30dBuyPct: 0.2963
 tags:
   - sector
   - graph
@@ -15,7 +15,7 @@ tags:
 Tickers: [[AAPL]], [[CHKP]], [[INFY]], [[MDB]], [[MSFT]], [[PLTR]]
 
 ## Breadth
-- Today: 30 stories, 0.0% BUY
-- Rolling 7d: 349 stories, 32.7% BUY
-- Rolling 30d: 560 stories, 31.3% BUY
-- Momentum: **neutral**
+- Today: 2 stories, 0.0% BUY
+- Rolling 7d: 304 stories, 28.9% BUY
+- Rolling 30d: 540 stories, 29.6% BUY
+- Momentum: **weak**

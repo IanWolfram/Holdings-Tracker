@@ -6,7 +6,7 @@ verdict: HOLD
 confidence: 0.50
 relevance: 0.25
 decayScore: 0.1990
-verified: true
+verified: false
 country: US
 source: polygon
 url: "https://www.fool.com/investing/2026/04/23/is-novo-nordisks-72-crash-a-generational-buying/?source=iedfolrf0000001"

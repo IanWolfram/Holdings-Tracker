@@ -6,7 +6,7 @@ verdict: HOLD
 confidence: 0.50
 relevance: 0.15
 decayScore: 0.8296
-verified: true
+verified: false
 country: US
 source: polygon
 url: "https://www.benzinga.com/markets/large-cap/26/05/52238549/roblox-spotify-and-robinhood-are-among-top-10-large-cap-losers-last-week-april-27-may-1-are-the?utm_source=benzinga_taxonomy&utm_medium=rss_feed_free&utm_content=taxonomy_rss&utm_campaign=channel"

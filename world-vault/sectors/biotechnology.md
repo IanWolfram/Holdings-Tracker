@@ -15,7 +15,7 @@ tags:
 Tickers: [[VKTX]]
 
 ## Breadth
-- Today: 1 stories, 0.0% BUY
+- Today: 0 stories, 0.0% BUY
 - Rolling 7d: 12 stories, 8.3% BUY
 - Rolling 30d: 16 stories, 6.3% BUY
 - Momentum: **neutral**

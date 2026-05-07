@@ -3,7 +3,6 @@ import CountryTooltip from "@/components/world/CountryTooltip";
 import type { GlobeFocusTarget } from "@/components/world/GlobeCanvas";
 import CubeHoverLabel from "@/components/world/CubeHoverLabel";
 import StockDetailPanel from "@/components/world/StockDetailPanel";
-import StockLogoCube from "@/components/world/StockLogoCube";
 import type { CountryState, WorldData } from "@/types/geo.types";
 import type { Position } from "@/types/position.types";
 import { AnimatePresence } from "framer-motion";
@@ -98,10 +97,6 @@ export default function WorldOverlays({
         profile={hoveredTicker && worldData?.profiles[hoveredTicker] ? worldData.profiles[hoveredTicker] : null}
         focusedTicker={focusTarget?.type === "stock" ? focusTarget.ticker : null}
       />
-
-      {worldData && (
-        <StockLogoCube profiles={Object.values(worldData.profiles)} />
-      )}
 
       {isFocused && (
         <div

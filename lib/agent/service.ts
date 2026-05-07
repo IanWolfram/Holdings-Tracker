@@ -23,7 +23,8 @@ import {
   writeMacroSnapshot,
   writeEventsSnapshot,
 } from "../../world-brain/obsidian";
-import { WORLD_VAULT_PATH, resolveVaultPath } from "../constants";
+import { WORLD_VAULT_PATH } from "../constants";
+import { FsVaultStore, type VaultStore } from "@/lib/vault/store";
 import { getQuote as getCoreQuote } from "../market-data";
 import { getQuote as getMarketQuote } from "../marketdata/prices";
 import { getMacroSnapshot, type MacroSnapshot } from "../marketdata/macro";
@@ -172,18 +173,20 @@ export async function runTickerAnalysis(ticker: string): Promise<TickerResult> {
     ];
 
     // Load per-ticker vault context
+    const store = WORLD_VAULT_PATH ? new FsVaultStore(WORLD_VAULT_PATH) : null;
     let tickerContext: string | undefined;
     let recentVerdicts: Array<{ headline: string; verdict: string; confidence: number; reason: string }> | undefined;
-    if (WORLD_VAULT_PATH) {
-      const resolvedVault = resolveVaultPath(WORLD_VAULT_PATH)!;
+    if (store) {
       try {
-        const raw = fs.readFileSync(path.join(resolvedVault, `${upperTicker}.md`), "utf-8");
-        const body = raw.match(/^---[\s\S]*?---\s*([\s\S]*)$/)?.[1]?.trim() ?? "";
-        const prose = body.replace(/^#.*\n/, "").trim();
-        if (prose) tickerContext = prose.slice(0, 600);
+        const raw = await store.read(`${upperTicker}.md`);
+        if (raw) {
+          const body = raw.match(/^---[\s\S]*?---\s*([\s\S]*)$/)?.[1]?.trim() ?? "";
+          const prose = body.replace(/^#.*\n/, "").trim();
+          if (prose) tickerContext = prose.slice(0, 600);
+        }
       } catch { /* vault stub missing */ }
 
-      const stories = getRecentVaultStories(upperTicker, WORLD_VAULT_PATH, 3);
+      const stories = await getRecentVaultStories(store, upperTicker, 3);
       if (stories.length > 0) recentVerdicts = stories;
     }
 
@@ -220,6 +223,7 @@ export async function runTickerAnalysis(ticker: string): Promise<TickerResult> {
 
       const analysis = await Promise.race([
         analyzeStory(
+          store!,
           upperTicker,
           article.headline,
           enrichedSummary,
@@ -281,7 +285,7 @@ export async function runTickerAnalysis(ticker: string): Promise<TickerResult> {
       });
 
       // Patch cache and write to vault
-      if (WORLD_VAULT_PATH) {
+      if (store) {
         const profile = await fetchCompanyProfile(upperTicker).catch(() => null);
         const geoStory: GeoStory = {
           ticker: upperTicker,
@@ -301,7 +305,7 @@ export async function runTickerAnalysis(ticker: string): Promise<TickerResult> {
           confidenceBucket: computeConfidenceBucket(analysis.confidence, analysis.analysisFailed),
           catalystTypes,
         };
-        writeStoryNote(geoStory, WORLD_VAULT_PATH, profile?.sector);
+        await writeStoryNote(geoStory, store, profile?.sector);
       }
 
       getServices().newsService.patchCachedStory(upperTicker, article.url, {
@@ -361,7 +365,7 @@ async function runForecast(
   currentPrice: number,
   verdicts: TickerResult["verdicts"],
   tickerContext: string | undefined,
-  vaultPath: string,
+  store: VaultStore,
   sector: string | undefined,
   runAt: number,
   macroSnapshot: MacroSnapshot | null,
@@ -394,7 +398,7 @@ async function runForecast(
 
   // Self-calibration block uses outcomes from the same horizon — a 30-day
   // forecaster should learn from prior 30-day outcomes, not 7-day ones.
-  const recentResolved = getRecentResolvedPredictions(vaultPath, ticker, 3, horizonDays);
+  const recentResolved = await getRecentResolvedPredictions(store, ticker, 3, horizonDays);
 
   const verdictsBlock = verdicts
     .slice(0, 5)
@@ -490,6 +494,7 @@ export async function runStockAgent(): Promise<AgentRunResult> {
 
   currentProgress = { ...currentProgress, message: "Fetching live positions..." };
   const startedAt = Date.now();
+  const store = WORLD_VAULT_PATH ? new FsVaultStore(WORLD_VAULT_PATH) : null;
 
   try {
     // 1. Fetch live positions
@@ -530,12 +535,12 @@ export async function runStockAgent(): Promise<AgentRunResult> {
       eventsSnapshot = null;
     }
 
-    if (WORLD_VAULT_PATH) {
+    if (store) {
       if (macroSnapshot) {
-        writeMacroSnapshot(runDate, macroSnapshot, WORLD_VAULT_PATH);
+        await writeMacroSnapshot(runDate, macroSnapshot, store);
       }
       if (eventsSnapshot) {
-        writeEventsSnapshot(runDate, eventsSnapshot, WORLD_VAULT_PATH);
+        await writeEventsSnapshot(runDate, eventsSnapshot, store);
       }
     }
 
@@ -564,14 +569,14 @@ export async function runStockAgent(): Promise<AgentRunResult> {
     const quoteCache: Partial<Record<string, Awaited<ReturnType<typeof getCoreQuote>>>> = {};
     const marketQuoteCache: Partial<Record<string, Awaited<ReturnType<typeof getMarketQuote>>>> = {};
     let resolvedCount = 0;
-    if (WORLD_VAULT_PATH) {
+    if (store) {
       currentProgress = { ...currentProgress, phase: "resolving", message: "Resolving prior predictions..." };
       for (const pos of positions) {
         try {
           const quote = await getCoreQuote(pos.ticker);
           quoteCache[pos.ticker] = quote;
-          const resolved = resolveEligiblePredictions(
-            WORLD_VAULT_PATH,
+          const resolved = await resolveEligiblePredictions(
+            store,
             pos.ticker,
             quote?.currentPrice ?? null,
             startedAt
@@ -584,7 +589,7 @@ export async function runStockAgent(): Promise<AgentRunResult> {
 
       if (resolvedCount > 0) {
         try {
-          updateCalibration(WORLD_VAULT_PATH);
+          await updateCalibration(store);
         } catch (err) {
           console.error("[agent] Calibration update failed (non-fatal):", err);
         }
@@ -612,16 +617,17 @@ export async function runStockAgent(): Promise<AgentRunResult> {
       // Load per-ticker learned context and few-shot examples from vault
       let tickerContext: string | undefined;
       let recentVerdicts: Array<{ headline: string; verdict: string; confidence: number; reason: string }> | undefined;
-      if (WORLD_VAULT_PATH) {
-        const resolvedVault = resolveVaultPath(WORLD_VAULT_PATH)!;
+      if (store) {
         try {
-          const raw = fs.readFileSync(path.join(resolvedVault, `${pos.ticker}.md`), "utf-8");
-          const body = raw.match(/^---[\s\S]*?---\s*([\s\S]*)$/)?.[1]?.trim() ?? "";
-          const prose = body.replace(/^#.*\n/, "").trim();
-          if (prose) tickerContext = prose.slice(0, 600);
+          const raw = await store.read(`${pos.ticker}.md`);
+          if (raw) {
+            const body = raw.match(/^---[\s\S]*?---\s*([\s\S]*)$/)?.[1]?.trim() ?? "";
+            const prose = body.replace(/^#.*\n/, "").trim();
+            if (prose) tickerContext = prose.slice(0, 600);
+          }
         } catch { /* stub is empty or missing */ }
 
-        const stories = getRecentVaultStories(pos.ticker, WORLD_VAULT_PATH, 3);
+        const stories = await getRecentVaultStories(store, pos.ticker, 3);
         if (stories.length > 0) recentVerdicts = stories;
       }
 
@@ -664,6 +670,7 @@ export async function runStockAgent(): Promise<AgentRunResult> {
 
         const analysis = await Promise.race([
           analyzeStory(
+            store!,
             pos.ticker,
             article.headline,
             enrichedSummary,
@@ -730,7 +737,7 @@ export async function runStockAgent(): Promise<AgentRunResult> {
         else if (analysis.verdict === "SELL") totalSells++;
         else totalHolds++;
         
-        if (WORLD_VAULT_PATH) {
+        if (store) {
           const profile = profiles[pos.ticker];
           const geoStory: GeoStory = {
             ticker: pos.ticker,
@@ -751,7 +758,7 @@ export async function runStockAgent(): Promise<AgentRunResult> {
             catalystTypes,
           };
           allGeoStories.push(geoStory);
-          writeStoryNote(geoStory, WORLD_VAULT_PATH, profile?.sector);
+          await writeStoryNote(geoStory, store, profile?.sector);
           // Patch the cached entry in-place so the terminal sees the new verdict
           // immediately without busting the full ticker cache (which causes slow reloads).
           getServices().newsService.patchCachedStory(pos.ticker, article.url, {
@@ -771,7 +778,7 @@ export async function runStockAgent(): Promise<AgentRunResult> {
       // Forecast: synthesize this ticker's verdicts into directional predictions
       // at multiple horizons (1d, 7d, 30d). Each horizon is gated independently
       // so a 9am 1d forecast doesn't block the same day's 7d/30d forecasts.
-      if (WORLD_VAULT_PATH && verdicts.length > 0 && !isCancelled) {
+      if (store && verdicts.length > 0 && !isCancelled) {
         currentProgress = {
           ...currentProgress,
           phase: "forecasting",
@@ -785,7 +792,7 @@ export async function runStockAgent(): Promise<AgentRunResult> {
             for (const horizon of SUPPORTED_HORIZONS) {
               if (isCancelled) break;
               const horizonCutoff = startedAt - horizon * 86_400_000;
-              const existing = loadPredictions(WORLD_VAULT_PATH, pos.ticker, horizon);
+              const existing = await loadPredictions(store, pos.ticker, horizon);
               const recentPrediction = existing.find((p) => p.runAt >= horizonCutoff);
               if (recentPrediction) {
                 console.log(
@@ -799,7 +806,7 @@ export async function runStockAgent(): Promise<AgentRunResult> {
                 currentPrice,
                 verdicts,
                 tickerContext,
-                WORLD_VAULT_PATH,
+                store,
                 profiles[pos.ticker]?.sector,
                 startedAt,
                 macroSnapshot,
@@ -807,7 +814,7 @@ export async function runStockAgent(): Promise<AgentRunResult> {
                 daysUntilEarnings
               );
               if (prediction) {
-                appendPrediction(WORLD_VAULT_PATH, prediction);
+                await appendPrediction(store, prediction);
                 console.log(
                   `[agent] ${horizon}d forecast for ${pos.ticker}: ${prediction.direction} +/-${prediction.magnitudePct}% (conf ${Math.round(prediction.confidence * 100)}%)`
                 );
@@ -826,10 +833,10 @@ export async function runStockAgent(): Promise<AgentRunResult> {
     const { total, succeeded, failed, retried } = analysisStats;
     console.log(`\x1b[2m[agent] Analysis: ${succeeded}/${total} succeeded, ${failed} failed, ${retried} retried\x1b[0m`);
 
-    if (WORLD_VAULT_PATH && allGeoStories.length > 0) {
+    if (store && allGeoStories.length > 0) {
       const today = new Date().toISOString().split("T")[0];
       const dummyWorldData = { profiles, countries: {}, fetchedAt: Date.now() } as unknown as WorldData;
-      writeDailySummary(today, allGeoStories, WORLD_VAULT_PATH, dummyWorldData);
+      await writeDailySummary(today, allGeoStories, store, dummyWorldData);
     }
 
     const result: AgentRunResult = {
@@ -849,10 +856,10 @@ export async function runStockAgent(): Promise<AgentRunResult> {
     console.log(`\x1b[1m\x1b[32m[agent] Sweep complete.\x1b[0m ${totalBuys} BUYS, ${totalSells} SELLS, ${totalHolds} HOLDS.`);
 
     // Learning pass: synthesize session verdicts into per-ticker knowledge files and market-insights.md
-    if (WORLD_VAULT_PATH) {
+    if (store) {
       currentProgress = { ...currentProgress, phase: "learning", message: "Synthesizing session insights into knowledge base..." };
       try {
-        await runLearningPass(result, WORLD_VAULT_PATH, profiles);
+        await runLearningPass(store, result, profiles);
       } catch (err) {
         console.error("[agent] Learning pass failed (non-fatal):", err);
       }
@@ -861,7 +868,7 @@ export async function runStockAgent(): Promise<AgentRunResult> {
       // artifacts are fresh when we compute contradictions, anomalies, and sizing.
       try {
         await runAlertsPass({
-          vaultPath: WORLD_VAULT_PATH,
+          store,
           date: runDate,
           tickerResults: result.tickerResults,
         });
@@ -871,12 +878,12 @@ export async function runStockAgent(): Promise<AgentRunResult> {
 
       try {
         const tickers = result.tickerResults.map((t) => t.ticker).join(", ");
-        appendVaultLog(WORLD_VAULT_PATH, {
+        await appendVaultLog(store, {
           type: "lint",
           title: `Agent run complete for ${runDate}`,
           details: `Tickers: ${tickers}. ${result.totalBuys} BUY / ${result.totalSells} SELL / ${result.totalHolds} HOLD.`,
         });
-        regenerateVaultIndex(WORLD_VAULT_PATH);
+        await regenerateVaultIndex(store);
       } catch (err) {
         console.error("[agent] Index regen failed (non-fatal):", err);
       }

@@ -10,6 +10,8 @@ const _mat = new THREE.Matrix4();
 const _quat = new THREE.Quaternion();
 const _scale = new THREE.Vector3();
 const _tmpPos = new THREE.Vector3();
+const _n = new THREE.Vector3();
+const _d = new THREE.Vector3();
 const _hoverBasePos = new THREE.Vector3();
 const _hoverWorldPos = new THREE.Vector3();
 let _labelTicker: string | null = null;
@@ -39,8 +41,6 @@ export function animateGlobe(
   const animNow = performance.now();
   const dt = _lastAnimTime ? Math.min((animNow - _lastAnimTime) / 1000, 0.1) : 0.016;
   _lastAnimTime = animNow;
-  const globeXDeg = -globeGroup.rotation.x * (180 / Math.PI);
-  const globeYDeg = globeGroup.rotation.y * (180 / Math.PI);
 
   const effectiveTarget = isFocused ? focusZoom : state.targetZoom;
   camera.position.z += (effectiveTarget - camera.position.z) * 0.16;
@@ -73,8 +73,6 @@ export function animateGlobe(
 
   if (markerInstances) {
     let hitDirty = false;
-    const rect = mount.getBoundingClientRect();
-    const cubesContainer = document.getElementById("marker-cubes");
 
     for (const ms of hqMarkers) {
       const prevHoverT = ms.hoverT;
@@ -84,9 +82,10 @@ export function animateGlobe(
       const isFocused = ms.ticker === focusedTicker;
       ms.hoverT += ((isHovered ? 1 : 0) - ms.hoverT) * 0.14;
       ms.focusT += ((isFocused ? 1 : 0) - ms.focusT) * 0.10;
-      if (isHovered || isFocused) {
-        ms.spinAngle += dt * 60; // 60°/s ≈ one rotation every 6 seconds
-      }
+
+      // Smooth spin interpolation
+      const spinTarget = (isHovered || isFocused) ? 2.0 : 0; // rad/s
+      ms.spinSpeed += (spinTarget - ms.spinSpeed) * Math.min(1, dt * 4);
 
       if (ms.eastDir !== null && ms.clusterPeers.length > 1) {
         const anyPeerActive = hoveredMarkerTicker !== null && ms.clusterPeers.includes(hoveredMarkerTicker);
@@ -120,40 +119,26 @@ export function animateGlobe(
         markerInstances.hitSpheres.setMatrixAt(ms.instanceId, _mat);
       }
 
-      // Position CSS cube via DOM
-      if (cubesContainer) {
-        const cubeEl = document.getElementById(`marker-cube-${ms.ticker}`);
-        if (cubeEl) {
-          if (!ms.visible) {
-            cubeEl.style.opacity = "0";
-          } else {
-            const worldPos = globeGroup.localToWorld(_tmpPos.clone());
-            const facing = worldPos.z;
-            if (facing < -0.05) {
-              cubeEl.style.opacity = "0";
-            } else {
-              const ndc = worldPos.project(camera);
-              const sx = rect.left + ((ndc.x + 1) / 2) * rect.width;
-              const sy = rect.top + ((-ndc.y + 1) / 2) * rect.height;
-              const fadeEdge = facing < 0.05 ? Math.max(0, (facing + 0.05) / 0.1) : 1;
-              const focusScale = 1 + ms.focusT * 1.2;
-              cubeEl.style.transform = `translate(${Math.round(sx)}px, ${Math.round(sy)}px) translate(-50%, -50%) scale(${focusScale})`;
-              cubeEl.style.opacity = String(Math.min(1, fadeEdge));
-              // Rotate cube with the globe so different faces are visible as you orbit
-              const wrap = cubeEl.querySelector(".mc-wrap");
-              const inner = cubeEl.querySelector(".mc-inner");
-              if (inner) {
-                inner.style.transform = `rotateX(${8 + globeXDeg}deg) rotateY(${globeYDeg + ms.spinAngle}deg)`;
-              }
-              // Bounce animation on hover/focus
-              if (isHovered || isFocused) {
-                wrap?.classList.add("spinning");
-              } else {
-                wrap?.classList.remove("spinning");
-              }
-            }
-          }
+      // Update visual sphere mesh
+      const sg = ms.sphereGroup;
+      if (sg) {
+        // Back-face culling: hide sphere when it faces away from camera
+        _n.copy(ms.outward).applyQuaternion(globeGroup.quaternion).normalize();
+        _d.copy(camera.position).normalize();
+        const facing = _n.dot(_d);
+        sg.visible = ms.visible && facing > 0.05;
+
+        // Spin the logo sphere (children[0]), not the group (so glow stays oriented)
+        if (Math.abs(ms.spinSpeed) > 0.001) {
+          (sg.children[0] as THREE.Mesh).rotation.y += ms.spinSpeed * dt;
         }
+
+        // Focus scale
+        const focusScale = 1 + ms.focusT * 0.3;
+        sg.scale.setScalar(focusScale);
+
+        // Update position for cluster separation
+        sg.position.copy(_tmpPos);
       }
     }
     if (hitDirty) {

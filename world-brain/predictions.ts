@@ -1,6 +1,4 @@
-import fs from "fs";
-import path from "path";
-import { resolveVaultPath } from "../lib/constants";
+import type { VaultStore } from "../lib/vault/store";
 import { classifyCatalystTypes } from "./catalyst-classifier";
 import type {
   CatalystType,
@@ -13,69 +11,39 @@ export const SUPPORTED_HORIZONS = [1, 7, 30] as const;
 export type SupportedHorizon = (typeof SUPPORTED_HORIZONS)[number];
 const DEFAULT_HORIZON: SupportedHorizon = 7;
 
-function predictionsDir(vaultPath: string): string {
-  const resolved = resolveVaultPath(vaultPath) ?? vaultPath;
-  return path.join(resolved, "predictions");
+function predictionPath(ticker: string, horizon: number): string {
+  return `predictions/${ticker}-${horizon}d.json`;
 }
 
-function predictionsFile(vaultPath: string, ticker: string, horizon: number): string {
-  return path.join(predictionsDir(vaultPath), `${ticker}-${horizon}d.json`);
-}
-
-function legacyPredictionsFile(vaultPath: string, ticker: string): string {
-  return path.join(predictionsDir(vaultPath), `${ticker}.json`);
-}
-
-// One-shot migration: rename {ticker}.json → {ticker}-7d.json the first time
-// we touch a ticker. Idempotent: skips if the legacy file is gone or the new
-// file already exists. The migrated file is treated as the 7-day horizon since
-// every existing record in those files has horizonDays: 7.
-function migrateLegacyTickerFile(vaultPath: string, ticker: string): void {
-  const legacy = legacyPredictionsFile(vaultPath, ticker);
-  const target = predictionsFile(vaultPath, ticker, DEFAULT_HORIZON);
-  if (!fs.existsSync(legacy)) return;
-  if (fs.existsSync(target)) return;
-  try {
-    fs.renameSync(legacy, target);
-  } catch {
-    // Non-fatal: leave legacy in place if rename fails.
-  }
-}
-
-export function loadPredictions(
-  vaultPath: string,
+export async function loadPredictions(
+  store: VaultStore,
   ticker: string,
   horizon: number = DEFAULT_HORIZON
-): TickerPrediction[] {
-  migrateLegacyTickerFile(vaultPath, ticker);
+): Promise<TickerPrediction[]> {
   try {
-    const raw = fs.readFileSync(predictionsFile(vaultPath, ticker, horizon), "utf-8");
-    const parsed = JSON.parse(raw);
+    const content = await store.read(predictionPath(ticker, horizon));
+    if (content === null) return [];
+    const parsed = JSON.parse(content);
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
 }
 
-export function savePredictions(
-  vaultPath: string,
+export async function savePredictions(
+  store: VaultStore,
   ticker: string,
   predictions: TickerPrediction[],
   horizon: number = DEFAULT_HORIZON
-): void {
-  const dir = predictionsDir(vaultPath);
-  fs.mkdirSync(dir, { recursive: true });
-  const filePath = predictionsFile(vaultPath, ticker, horizon);
-  const tmpPath = `${filePath}.tmp`;
-  fs.writeFileSync(tmpPath, JSON.stringify(predictions, null, 2), "utf-8");
-  fs.renameSync(tmpPath, filePath);
+): Promise<void> {
+  await store.write(predictionPath(ticker, horizon), JSON.stringify(predictions, null, 2));
 }
 
-export function appendPrediction(vaultPath: string, prediction: TickerPrediction): void {
+export async function appendPrediction(store: VaultStore, prediction: TickerPrediction): Promise<void> {
   const horizon = prediction.horizonDays ?? DEFAULT_HORIZON;
-  const existing = loadPredictions(vaultPath, prediction.ticker, horizon);
+  const existing = await loadPredictions(store, prediction.ticker, horizon);
   existing.push(prediction);
-  savePredictions(vaultPath, prediction.ticker, existing, horizon);
+  await savePredictions(store, prediction.ticker, existing, horizon);
 }
 
 function derivePredictionCatalystTypes(prediction: TickerPrediction): CatalystType[] {
@@ -115,20 +83,20 @@ export function computePredictionOutcome(
   return "PARTIAL";
 }
 
-export function resolveEligiblePredictions(
-  vaultPath: string,
+export async function resolveEligiblePredictions(
+  store: VaultStore,
   ticker: string,
   currentPrice: number | null,
   nowMs: number,
   horizon?: number
-): { resolved: number } {
+): Promise<{ resolved: number }> {
   if (currentPrice === null) return { resolved: 0 };
 
   const horizons: number[] = horizon ? [horizon] : [...SUPPORTED_HORIZONS];
   let resolved = 0;
 
   for (const h of horizons) {
-    const predictions = loadPredictions(vaultPath, ticker, h);
+    const predictions = await loadPredictions(store, ticker, h);
     if (predictions.length === 0) continue;
 
     const pending = predictions.filter((p) => p.status === "pending");
@@ -174,31 +142,33 @@ export function resolveEligiblePredictions(
       };
     });
 
-    if (changed) savePredictions(vaultPath, ticker, updated, h);
+    if (changed) await savePredictions(store, ticker, updated, h);
   }
   return { resolved };
 }
 
-export function getRecentResolvedPredictions(
-  vaultPath: string,
+export async function getRecentResolvedPredictions(
+  store: VaultStore,
   ticker: string,
   limit = 3,
   horizon?: number
-): TickerPrediction[] {
+): Promise<TickerPrediction[]> {
   const horizons: number[] = horizon ? [horizon] : [...SUPPORTED_HORIZONS];
-  const all = horizons.flatMap((h) => loadPredictions(vaultPath, ticker, h));
+  const all = (
+    await Promise.all(horizons.map((h) => loadPredictions(store, ticker, h)))
+  ).flat();
   return all
     .filter((p) => p.status === "resolved")
     .sort((a, b) => (b.resolvedAt ?? 0) - (a.resolvedAt ?? 0))
     .slice(0, limit);
 }
 
-export function getPendingPrediction(
-  vaultPath: string,
+export async function getPendingPrediction(
+  store: VaultStore,
   ticker: string,
   horizon: number = DEFAULT_HORIZON
-): TickerPrediction | null {
-  const predictions = loadPredictions(vaultPath, ticker, horizon);
+): Promise<TickerPrediction | null> {
+  const predictions = await loadPredictions(store, ticker, horizon);
   return (
     predictions
       .filter((p) => p.status === "pending")
@@ -206,33 +176,21 @@ export function getPendingPrediction(
   );
 }
 
-export function getAllPredictions(
-  vaultPath: string,
+export async function getAllPredictions(
+  store: VaultStore,
   limit = 50
-): Record<string, TickerPrediction[]> {
-  const dir = predictionsDir(vaultPath);
+): Promise<Record<string, TickerPrediction[]>> {
   try {
-    // Migrate any unmigrated legacy files first so callers see a unified view.
-    const all = fs.readdirSync(dir);
-    for (const file of all) {
-      const legacyMatch = file.match(/^([A-Z0-9.\-]+)\.json$/);
-      if (!legacyMatch) continue;
-      // Skip files that already match the horizon-suffixed shape.
-      if (/-\d+d\.json$/.test(file)) continue;
-      migrateLegacyTickerFile(vaultPath, legacyMatch[1]);
-    }
-
-    const horizonFiles = fs
-      .readdirSync(dir)
-      .filter((f) => /-\d+d\.json$/.test(f));
+    const notes = await store.listNotes("predictions/");
 
     const grouped = new Map<string, TickerPrediction[]>();
-    for (const file of horizonFiles) {
-      const m = file.match(/^([A-Z0-9.\-]+?)-(\d+)d\.json$/);
+    for (const note of notes) {
+      // Match files like "predictions/TICKER-HORIZONd.json"
+      const m = note.path.match(/^predictions\/([A-Z0-9.\-]+?)-(\d+)d\.json$/);
       if (!m) continue;
       const ticker = m[1];
       const horizon = parseInt(m[2], 10);
-      const predictions = loadPredictions(vaultPath, ticker, horizon);
+      const predictions = await loadPredictions(store, ticker, horizon);
       const bucket = grouped.get(ticker) ?? [];
       bucket.push(...predictions);
       grouped.set(ticker, bucket);

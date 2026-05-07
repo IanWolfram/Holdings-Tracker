@@ -1,4 +1,4 @@
-import type { ICache } from "@/src/domain/interfaces/ICache";
+import type { ICache, CacheEntry } from "@/src/domain/interfaces/ICache";
 
 export class MapCache implements ICache {
   private readonly store = new Map<string, { data: unknown; expiresAt: number }>();
@@ -11,6 +11,17 @@ export class MapCache implements ICache {
       return null;
     }
     return entry.data as T;
+  }
+
+  getWithMeta<T>(key: string): CacheEntry<T> | null {
+    const entry = this.store.get(key);
+    if (!entry) return null;
+    const now = Date.now();
+    if (now > entry.expiresAt) {
+      // Expired — return as stale so callers can still serve it
+      return { value: entry.data as T, isStale: true };
+    }
+    return { value: entry.data as T, isStale: false };
   }
 
   set(key: string, value: unknown, ttlMs: number): void {

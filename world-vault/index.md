@@ -1,7 +1,7 @@
 ---
 type: vault-index
 generated: true
-lastUpdated: "2026-05-05"
+lastUpdated: "2026-05-06"
 tags:
   - index
   - world-brain
@@ -9,7 +9,7 @@ tags:
 
 # World Vault Index
 
-> Auto-generated catalog. Last regenerated 2026-05-05. See [[log]] for chronological activity.
+> Auto-generated catalog. Last regenerated 2026-05-06. See [[log]] for chronological activity.
 
 ## Tickers (Knowledge Hubs)
 - [[CHKP]] — Tech · updated 2026-05-04
@@ -24,7 +24,9 @@ tags:
 - [[catalysts/analyst-upgrade]]
 - [[catalysts/earnings-beat]]
 - [[catalysts/earnings-miss]]
+- [[catalysts/earnings-revenue-decline]]
 - [[catalysts/govt-contract]]
+- [[catalysts/insider-activity]]
 - [[catalysts/leadership]]
 - [[catalysts/m-and-a]]
 - [[catalysts/macro]]
@@ -34,7 +36,8 @@ tags:
 - [[catalysts/technical]]
 
 ## Recent Daily Summaries (last 14)
-- [[daily/2026-05-05]] — 20 stories, 2 sectors
+- [[daily/2026-05-06]] — 27 stories, 3 sectors
+- [[daily/2026-05-05]] — 27 stories, 3 sectors
 - [[daily/2026-05-04]] — 18 stories, 3 sectors
 - [[daily/2026-05-03]] — 25 stories, 2 sectors
 - [[daily/2026-04-30]] — 78 stories, 4 sectors
@@ -47,7 +50,6 @@ tags:
 - [[daily/2026-04-23]] — 10 stories, 2 sectors
 - [[daily/2026-04-22]] — 64 stories, 3 sectors
 - [[daily/2026-04-21]] — 63 stories, 3 sectors
-- [[daily/2026-04-20]] — 60 stories, 3 sectors
 
 ## Recent Session Insights (last 10)
 - [[_insights/2026-05-04]]
@@ -74,23 +76,23 @@ tags:
 - [[_alerts/2026-04-29-contradiction-PLTR]]
 
 ## Macro & Events
+- [[_macro/2026-05-06]] — macro snapshot
 - [[_macro/2026-05-05]] — macro snapshot
 - [[_macro/2026-05-04]] — macro snapshot
 - [[_macro/2026-05-03]] — macro snapshot
 - [[_macro/2026-04-30]] — macro snapshot
-- [[_macro/2026-04-29]] — macro snapshot
+- [[_events/2026-05-06]] — earnings & calendar
 - [[_events/2026-05-05]] — earnings & calendar
 - [[_events/2026-05-04]] — earnings & calendar
 - [[_events/2026-05-03]] — earnings & calendar
 - [[_events/2026-04-30]] — earnings & calendar
-- [[_events/2026-04-29]] — earnings & calendar
 
 ## Graph
 - [[_graph/correlations]]
 - [[_graph/supply-chain]]
 
 ## Stats
-- News stories: 1058
+- News stories: 1007
 - Tickers tracked: 6
-- Days of daily summaries: 16
+- Days of daily summaries: 17
 - Active alerts: 13

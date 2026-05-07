@@ -1,5 +1,7 @@
-import AgentTrigger from "@/components/triggers/AgentTrigger";
+import { useState } from "react";
+import AccountIconDiv from "@/components/layout/AccountIconDiv";
 import TopBarDivider from "@/components/layout/TopBarDivider";
+import AgentTrigger from "@/components/triggers/AgentTrigger";
 
 interface ConnectionControlsProps {
   successVisible: boolean;
@@ -9,8 +11,8 @@ interface ConnectionControlsProps {
   timeStr: string | null;
   onRefresh: () => void;
   refreshing: boolean;
-  calibratedAt?: Date | null;
-  calibrationResolved?: number;
+  accountPanelOpen: boolean;
+  setAccountPanelOpen: (open: boolean) => void;
 }
 
 export default function ConnectionControls({
@@ -21,42 +23,43 @@ export default function ConnectionControls({
   timeStr,
   onRefresh,
   refreshing,
-  calibratedAt,
-  calibrationResolved,
+  accountPanelOpen,
+  setAccountPanelOpen,
 }: ConnectionControlsProps) {
+  const [error, setError] = useState<string | null>(null);
+
+  async function startAuth() {
+    setError(null);
+    setIsConnecting(true);
+    try {
+      const res = await fetch("/api/etrade/auth");
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Failed to start auth");
+        setIsConnecting(false);
+        return;
+      }
+      // Redirect to E*TRADE authorization page
+      // After authorizing, user copies the verifier and goes to /etrade-verify
+      window.location.href = data.authUrl;
+    } catch {
+      setError("Network error");
+      setIsConnecting(false);
+    }
+  }
+
   return (
     <div className="flex items-center h-full">
       <TopBarDivider />
-      {calibratedAt && (
-        <>
-          <div
-            className="hidden md:flex items-center gap-1.5 px-3 py-1.5"
-            title={`Last recalibrated: ${calibratedAt.toLocaleDateString()} — ${calibrationResolved ?? 0} resolved predictions`}
-          >
-            <span className="font-mono text-[10px] text-slate-500 uppercase tracking-widest">calibrated</span>
-            <span className="font-mono text-[11px] font-bold text-slate-300">
-              {calibratedAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-            </span>
-          </div>
-        </>
-      )}
 
       <div className="flex items-center justify-center px-2 py-1.5">
         <AgentTrigger />
       </div>
 
-      <div className="flex items-center gap-1.5 px-3 bg-white/6 border border-white/7 rounded-sm h-full">
+      <div className="flex items-center justify-between gap-3 pl-3 pr-0 py-1.5 bg-white/6 border border-white/7 rounded-sm h-full">
         {successVisible || isConnected ? (
           <button
-            onClick={async () => {
-              setIsConnecting(true);
-              try {
-                await fetch("/api/etrade/trigger-terminal-auth");
-                setTimeout(() => setIsConnecting(false), 15000);
-              } catch {
-                setIsConnecting(false);
-              }
-            }}
+            onClick={startAuth}
             className="font-mono text-[10px] text-positive font-bold flex items-center gap-2 hover:brightness-125 transition-all"
             title="E*Trade Connected (Click to Reconnect)"
           >
@@ -73,17 +76,9 @@ export default function ConnectionControls({
           <>
             <button
               disabled={isConnecting}
-              onClick={async () => {
-                setIsConnecting(true);
-                try {
-                  await fetch("/api/etrade/trigger-terminal-auth");
-                  setTimeout(() => setIsConnecting(false), 10000);
-                } catch {
-                  setIsConnecting(false);
-                }
-              }}
+              onClick={startAuth}
               className={`font-mono text-[10px] text-slate-400 hover:text-white transition-colors flex items-center gap-2 group ${isConnecting ? "opacity-50" : ""}`}
-              title="Connect E*Trade (Starts Terminal Script)"
+              title="Connect E*Trade"
             >
               <img
                 src="/etrade-logo.png"
@@ -98,6 +93,12 @@ export default function ConnectionControls({
             )}
           </>
         )}
+        {error && (
+          <span className="font-mono text-[9px] text-negative max-w-[120px] truncate" title={error}>
+            {error}
+          </span>
+        )}
+        <AccountIconDiv onClick={() => setAccountPanelOpen(true)} isOpen={accountPanelOpen} />
       </div>
     </div>
   );

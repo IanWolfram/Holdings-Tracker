@@ -10,6 +10,7 @@ import { NEWS_CACHE_TTL_MS, WORLD_VAULT_PATH } from "./constants";
 import { dedupeStories } from "./utils/dedupeStories";
 import { getVaultStoriesForTicker } from "./vault-stories";
 import { writeStoryNote } from "../world-brain/obsidian";
+import { FsVaultStore } from "@/lib/vault/store";
 import { buildRelevanceProfile, isRelevantToTicker } from "./relevance";
 import type { ClassifiedStory } from "@/types/news.types";
 import type { GeoStory } from "@/types/geo.types";
@@ -35,17 +36,49 @@ function withinNewsWindow(stories: ClassifiedStory[]): ClassifiedStory[] {
   return stories.filter((s) => s.datetime >= cutoff);
 }
 
-// Per-ticker 5-minute cache
+// Per-ticker 5-minute cache with SWR support
 const cache = new Map<string, { data: ClassifiedStory[]; expiresAt: number }>();
 
+// Background revalidation locks per ticker to prevent duplicate fetches
+const revalidationLocks = new Map<string, Promise<void>>();
+
+/**
+ * SWR-style fetch: returns cached data immediately (even if stale),
+ * kicks off background revalidation if the cache is stale or empty.
+ * Falls back to a blocking fetch only when there's no cached data at all.
+ */
 export async function getNewsForTicker(
   ticker: string,
   sector?: string,
   options?: { mock?: boolean }
 ): Promise<ClassifiedStory[]> {
   const cached = cache.get(ticker);
+
+  // Fresh cache — return immediately
   if (cached && Date.now() < cached.expiresAt) return cached.data;
 
+  // Stale cache — return it now, revalidate in background
+  if (cached) {
+    if (!revalidationLocks.has(ticker)) {
+      revalidationLocks.set(ticker,
+        fetchNewsForTicker(ticker, sector, options)
+          .then(() => {})
+          .catch((err) => console.error(`[news] SWR revalidation failed for ${ticker}:`, err))
+          .finally(() => revalidationLocks.delete(ticker))
+      );
+    }
+    return cached.data;
+  }
+
+  // No cache — must fetch blocking
+  return fetchNewsForTicker(ticker, sector, options);
+}
+
+async function fetchNewsForTicker(
+  ticker: string,
+  sector?: string,
+  options?: { mock?: boolean }
+): Promise<ClassifiedStory[]> {
   const companyName = await getCompanyName(ticker);
 
   // Only attempt keyed sources when their credentials are present
@@ -136,7 +169,8 @@ export async function getNewsForTicker(
       // PERSISTENCE: If newly analyzed by the brain, remember it in the vault
       // Skip vault writes for mock data to avoid polluting the knowledge base
       if (result.isAnalyzed && !result.fromVault && WORLD_VAULT_PATH && !options?.mock) {
-        await writeStoryNote(result as unknown as GeoStory, WORLD_VAULT_PATH, sector);
+        const store = new FsVaultStore(WORLD_VAULT_PATH);
+        await writeStoryNote(result as unknown as GeoStory, store, sector);
       }
       return result;
     })

@@ -15,9 +15,10 @@ tags:
 
 Win rate: 0.0% (0/1), avg confidence 0.72
 Recent stories tagged with this catalyst: 25
-Verdict mix: 12 BUY / 4 SELL / 9 HOLD
+Verdict mix: 11 BUY / 4 SELL / 10 HOLD
 
 ## Recent Stories
+- [2026-05-06] **HOLD** 50.0% — [[HOOD]] — Morgan Stanley Launches E*Trade Crypto Trading at 0.5%, Undercutting Coinbase and Schwab
 - [2026-05-04] **BUY** 82.0% — [[CHKP]] — BMO Capital Maintains Outperform on Check Point Software Tech, Lowers Price Target to $135
 - [2026-05-04] **BUY** 72.0% — [[HOOD]] — Challenging Quarter for Robinhood: Will Prediction Markets Be the Next Big Catalyst?
 - [2026-05-04] **BUY** 72.0% — [[HOOD]] — Coinbase, Strategy, and Other Crypto Stocks Get a Boost as Bitcoin Rallies
@@ -39,7 +40,6 @@ Verdict mix: 12 BUY / 4 SELL / 9 HOLD
 - [2026-05-01] **HOLD** 60.0% — [[CHKP]] — UBS Maintains Neutral on Check Point Software Tech, Lowers Price Target to $130
 - [2026-05-01] **BUY** 82.0% — [[CHKP]] — Wedbush Maintains Outperform on Check Point Software Tech, Lowers Price Target to $160
 - [2026-04-30] **HOLD** 20.0% — [[CHKP]] — 12 Information Technology Stocks Moving In Thursday's Intraday Session
-- [2026-04-30] **BUY** 92.0% — [[CHKP]] — 9 High Cash Flow Stocks Likely to Outperform If Rates Stay Higher for Longer
 - [2026-04-30] **HOLD** 50.0% — [[HOOD]] — Alphabet Inc. (GOOG) Faces Deeper Regulatory Scrutiny in Brazil Antitrust Review
 - [2026-04-30] **BUY** 82.0% — [[HOOD]] — ARK Invest Ditches $6 Million in Crypto ETFs For $39 Million HOOD Shares After Shaky Robinhood Earni
 - [2026-04-30] **BUY** 65.0% — [[HOOD]] — Bitcoin ETF News: Cathie Wood Rotates to Robinhood as BlackRock’s Bitcoin ETF Hits a Wall

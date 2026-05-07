@@ -102,7 +102,7 @@ export function getMarketStatus(now: Date = new Date()): MarketStatus {
 }
 
 export const MARKET_STATE_LABEL: Record<MarketState, string> = {
-  open: "NYSE OPEN",
+  open: "OPEN",
   pre: "PRE-MARKET",
   post: "AFTER HOURS",
   closed: "CLOSED",

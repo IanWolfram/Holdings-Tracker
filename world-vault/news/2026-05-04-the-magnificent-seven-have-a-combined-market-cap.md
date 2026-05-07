@@ -6,7 +6,7 @@ verdict: HOLD
 confidence: 0.50
 relevance: 0.20
 decayScore: 0.9931
-verified: true
+verified: false
 country: US
 source: polygon
 url: "https://www.fool.com/investing/2026/05/04/the-magnificent-seven-have-a-combined-market-cap-o/?source=iedfolrf0000001"

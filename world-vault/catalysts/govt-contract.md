@@ -15,12 +15,16 @@ tags:
 
 Win rate: insufficient resolved predictions yet.
 Recent stories tagged with this catalyst: 25
-Verdict mix: 2 BUY / 0 SELL / 23 HOLD
+Verdict mix: 1 BUY / 0 SELL / 24 HOLD
 
 ## Recent Stories
+- [2026-05-06] **HOLD** 50.0% — [[PLTR]] — Palantir Drops After a Blowout Q1—What Investors Should Know
+- [2026-05-05] **HOLD** 50.0% — [[PLTR]] — Michael Burry Targets Palantir's Valuation (Again) As Stock Drops After Earnings
 - [2026-05-05] **HOLD** 50.0% — [[PLTR]] — Palantir Earnings Beat Amid Strong U.S. Government Sales. More Maven Upside Expected.
 - [2026-05-05] **HOLD** 50.0% — [[PLTR]] — Palantir resets annual forecast on strong U.S. government demand
 - [2026-05-05] **HOLD** 50.0% — [[PLTR]] — Palantir Technologies Raises Outlook as AI Demand Surges in U.S.
+- [2026-05-05] **HOLD** 50.0% — [[HOOD]] — Robinhood CEO Defends the Math Behind 'Trump Accounts' Partnership
+- [2026-05-05] **HOLD** 50.0% — [[PLTR]] — Rosenblatt Maintains Buy on Palantir Technologies, Raises Price Target to $225
 - [2026-05-04] **HOLD** 50.0% — [[PLTR]] — 5 Things to Know Before the Stock Market Opens
 - [2026-05-04] **HOLD** 50.0% — [[PLTR]] — Burry Isn’t Alone in Loading Up on PayPal — Here’s Why It’s Time to Follow the Smart Money
 - [2026-05-04] **HOLD** 50.0% — [[PLTR]] — Did Anthropic Suck the Air From Palantir’s Commercial Contract Tailwinds?
@@ -39,7 +43,3 @@ Verdict mix: 2 BUY / 0 SELL / 23 HOLD
 - [2026-05-03] **HOLD** 50.0% — [[PLTR]] — A Look At Palantir Technologies (PLTR) Valuation After Recent Share Price Volatility
 - [2026-05-03] **HOLD** 50.0% — [[PLTR]] — Jim Cramer Says He Is “Looking at Palantir as a Longer-Term Investment”
 - [2026-05-03] **BUY** 82.0% — [[HOOD]] — Robinhood’s Trump Accounts Role Recasts Growth, Regulation And Crypto Ambitions
-- [2026-05-02] **HOLD** 50.0% — [[PLTR]] — From AMD To Disney, The Wall Street Week Ahead Is Packed
-- [2026-05-02] **HOLD** 50.0% — [[PLTR]] — Invest In The Top Part Of The K-Shaped Economy
-- [2026-05-02] **BUY** 82.0% — [[PLTR]] — Palantir courts Home Office for border force contracts
-- [2026-05-02] **HOLD** 50.0% — [[PLTR]] — The Look Ahead: May 1, 2026

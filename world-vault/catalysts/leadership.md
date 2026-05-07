@@ -24,7 +24,6 @@ Verdict mix: 6 BUY / 2 SELL / 17 HOLD
 - [2026-05-04] **HOLD** 50.0% — [[PLTR]] — Palantir raises annual revenue forecast on strong US government demand
 - [2026-05-04] **HOLD** 50.0% — [[PLTR]] — Palantir Technologies Inc-A (NASDAQ:PLTR) Q1 2026 Blowout: Revenue and EPS Smash Estimates as Growth
 - [2026-05-01] **HOLD** 50.0% — [[HOOD]] — Bam Azizi, Mesh CEO: A Fortt Knox Conversation
-- [2026-05-01] **BUY** 72.0% — [[CHKP]] — Healthcare Cybersecurity Market: $97.79 Billion by 2031 with Cloud Security Segment Expanding at 18.
 - [2026-05-01] **HOLD** 50.0% — [[HOOD]] — SEON CEO: Prediction markets can forecast the future. Can they survive their own manipulation proble
 - [2026-05-01] **BUY** 65.0% — [[HOOD]] — Trade Tracker: Kevin Simpson buys more Robinhood
 - [2026-05-01] **HOLD** 50.0% — [[HOOD]] — Wall Street Roundup: Tech Reports
@@ -41,5 +40,6 @@ Verdict mix: 6 BUY / 2 SELL / 17 HOLD
 - [2026-04-28] **HOLD** 50.0% — [[HOOD]] — Morning Call Sheet: AI spending, earnings and policy risks in focus
 - [2026-04-27] **SELL** 72.0% — [[PLTR]] — Khan could block Palantir from Scotland Yard contract
 - [2026-04-26] **HOLD** 20.0% — [[PLTR]] — Peter Thiel, Political Noise, and Palantir: Separating Governance Risk From a Long‑Term Investment C
-- [2026-04-26] **HOLD** 50.0% — [[HOOD]] — What market has wrong about Figma and Claude Design
 - [2026-04-25] **HOLD** 50.0% — [[PLTR]] — AI talent war: Software industry is a new target as top executives jump ship to OpenAI
+- [2026-04-24] **HOLD** 20.0% — [[PLTR]] — Raj Mehra, Sage CEO: A Fortt Knox Conversation
+- [2026-04-22] **BUY** 78.0% — [[MDB]] — MongoDB Expands Product Leadership to Accelerate Growth and Innovation

@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getServices } from "@/src/registry";
+import { getServices, getServicesForUser } from "@/src/registry";
+import { requireUser } from "@/lib/auth/requireUser";
 import type { ClassifiedStory } from "@/lib/news";
 import type { TickerDigest } from "@/lib/telegram";
 import { sendTelegramMessage, buildDigestMessage } from "@/lib/telegram";
@@ -12,9 +13,14 @@ export default async function handler(
     return res.status(405).json({ success: false, error: "Method not allowed" });
   }
 
+  const user = await requireUser(req, res);
+  if (!user) return;
+
   // Trigger full portfolio digest
   try {
-    const { portfolioService, newsService } = getServices();
+    const { portfolioService, newsService } = process.env.PULSE_SINGLE_USER_MODE === "1"
+      ? getServices()
+      : await getServicesForUser(user.id);
     const { positions } = await portfolioService.getPositionsSafe();
     const tickers = positions.map((p) => p.ticker);
 

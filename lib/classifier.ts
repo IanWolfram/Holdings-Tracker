@@ -1,7 +1,5 @@
-import fs from "fs";
-import path from "path";
-import { WORLD_VAULT_PATH, resolveVaultPath } from "./constants";
 import { getVaultIndex } from "./vault-index";
+import { getVaultStore } from "./vault/store";
 import type { Verdict, Classification } from "@/types/news.types";
 
 // ---------------------------------------------------------------------------
@@ -9,8 +7,8 @@ import type { Verdict, Classification } from "@/types/news.types";
 // ---------------------------------------------------------------------------
 
 async function findInVault(url: string): Promise<Classification | null> {
-  if (!WORLD_VAULT_PATH) return null;
-  const index = await getVaultIndex(WORLD_VAULT_PATH);
+  const store = await getVaultStore("system");
+  const index = await getVaultIndex(store);
   return index.get(url) || null;
 }
 

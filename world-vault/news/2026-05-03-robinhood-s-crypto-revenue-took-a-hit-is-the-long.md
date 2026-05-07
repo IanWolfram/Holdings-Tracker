@@ -4,12 +4,14 @@ ticker: HOOD
 sector: Financial Services
 verdict: HOLD
 confidence: 0.50
-relevance: 0.00
-decayScore: 0.7983
-verified: true
+relevance: 0.85
+decayScore: 0.6973
+verified: false
+analysisFailed: true
 country: US
-source: finnhub
-url: "https://finnhub.io/api/news?id=2c19f65cfa2b141e51e94bba37f2070632e6e0ac8ca6f79ccedb859464bbeb90"
+source: polygon
+url: "https://www.fool.com/investing/2026/05/03/robinhoods-crypto-revenue-took-a-hit-is-the-long-t/?source=iedfolrf0000001"
+headline: "Robinhood's Crypto Revenue Took a Hit. Is the Long-Term Story Still Intact?"
 catalystTypes:
   - other
 tags:
@@ -19,23 +21,23 @@ tags:
   - world-brain
   - financial-services
   - catalyst-other
-  - m5-verified
+  - analysis-failed
 ---
 
 # Robinhood's Crypto Revenue Took a Hit. Is the Long-Term Story Still Intact?
 
 **Verdict**: HOLD (50% confidence)  
-**Relevance to [[HOOD]]**: 0%  
+**Relevance to [[HOOD]]**: 85%  
 **Geographic origin**: US  
 
 ## Summary
-Robinhood saw its cryptocurrency revenue drop 47% year over year in the first quarter.
+Robinhood Markets reported Q1 2026 revenue of $1.07 billion, up 15% year-over-year, but cryptocurrency revenue dropped 47% due to the broader crypto market downturn. Despite the crypto headwind, other business segments showed strong growth including equities (+46%), options (+8%), prediction markets (+320%), and subscription revenue (+32%). The stock fell 14% post-earnings but analysts believe the company remains fundamentally sound with diversified revenue streams, as crypto represents only 18% of total revenue.
 
 ## AI Analysis
-Analysis unavailable — defaulting to HOLD.
+> **Analysis failed.** Default HOLD at 50%. Do not use for pattern learning.
 
 ## Links
-- [Source Article](https://finnhub.io/api/news?id=2c19f65cfa2b141e51e94bba37f2070632e6e0ac8ca6f79ccedb859464bbeb90)
+- [Source Article](https://www.fool.com/investing/2026/05/03/robinhoods-crypto-revenue-took-a-hit-is-the-long-t/?source=iedfolrf0000001)
 - [[HOOD]]
 - [[catalysts/other]]
 - [[US-news]]

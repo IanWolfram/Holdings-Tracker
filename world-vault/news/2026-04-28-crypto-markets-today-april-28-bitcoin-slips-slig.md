@@ -6,7 +6,7 @@ verdict: HOLD
 confidence: 0.50
 relevance: 0.00
 decayScore: 0.4254
-verified: true
+verified: false
 country: US
 source: polygon
 url: "https://www.fool.com/coverage/stock-market-today/2026/04/28/crypto-markets-today-april-28-bitcoin-slips-slightly-as-geopolitical-tensions-weigh-on-risk-sentiment/?source=iedfolrf0000001"

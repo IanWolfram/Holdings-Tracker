@@ -5,29 +5,36 @@ import {
   SUPPORTED_HORIZONS,
 } from "../../world-brain/predictions";
 import { WORLD_VAULT_PATH } from "../../lib/constants";
+import { FsVaultStore } from "@/lib/vault/store";
+import { requireUser } from "@/lib/auth/requireUser";
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed." });
   }
+
+  const user = await requireUser(req, res);
+  if (!user) return;
 
   if (!WORLD_VAULT_PATH) {
     return res.status(200).json({ predictions: {} });
   }
 
+  const store = new FsVaultStore(WORLD_VAULT_PATH);
   const { ticker } = req.query;
 
-  const vaultPath = WORLD_VAULT_PATH;
   if (typeof ticker === "string") {
     const upper = ticker.toUpperCase();
     // Merge across all horizons so a per-ticker query mirrors the multi-horizon
     // shape that getAllPredictions returns; otherwise the API only surfaces 7d.
-    const merged = SUPPORTED_HORIZONS.flatMap((horizon) =>
-      loadPredictions(vaultPath, upper, horizon)
-    ).sort((a, b) => b.runAt - a.runAt);
+    const merged = (
+      await Promise.all(
+        SUPPORTED_HORIZONS.map((horizon) => loadPredictions(store, upper, horizon))
+      )
+    ).flat().sort((a, b) => b.runAt - a.runAt);
     return res.status(200).json({ predictions: { [upper]: merged } });
   }
 
-  const predictions = getAllPredictions(WORLD_VAULT_PATH);
+  const predictions = await getAllPredictions(store);
   return res.status(200).json({ predictions });
 }

@@ -6,7 +6,7 @@ verdict: HOLD
 confidence: 0.50
 relevance: 0.00
 decayScore: 0.9944
-verified: true
+verified: false
 country: US
 source: polygon
 url: "https://www.globenewswire.com/news-release/2026/05/04/3287097/23044/en/Norwegian-Cruise-Line-Holdings-Ltd-Investigated-for-Securities-Fraud-Violations-by-Block-Leviton-NCLH-Investors-Should-Contact-the-Firm-to-Possibly-Recover-Losses.html"

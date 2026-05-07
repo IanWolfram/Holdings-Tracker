@@ -6,7 +6,7 @@ verdict: HOLD
 confidence: 0.50
 relevance: 0.00
 decayScore: 0.4762
-verified: true
+verified: false
 country: US
 source: polygon
 url: "https://www.benzinga.com/markets/market-summary/26/04/52139476/oil-surge-fed-meeting-hyperscaler-earnings-markets-wednesday-wall-street-news?utm_source=benzinga_taxonomy&utm_medium=rss_feed_free&utm_content=taxonomy_rss&utm_campaign=channel"

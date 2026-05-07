@@ -7,6 +7,7 @@ import { updateCalibration } from "../world-brain/calibration";
 import { getPositions } from "../lib/etrade";
 import { getQuote } from "../lib/market-data";
 import { WORLD_VAULT_PATH } from "../lib/constants";
+import { FsVaultStore } from "../lib/vault/store";
 
 export async function resolvePredictions(): Promise<{ resolved: number }> {
   if (!WORLD_VAULT_PATH) {
@@ -14,6 +15,7 @@ export async function resolvePredictions(): Promise<{ resolved: number }> {
     return { resolved: 0 };
   }
 
+  const store = new FsVaultStore(WORLD_VAULT_PATH);
   let totalResolved = 0;
   let positions: Array<{ ticker: string }>;
 
@@ -27,8 +29,8 @@ export async function resolvePredictions(): Promise<{ resolved: number }> {
   for (const pos of positions) {
     try {
       const quote = await getQuote(pos.ticker);
-      const result = resolveEligiblePredictions(
-        WORLD_VAULT_PATH,
+      const result = await resolveEligiblePredictions(
+        store,
         pos.ticker,
         quote?.currentPrice ?? null,
         Date.now()
@@ -41,7 +43,7 @@ export async function resolvePredictions(): Promise<{ resolved: number }> {
 
   if (totalResolved > 0) {
     try {
-      updateCalibration(WORLD_VAULT_PATH);
+      await updateCalibration(store);
     } catch (err) {
       console.error("[resolve-predictions] Calibration update failed (non-fatal):", err);
     }

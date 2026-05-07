@@ -6,7 +6,7 @@ verdict: HOLD
 confidence: 0.50
 relevance: 0.00
 decayScore: 0.6952
-verified: true
+verified: false
 country: US
 source: polygon
 url: "https://www.fool.com/investing/2026/05/02/prediction-may-5-will-be-a-huge-day-for-palantirs/?source=iedfolrf0000001"

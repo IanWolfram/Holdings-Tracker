@@ -6,7 +6,7 @@ verdict: HOLD
 confidence: 0.50
 relevance: 0.00
 decayScore: 0.8170
-verified: true
+verified: false
 country: US
 source: polygon
 url: "https://www.fool.com/investing/2026/05/03/could-robinhood-be-the-most-underrated-fintech-sto/?source=iedfolrf0000001"

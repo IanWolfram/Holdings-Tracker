@@ -4,12 +4,13 @@ ticker: HOOD
 sector: Financial Services
 verdict: HOLD
 confidence: 0.50
-relevance: 0.00
-decayScore: 0.8830
-verified: true
+relevance: 0.65
+decayScore: 0.8699
+verified: false
+analysisFailed: true
 country: US
-source: finnhub
-url: "https://finnhub.io/api/news?id=50669fb2e618591f05666f02f9ed66b5fe48a32e223dd388e27e34d778f5c74c"
+source: polygon
+url: "https://www.fool.com/investing/2026/05/04/1-stock-down-33-to-buy-hand-over-fist-and-hold-for/?source=iedfolrf0000001"
 headline: "1 Stock Down 33% to Buy Hand Over Fist and Hold for 10 Years"
 catalystTypes:
   - other
@@ -20,23 +21,23 @@ tags:
   - world-brain
   - financial-services
   - catalyst-other
-  - m5-verified
+  - analysis-failed
 ---
 
 # 1 Stock Down 33% to Buy Hand Over Fist and Hold for 10 Years
 
 **Verdict**: HOLD (50% confidence)  
-**Relevance to [[HOOD]]**: 0%  
+**Relevance to [[HOOD]]**: 65%  
 **Geographic origin**: US  
 
 ## Summary
-Don't be too quick to give up on this fintech specialist.
+Robinhood Markets' stock has fallen 33% year-to-date following disappointing Q1 earnings, primarily due to a 47% decline in cryptocurrency revenue. Despite near-term challenges, the article suggests long-term investors should consider buying, citing growth opportunities in its ecosystem monetization, premium Gold membership service, and expansion into prediction markets.
 
 ## AI Analysis
-Analysis unavailable — defaulting to HOLD.
+> **Analysis failed.** Default HOLD at 50%. Do not use for pattern learning.
 
 ## Links
-- [Source Article](https://finnhub.io/api/news?id=50669fb2e618591f05666f02f9ed66b5fe48a32e223dd388e27e34d778f5c74c)
+- [Source Article](https://www.fool.com/investing/2026/05/04/1-stock-down-33-to-buy-hand-over-fist-and-hold-for/?source=iedfolrf0000001)
 - [[HOOD]]
 - [[catalysts/other]]
 - [[US-news]]

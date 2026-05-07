@@ -25,6 +25,8 @@
     "pm2:status": "pm2 status"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.10.2",
+    "@supabase/supabase-js": "^2.105.3",
     "@tailwindcss/postcss": "^4.2.2",
     "@types/node": "^25.6.0",
     "@types/node-cron": "^3.0.11",
@@ -51,12 +53,14 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.5",
+    "@types/pg": "^8.20.0",
     "@typescript-eslint/eslint-plugin": "^8.58.2",
     "@typescript-eslint/parser": "^8.58.2",
     "concurrently": "^9.2.1",
     "electron": "^41.3.0",
     "electron-builder": "^26.8.1",
     "eslint-plugin-react-hooks": "^7.1.0",
+    "pg": "^8.20.0",
     "typescript-eslint": "^8.58.2",
     "wait-on": "^9.0.5"
   }

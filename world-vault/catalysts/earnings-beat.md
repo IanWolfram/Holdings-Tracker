@@ -4,7 +4,7 @@ name: "earnings-beat"
 n: 0
 winRate: 0.0000
 avgConfidence: 0.0000
-newsCount: 17
+newsCount: 18
 tags:
   - catalyst
   - graph
@@ -14,14 +14,15 @@ tags:
 # Catalyst — earnings-beat
 
 Win rate: insufficient resolved predictions yet.
-Recent stories tagged with this catalyst: 17
-Verdict mix: 6 BUY / 1 SELL / 10 HOLD
+Recent stories tagged with this catalyst: 18
+Verdict mix: 6 BUY / 1 SELL / 11 HOLD
 
 ## Recent Stories
 - [2026-05-05] **HOLD** 50.0% — [[PLTR]] — Palantir Beat on Every Key Earnings Metric. Why Its Stock Is Still Falling.
 - [2026-05-05] **HOLD** 50.0% — [[PLTR]] — Palantir Earnings Beat Amid Strong U.S. Government Sales. More Maven Upside Expected.
 - [2026-05-05] **HOLD** 50.0% — [[PLTR]] — Tech Stocks Eclipse Iran, Oil as the Market’s Mover. Why That Will Continue.
 - [2026-05-05] **HOLD** 50.0% — [[PLTR]] — These Stocks Are Today’s Movers: Palantir, Intel, AMD, ON Semi, Pinterest, Duolingo, and More
+- [2026-05-05] **HOLD** 50.0% — [[PLTR]] — Why Palantir's Beat-and-Raise Quarter Did Absolutely Nothing for the Stock. 2 Issues Plaguing the Co
 - [2026-05-04] **HOLD** 50.0% — [[PLTR]] — Palantir raises annual revenue forecast on strong US government demand
 - [2026-05-01] **HOLD** 60.0% — [[CHKP]] — Barclays Maintains Equal-Weight on Check Point Software Tech, Lowers Price Target to $133
 - [2026-05-01] **BUY** 92.0% — [[CHKP]] — Check Point Software Technologies Ltd. (CHKP) Q1 2026 Earnings Call Transcript

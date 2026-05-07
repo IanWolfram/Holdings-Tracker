@@ -1,6 +1,4 @@
-import fs from "fs";
-import path from "path";
-import { resolveVaultPath } from "../lib/constants";
+import type { VaultStore } from "@/lib/vault/store";
 import type { CatalystType, TickerPrediction } from "../types/predictions";
 
 interface MutableStats {
@@ -75,14 +73,6 @@ function asRecord(map: Map<string, MutableStats>): Record<string, CalibrationSta
   return out;
 }
 
-function metricsDir(vaultPath: string): string {
-  return path.join(vaultPath, "_metrics");
-}
-
-function predictionDir(vaultPath: string): string {
-  return path.join(vaultPath, "predictions");
-}
-
 function monthKey(ms: number): string {
   return new Date(ms).toISOString().slice(0, 7);
 }
@@ -100,17 +90,13 @@ function getPredictionCatalystTypes(prediction: TickerPrediction): CatalystType[
   return fromCatalysts.length > 0 ? [...new Set(fromCatalysts)] : ["other"];
 }
 
-function collectResolvedPredictions(vaultPath: string): TickerPrediction[] {
-  const dir = predictionDir(vaultPath);
-  if (!fs.existsSync(dir)) return [];
-
+async function collectResolvedPredictions(store: VaultStore): Promise<TickerPrediction[]> {
+  const notes = await store.listNotes("predictions/");
   const resolved: TickerPrediction[] = [];
-  const files = fs.readdirSync(dir).filter((name) => name.endsWith(".json"));
-  for (const file of files) {
-    const fullPath = path.join(dir, file);
+
+  for (const note of notes) {
     try {
-      const raw = fs.readFileSync(fullPath, "utf-8");
-      const parsed = JSON.parse(raw) as unknown;
+      const parsed = JSON.parse(note.body) as unknown;
       if (!Array.isArray(parsed)) continue;
 
       for (const value of parsed) {
@@ -129,18 +115,17 @@ function collectResolvedPredictions(vaultPath: string): TickerPrediction[] {
   return resolved;
 }
 
-function writeMonthlySummary(
-  vaultPath: string,
+async function writeMonthlySummary(
+  store: VaultStore,
   resolvedPredictions: TickerPrediction[],
   report: CalibrationReport
-): void {
+): Promise<void> {
   const monthly = resolvedPredictions.filter((prediction) => {
     const referenceTime = prediction.resolvedAt ?? prediction.runAt;
     return monthKey(referenceTime) === monthKey(Date.now());
   });
 
   const month = monthKey(Date.now());
-  const notePath = path.join(metricsDir(vaultPath), `MONTHLY-${month}.md`);
   const monthlyCorrect = monthly.filter((prediction) => prediction.outcome === "CORRECT").length;
   const monthlyRate = monthly.length > 0 ? (monthlyCorrect / monthly.length) * 100 : 0;
 
@@ -156,7 +141,7 @@ function writeMonthlySummary(
 
   const content = [
     "---",
-    `month: \"${month}\"`,
+    `month: "${month}"`,
     "type: calibration-monthly",
     `resolvedCount: ${monthly.length}`,
     `winRate: ${monthlyRate.toFixed(2)}`,
@@ -189,27 +174,26 @@ function writeMonthlySummary(
     "",
   ].join("\n");
 
-  fs.writeFileSync(notePath, content, "utf-8");
+  await store.write(`_metrics/MONTHLY-${month}.md`, content);
 }
 
 let cachedReport: { data: CalibrationReport | null; expiresAt: number } | null = null;
 const REPORT_CACHE_TTL_MS = 60_000;
 
-export function loadCalibrationReport(vaultPath: string): CalibrationReport | null {
+export async function loadCalibrationReport(store: VaultStore): Promise<CalibrationReport | null> {
   const now = Date.now();
   if (cachedReport && cachedReport.expiresAt > now) {
     return cachedReport.data;
   }
 
-  const resolvedVault = resolveVaultPath(vaultPath) ?? vaultPath;
-  const calibrationPath = path.join(metricsDir(resolvedVault), "calibration.json");
-
   let report: CalibrationReport | null = null;
   try {
-    const raw = fs.readFileSync(calibrationPath, "utf-8");
-    const parsed = JSON.parse(raw) as CalibrationReport;
-    if (parsed && typeof parsed === "object" && "totalResolved" in parsed) {
-      report = parsed;
+    const raw = await store.read("_metrics/calibration.json");
+    if (raw !== null) {
+      const parsed = JSON.parse(raw) as CalibrationReport;
+      if (parsed && typeof parsed === "object" && "totalResolved" in parsed) {
+        report = parsed;
+      }
     }
   } catch {
     report = null;
@@ -227,8 +211,8 @@ function pctString(rate: number): string {
   return `${Math.round(rate * 100)}%`;
 }
 
-export function buildCalibrationBlock(ticker: string, vaultPath: string): string {
-  const report = loadCalibrationReport(vaultPath);
+export async function buildCalibrationBlock(ticker: string, store: VaultStore): Promise<string> {
+  const report = await loadCalibrationReport(store);
   if (!report || report.totalResolved < 2) return "";
 
   const overallCorrect = Object.values(report.byTicker).reduce(
@@ -279,9 +263,8 @@ export function buildCalibrationBlock(ticker: string, vaultPath: string): string
   return `\n\n${lines.join("\n")}`;
 }
 
-export function updateCalibration(vaultPath: string): CalibrationReport {
-  const resolvedVault = resolveVaultPath(vaultPath) ?? vaultPath;
-  const resolvedPredictions = collectResolvedPredictions(resolvedVault);
+export async function updateCalibration(store: VaultStore): Promise<CalibrationReport> {
+  const resolvedPredictions = await collectResolvedPredictions(store);
 
   const byTicker = new Map<string, MutableStats>();
   const byCatalyst = new Map<string, MutableStats>();
@@ -327,13 +310,8 @@ export function updateCalibration(vaultPath: string): CalibrationReport {
     byEngine: asRecord(byEngine),
   };
 
-  fs.mkdirSync(metricsDir(resolvedVault), { recursive: true });
-  const calibrationPath = path.join(metricsDir(resolvedVault), "calibration.json");
-  const tmpPath = `${calibrationPath}.tmp`;
-  fs.writeFileSync(tmpPath, JSON.stringify(report, null, 2), "utf-8");
-  fs.renameSync(tmpPath, calibrationPath);
-
-  writeMonthlySummary(resolvedVault, resolvedPredictions, report);
+  await store.write("_metrics/calibration.json", JSON.stringify(report, null, 2));
+  await writeMonthlySummary(store, resolvedPredictions, report);
   invalidateCalibrationCache();
   return report;
 }

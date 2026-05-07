@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getHotTrades } from "@/lib/insiders";
 import { getPositionsSafe } from "@/lib/etrade";
+import { requireUser } from "@/lib/auth/requireUser";
 import type { CongressTrade } from "@/types/news.types";
 
 interface CongressResponse {
@@ -15,6 +16,9 @@ export default async function handler(
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
+
+  const user = await requireUser(req, res);
+  if (!user) return;
 
   try {
     const { positions } = await getPositionsSafe();

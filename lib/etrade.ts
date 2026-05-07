@@ -58,11 +58,11 @@ export async function getRequestToken(callbackUrl?: string): Promise<{
 }> {
   const oauth = buildOAuth();
   const url = `${ETRADE_AUTH_BASE_URL}/oauth/request_token`;
-  const requestData = { url, method: "GET" };
+  const callback = callbackUrl ?? "oob";
+  const requestData = { url, method: "GET", data: { oauth_callback: callback } };
 
   const headers = toHeader(oauth, oauth.authorize(requestData));
-  const callback = callbackUrl ?? "oob";
-  const res = await fetch(`${url}?oauth_callback=${encodeURIComponent(callback)}`, {
+  const res = await fetch(url, {
     headers: { ...headers, Accept: "application/json" },
   });
 

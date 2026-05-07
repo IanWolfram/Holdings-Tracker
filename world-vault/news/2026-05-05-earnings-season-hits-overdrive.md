@@ -4,39 +4,40 @@ ticker: HOOD
 sector: Financial Services
 verdict: HOLD
 confidence: 0.50
-relevance: 0.00
-decayScore: 0.9908
-verified: true
+relevance: 0.65
+decayScore: 0.9761
+verified: false
+analysisFailed: true
 country: US
-source: finnhub
-url: "https://finnhub.io/api/news?id=eb86a503f5acacad5798cd37238e20eef436ba87b8d6baa46ccbcda3e57a3bb8"
+source: polygon
+url: "https://www.fool.com/investing/2026/05/05/earnings-season-hits-overdrive/?source=iedfolrf0000001"
 headline: "Earnings Season Hits Overdrive"
 catalystTypes:
-  - other
+  - macro
 tags:
   - news
   - hood
   - hold
   - world-brain
   - financial-services
-  - catalyst-other
-  - m5-verified
+  - catalyst-macro
+  - analysis-failed
 ---
 
 # Earnings Season Hits Overdrive
 
 **Verdict**: HOLD (50% confidence)  
-**Relevance to [[HOOD]]**: 0%  
+**Relevance to [[HOOD]]**: 65%  
 **Geographic origin**: US  
 
 ## Summary
-There are some surprises for investors: Spotify, Robinhood, and SoFi all dropped after results failed to impress.
+Earnings season reveals mixed results as mature streaming and fintech companies face investor disappointment. Spotify, Robinhood, and SoFi all dropped significantly despite solid fundamentals, as the market re-rates these businesses from high-growth to mature companies. Meanwhile, Bloom Energy surges on AI data center energy demand, raising concerns about valuation bubbles in the energy sector.
 
 ## AI Analysis
-Analysis unavailable — defaulting to HOLD.
+> **Analysis failed.** Default HOLD at 50%. Do not use for pattern learning.
 
 ## Links
-- [Source Article](https://finnhub.io/api/news?id=eb86a503f5acacad5798cd37238e20eef436ba87b8d6baa46ccbcda3e57a3bb8)
+- [Source Article](https://www.fool.com/investing/2026/05/05/earnings-season-hits-overdrive/?source=iedfolrf0000001)
 - [[HOOD]]
-- [[catalysts/other]]
+- [[catalysts/macro]]
 - [[US-news]]

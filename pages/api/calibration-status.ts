@@ -1,30 +1,36 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import fs from "fs";
-import path from "path";
-import { resolveVaultPath } from "@/lib/constants";
+import { WORLD_VAULT_PATH } from "@/lib/constants";
+import { FsVaultStore } from "@/lib/vault/store";
+import { loadCalibrationReport } from "../../world-brain/calibration";
+import { requireUser } from "@/lib/auth/requireUser";
 
 export interface CalibrationStatusResponse {
   updatedAt: string | null;
   totalResolved: number;
 }
 
-export default function handler(
-  _req: NextApiRequest,
-  res: NextApiResponse<CalibrationStatusResponse>
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<CalibrationStatusResponse | { error: string }>
 ) {
-  const vaultPathRaw = process.env.WORLD_VAULT_PATH ?? "./world-vault";
-  const vaultPath = resolveVaultPath(vaultPathRaw) ?? vaultPathRaw;
-  const calibrationPath = path.join(vaultPath, "_metrics", "calibration.json");
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
 
-  if (!fs.existsSync(calibrationPath)) {
+  const user = await requireUser(req, res);
+  if (!user) return;
+
+  if (!WORLD_VAULT_PATH) {
     return res.status(200).json({ updatedAt: null, totalResolved: 0 });
   }
 
+  const store = new FsVaultStore(WORLD_VAULT_PATH);
+
   try {
-    const data = JSON.parse(fs.readFileSync(calibrationPath, "utf-8"));
+    const data = await loadCalibrationReport(store);
     return res.status(200).json({
-      updatedAt: data.updatedAt ?? null,
-      totalResolved: data.totalResolved ?? 0,
+      updatedAt: data?.updatedAt ?? null,
+      totalResolved: data?.totalResolved ?? 0,
     });
   } catch {
     return res.status(200).json({ updatedAt: null, totalResolved: 0 });

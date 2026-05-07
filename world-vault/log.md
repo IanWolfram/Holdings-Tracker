@@ -78,3 +78,51 @@ Regime neutral · VIX 18.29 · 10Y 4.39 · DXY 118.39 (falling)
 ## [2026-05-05 17:44:00] lint | Agent run complete for 2026-05-05
 Tickers: CHKP, PLTR, MMS, MDB, HOOD, VKTX. 0 BUY / 0 SELL / 20 HOLD.
 
+## [2026-05-05 19:32:48] macro | Macro snapshot for 2026-05-05
+Regime neutral · VIX null · 10Y null · DXY null (unknown)
+
+## [2026-05-05 19:32:48] events | Events snapshot for 2026-05-05
+0 earnings, 0 macro events.
+
+## [2026-05-05 19:39:33] lint | Agent run complete for 2026-05-05
+Tickers: CHKP, PLTR, MMS, MDB, HOOD, VKTX. 0 BUY / 0 SELL / 20 HOLD.
+
+## [2026-05-05 19:47:46] macro | Macro snapshot for 2026-05-05
+Regime neutral · VIX 18.29 · 10Y 4.39 · DXY 118.39 (falling)
+
+## [2026-05-05 19:47:46] events | Events snapshot for 2026-05-05
+0 earnings, 0 macro events.
+
+## [2026-05-05 19:50:01] macro | Macro snapshot for 2026-05-05
+Regime neutral · VIX 18.29 · 10Y 4.39 · DXY 118.39 (falling)
+
+## [2026-05-05 19:50:01] events | Events snapshot for 2026-05-05
+0 earnings, 0 macro events.
+
+## [2026-05-05 19:52:41] daily | Daily summary updated for 2026-05-05 (+7)
+27 stories across 3 sectors, 5 tickers.
+
+## [2026-05-05 19:52:41] lint | Agent run complete for 2026-05-05
+Tickers: CHKP, PLTR, MMS, MDB, HOOD, VKTX. 0 BUY / 0 SELL / 27 HOLD.
+
+## [2026-05-05 19:53:40] lint | Agent run complete for 2026-05-05
+Tickers: CHKP, PLTR, MMS, MDB, HOOD, VKTX. 0 BUY / 0 SELL / 27 HOLD.
+
+## [2026-05-06 14:18:05] daily | Daily summary updated for 2026-05-06 (new)
+271 stories across 3 sectors, 5 tickers.
+
+## [2026-05-06 14:19:02] macro | Macro snapshot for 2026-05-06
+Regime risk-on · VIX 17.38 · 10Y 4.45 · DXY 118.39 (falling)
+
+## [2026-05-06 14:19:02] events | Events snapshot for 2026-05-06
+0 earnings, 0 macro events.
+
+## [2026-05-06 14:25:59] daily | Daily summary updated for 2026-05-06 (+-244)
+27 stories across 3 sectors, 5 tickers.
+
+## [2026-05-06 14:26:11] lint | Agent run complete for 2026-05-06
+Tickers: CHKP, PLTR, MMS, MDB, HOOD, VKTX. 0 BUY / 0 SELL / 27 HOLD.
+
+## [2026-05-06 15:04:36] daily | Daily summary updated for 2026-05-06 (+250)
+277 stories across 3 sectors, 5 tickers.
+

@@ -2,41 +2,37 @@
 date: "2026-05-01"
 ticker: HOOD
 sector: Financial Services
-verdict: HOLD
-confidence: 0.50
-relevance: 0.00
-decayScore: 0.5619
-verified: true
+verdict: BUY
+confidence: 0.70
+relevance: 0.70
+decayScore: 0.4937
+verified: false
+analysisFailed: false
 country: US
-source: finnhub
-url: "https://finnhub.io/api/news?id=3fb4a1cdc469b3a4f981c8b1b0071db74547022b741e284474c07e7c6f33309a"
+source: polygon
+url: "https://www.fool.com/investing/2026/05/01/why-robinhood-markets-stock-sank-this-week/?source=iedfolrf0000001"
 headline: "Why Robinhood Markets Stock Sank This Week"
-catalystTypes:
-  - other
 tags:
   - news
   - hood
-  - hold
+  - buy
   - world-brain
   - financial-services
-  - catalyst-other
-  - m5-verified
 ---
 
 # Why Robinhood Markets Stock Sank This Week
 
-**Verdict**: HOLD (50% confidence)  
-**Relevance to [[HOOD]]**: 0%  
+**Verdict**: BUY (70% confidence)  
+**Relevance to [[HOOD]]**: 70%  
 **Geographic origin**: US  
 
 ## Summary
-The digital brokerage reported earnings that underwhelmed investors.
+Robinhood Markets stock fell 11.8% this week following Q1 2026 earnings that disappointed investors. While revenue grew 15% to $1.07 billion and the company added 22% in net deposits, net income growth was weak at only 3%. The main concern is a 47% year-over-year decline in cryptocurrency revenue to $143 million, raising fears that crypto trading hype is fading. Despite positive developments like 36% growth in Robinhood Gold subscribers and 320% growth in Prediction Markets, the stock remains expensive with a P/E ratio of 36 even after a 50% drawdown.
 
 ## AI Analysis
-Analysis unavailable — defaulting to HOLD.
+_No analysis available._
 
 ## Links
-- [Source Article](https://finnhub.io/api/news?id=3fb4a1cdc469b3a4f981c8b1b0071db74547022b741e284474c07e7c6f33309a)
+- [Source Article](https://www.fool.com/investing/2026/05/01/why-robinhood-markets-stock-sank-this-week/?source=iedfolrf0000001)
 - [[HOOD]]
-- [[catalysts/other]]
 - [[US-news]]

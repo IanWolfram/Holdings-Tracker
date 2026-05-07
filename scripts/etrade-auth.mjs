@@ -1,13 +1,25 @@
 /**
  * One-time E*Trade OAuth 1.0a authorization flow.
+ * ONLY FOR USE IN PULSE_SINGLE_USER_MODE — in multi-tenant mode,
+ * tokens are managed per-user via /api/etrade/auth.
  *
  * Usage:
  *   node scripts/etrade-auth.mjs
  *
  * Prerequisites:
  *   - ETRADE_CONSUMER_KEY and ETRADE_CONSUMER_SECRET set in .env.local
+ *   - PULSE_SINGLE_USER_MODE=1 (or unset)
  *   - Run: npm install dotenv (if not already installed)
  */
+
+// Guard: refuse to run in multi-tenant mode
+if (process.env.PULSE_SINGLE_USER_MODE === "0" || process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  console.error(
+    "⛔ This script is for single-user mode only.\n" +
+    "In multi-tenant mode, use the web UI at /api/etrade/auth instead."
+  );
+  process.exit(1);
+}
 
 import { createHmac } from "crypto";
 import { createInterface } from "readline/promises";

@@ -6,7 +6,7 @@ verdict: HOLD
 confidence: 0.50
 relevance: 0.00
 decayScore: 0.3290
-verified: true
+verified: false
 country: US
 source: polygon
 url: "https://www.fool.com/investing/2026/04/26/pax-gold-slow-steady-generational-wealth-in-token/?source=iedfolrf0000001"

@@ -15,18 +15,19 @@ tags:
 
 Win rate: insufficient resolved predictions yet.
 Recent stories tagged with this catalyst: 25
-Verdict mix: 14 BUY / 0 SELL / 11 HOLD
+Verdict mix: 12 BUY / 0 SELL / 13 HOLD
 
 ## Recent Stories
 - [2026-05-05] **HOLD** 50.0% — [[PLTR]] — Oppenheimer Initiates Coverage of Palantir (PLTR) with Outperform
 - [2026-05-05] **HOLD** 50.0% — [[PLTR]] — Palantir Shares Slip Despite Strong Growth and Upgraded Outlook
+- [2026-05-05] **HOLD** 50.0% — [[PLTR]] — Rosenblatt Maintains Buy on Palantir Technologies, Raises Price Target to $225
 - [2026-05-05] **HOLD** 50.0% — [[PLTR]] — Wedbush Reiterates Outperform on Palantir Technologies, Maintains $230 Price Target
 - [2026-05-04] **BUY** 82.0% — [[CHKP]] — BMO Capital Maintains Outperform on Check Point Software Tech, Lowers Price Target to $135
 - [2026-05-04] **HOLD** 50.0% — [[PLTR]] — What's Going On With Palantir Stock Monday?
 - [2026-05-03] **HOLD** 50.0% — [[PLTR]] — Jim Cramer Says He Is “Looking at Palantir as a Longer-Term Investment”
 - [2026-05-01] **BUY** 78.0% — [[CHKP]] — JP Morgan Maintains Overweight on Check Point Software Tech, Lowers Price Target to $135
 - [2026-05-01] **BUY** 82.0% — [[CHKP]] — Wedbush Maintains Outperform on Check Point Software Tech, Lowers Price Target to $160
-- [2026-04-30] **BUY** 92.0% — [[CHKP]] — 9 High Cash Flow Stocks Likely to Outperform If Rates Stay Higher for Longer
+- [2026-04-30] **HOLD** 50.0% — [[CHKP]] — 9 High Cash Flow Stocks Likely to Outperform If Rates Stay Higher for Longer
 - [2026-04-30] **HOLD** 65.0% — [[VKTX]] — Cantor Fitzgerald Maintains Overweight on Viking Therapeutics, Lowers Price Target to $100
 - [2026-04-30] **BUY** 92.0% — [[CHKP]] — Conference Call:
 - [2026-04-30] **BUY** 65.0% — [[PLTR]] — Here Are Thursday’s Top Wall Street Analyst Research Calls: AbbVie, Equinix, GE Healthcare, Kratos D
@@ -42,4 +43,3 @@ Verdict mix: 14 BUY / 0 SELL / 11 HOLD
 - [2026-04-29] **BUY** 72.0% — [[PLTR]] — Palantir Technologies Q1 expectations buoyed by commercial acceleration, government contracts
 - [2026-04-28] **HOLD** 50.0% — [[PLTR]] — A 40% Margin Of Safety On Palantir, Plus 12% Yield As You Wait
 - [2026-04-28] **BUY** 82.0% — [[PLTR]] — Palantir's Growth Is Stunning; The Answer Lies In Global Expansion (Rating Upgrade)
-- [2026-04-26] **BUY** 82.0% — [[HOOD]] — Cantor Fitzgerald Raises Robinhood (HOOD) Price Target to $110, Keeps Overweight Rating

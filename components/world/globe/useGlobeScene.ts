@@ -468,6 +468,24 @@ export function useGlobeScene({
       window.removeEventListener("mouseup", onMouseUp);
       mount.removeEventListener("mousemove", onMouseMove);
       mount.removeEventListener("mouseleave", onMouseLeave);
+      // Dispose marker sphere groups
+      for (const ms of hqMarkersRef.current) {
+        if (ms.sphereGroup) {
+          ms.sphereGroup.traverse((child) => {
+            const mesh = child as THREE.Mesh;
+            if (mesh.geometry && !(mesh.geometry as any)._shared) {
+              mesh.geometry.dispose();
+            }
+            const mat = mesh.material as THREE.Material;
+            if (mat) {
+              if ("map" in mat && (mat as THREE.MeshBasicMaterial).map) {
+                ((mat as THREE.MeshBasicMaterial).map as THREE.Texture).dispose();
+              }
+              mat.dispose();
+            }
+          });
+        }
+      }
       renderer.dispose();
       scene.clear();
       if (mount.contains(renderer.domElement)) {

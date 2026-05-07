@@ -6,7 +6,7 @@ verdict: HOLD
 confidence: 0.50
 relevance: 0.30
 decayScore: 0.2706
-verified: true
+verified: false
 country: US
 source: polygon
 url: "https://www.fool.com/investing/2026/04/25/is-this-tech-giant-the-next-potential-winner-in-th/?source=iedfolrf0000001"

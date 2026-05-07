@@ -6,6 +6,10 @@
       "headers": {
         "X-Goog-Api-Key": "AQ.Ab8RN6K72rdf3RDPtF07umIlhhYHzAGMg9J4DaG9mJdw8DzZHw"
       }
+    },
+    "supabase": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=immhabwlbptxqehxiwqc&features=storage%2Cdocs%2Cdatabase%2Caccount"
     }
   }
 }

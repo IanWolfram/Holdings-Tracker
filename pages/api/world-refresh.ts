@@ -1,7 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getPositions } from "@/lib/etrade";
-import { getWorldData, invalidateWorldCache } from "@/lib/world-data";
+import { forceRefreshWorldData } from "@/lib/world-data";
 import { requirePremiumAccess } from "@/lib/license";
+import { requireUser } from "@/lib/auth/requireUser";
 
 type Response =
   | { success: true; positions: number; refreshedAt: string }
@@ -11,6 +12,9 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<Response>
 ) {
+  const user = await requireUser(req, res);
+  if (!user) return;
+
   const access = requirePremiumAccess();
   if (!access.ok) {
     return res.status(access.statusCode).json({ success: false, error: access.error });
@@ -22,8 +26,7 @@ export default async function handler(
 
   try {
     const positions = await getPositions();
-    invalidateWorldCache();
-    await getWorldData(positions);
+    await forceRefreshWorldData(positions);
     return res.status(200).json({
       success: true,
       positions: positions.length,

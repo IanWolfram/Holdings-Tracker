@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Choose Mode — Pulse</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0b0f12;
+        --panel: #141a20;
+        --border: #26303a;
+        --text: #e8edf2;
+        --muted: #93a3b5;
+        --accent: #2aa5ff;
+        --green: #34d399;
+      }
+      body {
+        margin: 0;
+        font-family: "Space Grotesk", "Avenir Next", sans-serif;
+        background: radial-gradient(120% 120% at 10% 0%, #10202f 0%, var(--bg) 50%);
+        color: var(--text);
+      }
+      .wrap {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+      }
+      .panel {
+        width: 100%;
+        max-width: 580px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: linear-gradient(160deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+        padding: 28px;
+      }
+      h1 {
+        margin: 0 0 6px;
+        font-size: 24px;
+        letter-spacing: 0.02em;
+      }
+      .subtitle {
+        margin: 0 0 24px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .cards {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .card {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 18px 20px;
+        cursor: pointer;
+        transition: border-color 0.15s, background 0.15s;
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .card:hover {
+        border-color: var(--accent);
+        background: rgba(42, 165, 255, 0.06);
+      }
+      .card.selected {
+        border-color: var(--accent);
+        background: rgba(42, 165, 255, 0.1);
+      }
+      .card-title {
+        font-size: 16px;
+        font-weight: 700;
+        margin: 0 0 4px;
+      }
+      .card-desc {
+        font-size: 13px;
+        color: var(--muted);
+        margin: 0;
+        line-height: 1.5;
+      }
+      .card-badge {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 6px;
+        margin-left: 8px;
+        vertical-align: middle;
+        background: rgba(52, 211, 153, 0.15);
+        color: var(--green);
+      }
+      .actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 22px;
+      }
+      button {
+        border: 0;
+        border-radius: 10px;
+        padding: 10px 18px;
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .primary {
+        background: var(--accent);
+        color: #02111d;
+      }
+      .primary:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .ghost {
+        background: transparent;
+        color: var(--muted);
+        border: 1px solid var(--border);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="panel">
+        <h1>Welcome to Pulse</h1>
+        <p class="subtitle">How would you like to use it?</p>
+
+        <div class="cards">
+          <div class="card" id="personalCard" onclick="selectMode('personal')">
+            <p class="card-title">Personal Mode <span class="card-badge">OFFLINE</span></p>
+            <p class="card-desc">All data stays on this device. No login required. E*TRADE tokens stored locally. Obsidian vault on disk. Private and self-contained.</p>
+          </div>
+          <div class="card" id="cloudCard" onclick="selectMode('cloud')">
+            <p class="card-title">Cloud Mode <span class="card-badge">SYNCED</span></p>
+            <p class="card-desc">Sign in with email. Data synced via Supabase. Access your portfolio from any device. E*TRADE tokens encrypted in the cloud.</p>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="ghost" id="quitBtn">Quit</button>
+          <button class="primary" id="confirmBtn" disabled>Continue</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let selectedMode = null;
+      const personalCard = document.getElementById("personalCard");
+      const cloudCard = document.getElementById("cloudCard");
+      const confirmBtn = document.getElementById("confirmBtn");
+      const quitBtn = document.getElementById("quitBtn");
+
+      function selectMode(mode) {
+        selectedMode = mode;
+        personalCard.classList.toggle("selected", mode === "personal");
+        cloudCard.classList.toggle("selected", mode === "cloud");
+        confirmBtn.disabled = false;
+      }
+
+      confirmBtn.addEventListener("click", () => {
+        if (!selectedMode) return;
+        window.pulseMode.choose(selectedMode);
+      });
+
+      quitBtn.addEventListener("click", () => {
+        window.pulseMode.quit();
+      });
+    </script>
+  </body>
+</html>

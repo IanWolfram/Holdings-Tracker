@@ -3,7 +3,8 @@ import type { WorldData } from "@/types/geo.types";
 import { WORLD_PROFILES, MOCK_POSITIONS } from "@/lib/position-list";
 import { lookupCountryByCode } from "@/lib/country-coords";
 import { getWorldData } from "@/lib/world-data";
-import { getServices } from "@/src/registry";
+import { getServices, getServicesForUser } from "@/src/registry";
+import { requireUser } from "@/lib/auth/requireUser";
 import { fetchCompanyProfile } from "@/lib/company-profile";
 
 export default async function handler(
@@ -14,9 +15,14 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  const user = await requireUser(req, res);
+  if (!user) return;
+
   if (process.env.ETRADE_ENV !== "mock") {
     try {
-      const { portfolioService } = getServices();
+      const { portfolioService } = process.env.PULSE_SINGLE_USER_MODE === "1"
+        ? getServices()
+        : await getServicesForUser(user.id);
       const { positions, mock } = await portfolioService.getPositionsSafe();
       const data = await getWorldData(positions, { mock });
       return res.status(200).json(data);

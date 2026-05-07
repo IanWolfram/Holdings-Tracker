@@ -6,7 +6,7 @@ verdict: HOLD
 confidence: 0.50
 relevance: 0.00
 decayScore: 0.4659
-verified: true
+verified: false
 country: US
 source: polygon
 url: "https://www.benzinga.com/markets/equities/26/04/52119481/stock-market-today-dow-jones-nasdaq-futures-gain-ahead-of-powells-last-speech-as-fed-chair-robin?utm_source=benzinga_taxonomy&utm_medium=rss_feed_free&utm_content=taxonomy_rss&utm_campaign=channel"

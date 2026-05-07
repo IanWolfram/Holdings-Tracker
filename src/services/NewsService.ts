@@ -30,6 +30,8 @@ function loadMockVerdicts(): Record<string, ClassifiedStory[]> | null {
 const MOCK_VERDICTS = loadMockVerdicts();
 
 export class NewsService {
+  private readonly _revalidationLocks = new Map<string, Promise<void>>();
+
   constructor(
     private readonly providers: {
       finnhub?: INewsProvider;
@@ -48,6 +50,11 @@ export class NewsService {
     return this.cache.get<ClassifiedStory[]>(ticker);
   }
 
+  /** Returns cached news with staleness metadata for SWR. */
+  getCachedNewsWithMeta(ticker: string): { value: ClassifiedStory[]; isStale: boolean } | null {
+    return this.cache.getWithMeta<ClassifiedStory[]>(ticker);
+  }
+
   patchCachedStory(ticker: string, url: string, patch: Partial<ClassifiedStory>): void {
     const cached = this.cache.get<ClassifiedStory[]>(ticker);
     if (!cached) return;
@@ -56,8 +63,16 @@ export class NewsService {
   }
 
   async getNewsForTicker(ticker: string, sector?: string): Promise<ClassifiedStory[]> {
-    const cached = this.cache.get<ClassifiedStory[]>(ticker);
-    if (cached) return cached;
+    // SWR: serve stale data immediately, trigger background revalidation
+    const entry = this.cache.getWithMeta<ClassifiedStory[]>(ticker);
+    if (entry) {
+      if (entry.isStale && !this._isRevalidating(ticker)) {
+        this._kickOffRevalidation(ticker, sector);
+      }
+      if (!entry.isStale) return entry.value;
+      // Stale — return it, revalidation is running in background
+      return entry.value;
+    }
 
     const companyName = await getCompanyName(ticker);
 
@@ -174,5 +189,26 @@ export class NewsService {
     const merged = dedupeStories([...realCached, ...newClassified], companyName);
     const recent = withinNewsWindow(merged).sort((a, b) => b.datetime - a.datetime);
     this.cache.set(ticker, [...pending, ...recent], NEWS_CACHE_TTL_MS);
+  }
+
+  /** Check if a background revalidation is already in flight for this ticker. */
+  private _isRevalidating(ticker: string): boolean {
+    return this._revalidationLocks.has(ticker);
+  }
+
+  /** Kick off a background revalidation for a stale ticker. */
+  private _kickOffRevalidation(ticker: string, sector?: string): void {
+    if (this._revalidationLocks.has(ticker)) return;
+    const p = this._revalidateTicker(ticker, sector)
+      .catch((err) => console.error(`[news] SWR revalidation failed for ${ticker}:`, err))
+      .finally(() => this._revalidationLocks.delete(ticker));
+    this._revalidationLocks.set(ticker, p);
+  }
+
+  /** Internal: re-fetch and re-cache a single ticker. */
+  private async _revalidateTicker(ticker: string, sector?: string): Promise<void> {
+    // Delete the stale entry so getNewsForTicker does a fresh fetch next time
+    this.cache.delete(ticker);
+    await this.getNewsForTicker(ticker, sector);
   }
 }

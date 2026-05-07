@@ -1,18 +1,9 @@
-import fs from "fs";
-import path from "path";
 import { getVaultIndex, updateVaultIndex } from "../lib/vault-index";
-import { resolveVaultPath } from "../lib/constants";
 import { appendVaultLog } from "./vault-meta";
 import type { GeoStory, WorldData } from "@/types/geo.types";
 import type { EventsSnapshot } from "../lib/marketdata/events";
 import type { MacroSnapshot } from "../lib/marketdata/macro";
-
-function writeFileAtomic(filePath: string, content: string): void {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  const tmp = `${filePath}.tmp`;
-  fs.writeFileSync(tmp, content, "utf-8");
-  fs.renameSync(tmp, filePath);
-}
+import type { VaultStore } from "@/lib/vault/store";
 
 function computeDecayScore(storyDateMs: number, nowMs: number = Date.now()): number {
   // exp(-age_days / 7): a 1-week-old note is at ~0.37, a month is ~0.013.
@@ -90,15 +81,11 @@ function buildNoteContent(story: GeoStory, dateStr: string, sector?: string): st
   ].join("\n");
 }
 
-function vaultRoot(vaultPath: string): string {
-  return resolveVaultPath(vaultPath) ?? vaultPath;
-}
-
 // ---------------------------------------------------------------------------
 // Individual story note
 // ---------------------------------------------------------------------------
 
-export async function writeStoryNote(story: GeoStory, vaultPath: string, sector?: string): Promise<void> {
+export async function writeStoryNote(story: GeoStory, store: VaultStore, sector?: string): Promise<void> {
   try {
     const date = new Date(story.datetime * 1000);
     const dateStr = date.toISOString().split("T")[0]; // YYYY-MM-DD
@@ -107,13 +94,13 @@ export async function writeStoryNote(story: GeoStory, vaultPath: string, sector?
       .replace(/[^a-z0-9]/gi, "-")
       .replace(/-+/g, "-")
       .toLowerCase();
-    const newsDir = path.join(vaultRoot(vaultPath), "news");
-    const notePath = path.join(newsDir, `${dateStr}-${slug}.md`);
+    const noteRelPath = `news/${dateStr}-${slug}.md`;
+    const content = buildNoteContent(story, dateStr, sector);
 
     // If a file for this URL already exists (possibly under a different slug), use that path
     // and skip if it's already verified — don't downgrade an MLX-verified entry.
     // Optimized duplicate check using the Vault Index
-    const index = await getVaultIndex(vaultPath);
+    const index = await getVaultIndex(store);
     const existing = index.get(story.url);
     if (existing) {
       // Don't overwrite a successful analysis with a failed one
@@ -123,7 +110,7 @@ export async function writeStoryNote(story: GeoStory, vaultPath: string, sector?
       if (existing.verdict === story.verdict && existing.isAnalyzed === !!story.isAnalyzed) {
         return;
       }
-      writeFileAtomic(existing.filePath, buildNoteContent(story, dateStr, sector));
+      await store.write(existing.filePath, content);
       updateVaultIndex(story.url, {
         verdict: story.verdict,
         confidence: story.confidence,
@@ -144,8 +131,8 @@ export async function writeStoryNote(story: GeoStory, vaultPath: string, sector?
       return;
     }
 
-    writeFileAtomic(notePath, buildNoteContent(story, dateStr, sector));
-    
+    await store.write(noteRelPath, content);
+
     // Update index so subsequent writes in this process know about the new file
     updateVaultIndex(story.url, {
       verdict: story.verdict,
@@ -157,7 +144,7 @@ export async function writeStoryNote(story: GeoStory, vaultPath: string, sector?
       classifiedAt: dateStr,
       isAnalyzed: !!story.isAnalyzed,
       fromVault: true,
-      filePath: notePath,
+      filePath: noteRelPath,
       ticker: story.ticker,
       headline: story.headline,
       summary: story.summary ?? "",
@@ -173,16 +160,13 @@ export async function writeStoryNote(story: GeoStory, vaultPath: string, sector?
 // Daily summary note
 // ---------------------------------------------------------------------------
 
-export function writeDailySummary(
+export async function writeDailySummary(
   date: string,
   stories: GeoStory[],
-  vaultPath: string,
+  store: VaultStore,
   baseData: WorldData
-): void {
+): Promise<void> {
   try {
-    const notePath = path.join(vaultRoot(vaultPath), "daily", `${date}.md`);
-    fs.mkdirSync(path.dirname(notePath), { recursive: true });
-
     // Group by sector, then by ticker
     const bySector: Record<string, Record<string, GeoStory[]>> = {};
     for (const story of stories) {
@@ -198,9 +182,9 @@ export function writeDailySummary(
     // Read prior story count (if any) so we only log when the count changes.
     let priorStoryCount = -1;
     try {
-      if (fs.existsSync(notePath)) {
-        const prior = fs.readFileSync(notePath, "utf-8");
-        const m = prior.match(/Covering \*\*(\d+) stories\*\*/);
+      const existing = await store.readNote(`daily/${date}.md`);
+      if (existing) {
+        const m = existing.body.match(/Covering \*\*(\d+) stories\*\*/);
         if (m) priorStoryCount = parseInt(m[1], 10);
       }
     } catch { /* fall through */ }
@@ -249,7 +233,7 @@ export function writeDailySummary(
       }),
     ].join("\n");
 
-    writeFileAtomic(notePath, content);
+    await store.write(`daily/${date}.md`, content);
 
     if (priorStoryCount !== stories.length) {
       const tickerCount = Object.values(bySector).reduce(
@@ -260,7 +244,7 @@ export function writeDailySummary(
         priorStoryCount === -1
           ? "new"
           : `+${stories.length - priorStoryCount}`;
-      appendVaultLog(vaultPath, {
+      await appendVaultLog(store, {
         type: "daily",
         title: `Daily summary updated for ${date} (${delta})`,
         details: `${stories.length} stories across ${sectors.length} sectors, ${tickerCount} tickers.`,
@@ -275,19 +259,16 @@ function macroValue(value: number | null): string {
   return value === null ? "null" : value.toFixed(2);
 }
 
-export function writeMacroSnapshot(
+export async function writeMacroSnapshot(
   date: string,
   snapshot: MacroSnapshot,
-  vaultPath: string,
+  store: VaultStore,
   commentary?: string
-): void {
+): Promise<void> {
   try {
-    const notePath = path.join(vaultRoot(vaultPath), "_macro", `${date}.md`);
-    fs.mkdirSync(path.dirname(notePath), { recursive: true });
-
     const content = [
       "---",
-      `date: \"${date}\"`,
+      `date: "${date}"`,
       "type: macro-snapshot",
       `regime: ${snapshot.regime}`,
       `vix: ${macroValue(snapshot.vix)}`,
@@ -315,8 +296,8 @@ export function writeMacroSnapshot(
       "",
     ].join("\n");
 
-    writeFileAtomic(notePath, content);
-    appendVaultLog(vaultPath, {
+    await store.write(`_macro/${date}.md`, content);
+    await appendVaultLog(store, {
       type: "macro",
       title: `Macro snapshot for ${date}`,
       details: `Regime ${snapshot.regime} · VIX ${macroValue(snapshot.vix)} · 10Y ${macroValue(snapshot.tenY)} · DXY ${macroValue(snapshot.dxy)} (${snapshot.dxyTrend})`,
@@ -326,15 +307,12 @@ export function writeMacroSnapshot(
   }
 }
 
-export function writeEventsSnapshot(
+export async function writeEventsSnapshot(
   date: string,
   snapshot: EventsSnapshot,
-  vaultPath: string
-): void {
+  store: VaultStore
+): Promise<void> {
   try {
-    const notePath = path.join(vaultRoot(vaultPath), "_events", `${date}.md`);
-    fs.mkdirSync(path.dirname(notePath), { recursive: true });
-
     const earningsLines =
       snapshot.earnings.length > 0
         ? snapshot.earnings.map((event) => {
@@ -351,7 +329,7 @@ export function writeEventsSnapshot(
 
     const content = [
       "---",
-      `date: \"${date}\"`,
+      `date: "${date}"`,
       "type: events-snapshot",
       `earningsCount: ${snapshot.earnings.length}`,
       `macroEventCount: ${snapshot.macroEvents.length}`,
@@ -370,8 +348,8 @@ export function writeEventsSnapshot(
       "",
     ].join("\n");
 
-    writeFileAtomic(notePath, content);
-    appendVaultLog(vaultPath, {
+    await store.write(`_events/${date}.md`, content);
+    await appendVaultLog(store, {
       type: "events",
       title: `Events snapshot for ${date}`,
       details: `${snapshot.earnings.length} earnings, ${snapshot.macroEvents.length} macro events.`,

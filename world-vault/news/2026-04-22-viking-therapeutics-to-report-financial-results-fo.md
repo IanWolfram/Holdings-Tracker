@@ -6,7 +6,7 @@ verdict: HOLD
 confidence: 0.50
 relevance: 0.65
 decayScore: 0.1800
-verified: true
+verified: false
 country: US
 source: polygon
 url: "https://www.benzinga.com/pressreleases/26/04/n51985416/viking-therapeutics-to-report-financial-results-for-first-quarter-2026-on-april-29-2026?utm_source=benzinga_taxonomy&utm_medium=rss_feed_free&utm_content=taxonomy_rss&utm_campaign=channel"

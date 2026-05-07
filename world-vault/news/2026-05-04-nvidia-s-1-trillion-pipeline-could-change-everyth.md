@@ -6,7 +6,7 @@ verdict: HOLD
 confidence: 0.50
 relevance: 0.00
 decayScore: 0.9667
-verified: true
+verified: false
 country: US
 source: polygon
 url: "https://www.fool.com/investing/2026/05/04/nvidias-1-trillion-pipeline-could-change-everythin/?source=iedfolrf0000001"

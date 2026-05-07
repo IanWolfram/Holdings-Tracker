@@ -1,22 +1,22 @@
-import fs from "fs";
-import path from "path";
 import { NextApiRequest, NextApiResponse } from "next";
 import { callMlxRaw, getSystemPrompt } from "@/world-brain/brain";
 import { getPositions } from "@/lib/etrade";
-import { WORLD_VAULT_PATH, resolveVaultPath } from "@/lib/constants";
+import { WORLD_VAULT_PATH } from "@/lib/constants";
+import { FsVaultStore, type VaultStore } from "@/lib/vault/store";
+import { requireUser } from "@/lib/auth/requireUser";
 
 // ---------------------------------------------------------------------------
-// Vault context helpers
+// Vault context helpers (async, VaultStore-based)
 // ---------------------------------------------------------------------------
 
 /**
  * Read a single ticker's learned-patterns note from the vault root.
  * e.g. world-vault/PLTR.md → "Government contract wins trigger BUY at 85-92%..."
  */
-function readTickerNote(ticker: string, vaultResolved: string): string {
+async function readTickerNote(ticker: string, store: VaultStore): Promise<string> {
   try {
-    const p = path.join(vaultResolved, `${ticker.toUpperCase()}.md`);
-    const raw = fs.readFileSync(p, "utf-8");
+    const raw = await store.read(`${ticker.toUpperCase()}.md`);
+    if (!raw) return "";
     // Strip frontmatter and return the body only
     const body = raw.replace(/^---[\s\S]*?---\n/, "").trim();
     return body ? `### ${ticker} — Learned Patterns\n${body}` : "";
@@ -45,13 +45,9 @@ function detectTickers(text: string, holdingTickers: string[]): string[] {
  * Read the N most-recent news verdict notes from world-vault/news/ and
  * return a condensed summary for chat context.
  */
-function readRecentVaultNews(vaultResolved: string, limit = 12): string {
+async function readRecentVaultNews(store: VaultStore, limit = 12): Promise<string> {
   try {
-    const newsDir = path.join(vaultResolved, "news");
-    if (!fs.existsSync(newsDir)) return "";
-
-    const files = fs
-      .readdirSync(newsDir)
+    const files = (await store.list("news"))
       .filter((f) => f.endsWith(".md"))
       .sort()
       .reverse()
@@ -60,7 +56,8 @@ function readRecentVaultNews(vaultResolved: string, limit = 12): string {
     const lines: string[] = [];
     for (const file of files) {
       try {
-        const content = fs.readFileSync(path.join(newsDir, file), "utf-8");
+        const content = await store.read(`news/${file}`);
+        if (!content) continue;
         // Parse frontmatter
         const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
         if (!fmMatch) continue;
@@ -93,17 +90,15 @@ function readRecentVaultNews(vaultResolved: string, limit = 12): string {
 /**
  * Read the latest macro snapshot from world-vault/_macro/.
  */
-function readLatestMacroSnapshot(vaultResolved: string): string {
+async function readLatestMacroSnapshot(store: VaultStore): Promise<string> {
   try {
-    const macroDir = path.join(vaultResolved, "_macro");
-    if (!fs.existsSync(macroDir)) return "";
-    const files = fs
-      .readdirSync(macroDir)
+    const files = (await store.list("_macro"))
       .filter((f) => f.endsWith(".md"))
       .sort()
       .reverse();
     if (files.length === 0) return "";
-    const content = fs.readFileSync(path.join(macroDir, files[0]), "utf-8");
+    const content = await store.read(`_macro/${files[0]}`);
+    if (!content) return "";
     // Strip frontmatter
     const body = content.replace(/^---[\s\S]*?---\n/, "").trim();
     return body ? `## Latest Macro Snapshot\n${body.slice(0, 800)}` : "";
@@ -115,17 +110,15 @@ function readLatestMacroSnapshot(vaultResolved: string): string {
 /**
  * Read the most recent daily summary from world-vault/daily/.
  */
-function readLatestDailySummary(vaultResolved: string): string {
+async function readLatestDailySummary(store: VaultStore): Promise<string> {
   try {
-    const dailyDir = path.join(vaultResolved, "daily");
-    if (!fs.existsSync(dailyDir)) return "";
-    const files = fs
-      .readdirSync(dailyDir)
+    const files = (await store.list("daily"))
       .filter((f) => f.endsWith(".md"))
       .sort()
       .reverse();
     if (files.length === 0) return "";
-    const content = fs.readFileSync(path.join(dailyDir, files[0]), "utf-8");
+    const content = await store.read(`daily/${files[0]}`);
+    if (!content) return "";
     const body = content.replace(/^---[\s\S]*?---\n/, "").trim();
     return body ? `## Latest Daily Summary\n${body.slice(0, 1200)}` : "";
   } catch {
@@ -136,24 +129,23 @@ function readLatestDailySummary(vaultResolved: string): string {
 /**
  * Read the N most recent session insight files from world-vault/_insights/.
  */
-function readRecentInsights(vaultResolved: string, limit = 3): string {
+async function readRecentInsights(store: VaultStore, limit = 3): Promise<string> {
   try {
-    const insightsDir = path.join(vaultResolved, "_insights");
-    if (!fs.existsSync(insightsDir)) return "";
-    const files = fs
-      .readdirSync(insightsDir)
+    const files = (await store.list("_insights"))
       .filter((f) => f.endsWith(".md"))
       .sort()
       .reverse()
       .slice(0, limit);
-    const snippets = files
-      .map((f) => {
-        try {
-          const raw = fs.readFileSync(path.join(insightsDir, f), "utf-8");
-          return raw.replace(/^---[\s\S]*?---\n/, "").trim();
-        } catch { return ""; }
-      })
-      .filter(Boolean);
+    const snippets: string[] = [];
+    for (const f of files) {
+      try {
+        const raw = await store.read(`_insights/${f}`);
+        if (raw) {
+          const body = raw.replace(/^---[\s\S]*?---\n/, "").trim();
+          if (body) snippets.push(body);
+        }
+      } catch { /* skip */ }
+    }
     if (snippets.length === 0) return "";
     return `## Recent Session Insights (last ${snippets.length} sessions)\n\n${snippets.join("\n\n---\n\n")}`;
   } catch {
@@ -181,6 +173,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed." });
   }
+
+  const user = await requireUser(req, res);
+  if (!user) return;
 
   const { message, history } = req.body as {
     message: string;
@@ -214,28 +209,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // ---- 2. Vault context ---------------------------------------------------
   let vaultContext = "";
-  const vaultResolved = WORLD_VAULT_PATH ? resolveVaultPath(WORLD_VAULT_PATH) : null;
+  const store = WORLD_VAULT_PATH ? new FsVaultStore(WORLD_VAULT_PATH) : null;
 
-  if (vaultResolved && fs.existsSync(vaultResolved)) {
+  if (store) {
     const mentionedTickers = detectTickers(message, holdingTickers);
 
     // Per-ticker learned patterns
-    const tickerNotes = mentionedTickers
-      .map((t) => readTickerNote(t, vaultResolved))
-      .filter(Boolean);
+    const tickerNotes = (
+      await Promise.all(mentionedTickers.map((t) => readTickerNote(t, store)))
+    ).filter(Boolean);
 
     // If no specific tickers mentioned, load notes for all holdings
     if (tickerNotes.length === 0 && holdingTickers.length > 0) {
-      holdingTickers
-        .map((t) => readTickerNote(t, vaultResolved))
-        .filter(Boolean)
-        .forEach((n) => tickerNotes.push(n));
+      const holdingNotes = (
+        await Promise.all(holdingTickers.map((t) => readTickerNote(t, store)))
+      ).filter(Boolean);
+      holdingNotes.forEach((n) => tickerNotes.push(n));
     }
 
-    const recentNews = readRecentVaultNews(vaultResolved, 15);
-    const macroSnap = readLatestMacroSnapshot(vaultResolved);
-    const dailySummary = readLatestDailySummary(vaultResolved);
-    const recentInsights = readRecentInsights(vaultResolved, 3);
+    const recentNews = await readRecentVaultNews(store, 15);
+    const macroSnap = await readLatestMacroSnapshot(store);
+    const dailySummary = await readLatestDailySummary(store);
+    const recentInsights = await readRecentInsights(store, 3);
 
     const parts = [
       tickerNotes.length > 0
@@ -253,7 +248,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // ---- 3. Build system prompt ---------------------------------------------
-  const systemPrompt = getSystemPrompt() + CHAT_ADDENDUM + holdingsContext + vaultContext;
+  const systemPrompt = (await getSystemPrompt(store!)) + CHAT_ADDENDUM + holdingsContext + vaultContext;
 
   // ---- 4. Build user message with history ---------------------------------
   let fullMessage = message;

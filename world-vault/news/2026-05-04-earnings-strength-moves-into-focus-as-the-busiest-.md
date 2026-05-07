@@ -6,7 +6,7 @@ verdict: HOLD
 confidence: 0.50
 relevance: 0.00
 decayScore: 0.9585
-verified: true
+verified: false
 country: US
 source: polygon
 url: "https://www.investing.com/analysis/earnings-strength-moves-into-focus-as-the-busiest-week-of-q1-season-begins-200679625"

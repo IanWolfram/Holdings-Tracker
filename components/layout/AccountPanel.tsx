@@ -1,8 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAccountSettings } from "@/hooks/useAccountSettings";
+import { useAccount } from "@/hooks/useAccount";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -64,12 +65,47 @@ function StatusRow({
   );
 }
 
+/** Format a future ISO date string as "Xh Xm" or "Xm" countdown. */
+function formatExpiry(expiresAt: string | null): string | null {
+  if (!expiresAt) return null;
+  const diff = new Date(expiresAt).getTime() - Date.now();
+  if (diff <= 0) return "expired";
+  const hours = Math.floor(diff / 3600000);
+  const mins = Math.floor((diff % 3600000) / 60000);
+  if (hours > 0) return `${hours}h ${mins}m`;
+  return `${mins}m`;
+}
+
 export default function AccountPanel({
   onClose,
   isConnected,
   isConnecting,
 }: AccountPanelProps) {
-  const { settings, loading } = useAccountSettings();
+  const { settings, loading: settingsLoading } = useAccountSettings();
+  const {
+    account,
+    preferences,
+    etradeExpiry,
+    updatePreferences,
+    signOut,
+    loading: accountLoading,
+  } = useAccount();
+
+  const [cronSaving, setCronSaving] = useState(false);
+  const [countdown, setCountdown] = useState<string | null>(null);
+
+  const isDev = account ? account.id === "dev-user-id" : false;
+
+  // E*Trade expiry countdown
+  useEffect(() => {
+    const update = () => {
+      const formatted = formatExpiry(etradeExpiry?.expiresAt ?? null);
+      setCountdown(formatted);
+    };
+    update();
+    const id = setInterval(update, 60000);
+    return () => clearInterval(id);
+  }, [etradeExpiry?.expiresAt]);
 
   // ESC key close
   useEffect(() => {
@@ -91,7 +127,11 @@ export default function AccountPanel({
 
   const handleReconnect = async () => {
     try {
-      await fetch("/api/etrade/trigger-terminal-auth");
+      const res = await fetch("/api/etrade/auth");
+      const data = await res.json();
+      if (res.ok && data.authUrl) {
+        window.location.href = data.authUrl;
+      }
     } catch {
       /* ignore */
     }
@@ -104,6 +144,35 @@ export default function AccountPanel({
       /* ignore */
     }
   };
+
+  const handleCronToggle = useCallback(async () => {
+    if (!preferences) return;
+    setCronSaving(true);
+    try {
+      await updatePreferences({ cronOptIn: !preferences.cronOptIn });
+    } finally {
+      setCronSaving(false);
+    }
+  }, [preferences, updatePreferences]);
+
+  const handleSignOut = useCallback(async () => {
+    await signOut();
+    window.location.href = "/login";
+  }, [signOut]);
+
+  // Initials for avatar
+  const initials = account?.displayName
+    ? account.displayName
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : account?.email
+        ? account.email[0].toUpperCase()
+        : "?";
+
+  const expiresSoon = countdown && countdown !== "expired" && !countdown.startsWith("0m") && parseInt(countdown) < 1;
 
   return (
     <motion.div
@@ -174,7 +243,7 @@ export default function AccountPanel({
 
       {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
-        {loading ? (
+        {settingsLoading || accountLoading ? (
           <div className="flex items-center justify-center py-12">
             <span className="material-symbols-outlined text-[20px] text-slate-500 animate-spin">
               progress_activity
@@ -182,6 +251,27 @@ export default function AccountPanel({
           </div>
         ) : (
           <>
+            {/* Identity Header */}
+            {account && (
+              <PanelSection title="Profile" icon="person">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-white/[0.06] border border-white/[0.08] flex items-center justify-center flex-shrink-0">
+                    <span className="font-mono text-[11px] font-bold text-slate-300">{initials}</span>
+                  </div>
+                  <div className="min-w-0">
+                    {account.displayName && (
+                      <p className="font-mono text-[12px] font-bold text-white truncate">
+                        {account.displayName}
+                      </p>
+                    )}
+                    <p className="font-mono text-[10px] text-slate-500 truncate">
+                      {account.email}
+                    </p>
+                  </div>
+                </div>
+              </PanelSection>
+            )}
+
             {/* E*Trade Connection */}
             <PanelSection title="E*Trade Connection" icon="link">
               <div className="flex items-center justify-between py-1.5">
@@ -205,6 +295,21 @@ export default function AccountPanel({
                   </span>
                 )}
               </div>
+              {/* Expiry countdown */}
+              {countdown && (
+                <div className="flex items-center justify-between py-1">
+                  <span className="font-mono text-[10px] text-slate-400">Token expires in</span>
+                  <span
+                    className={`font-mono text-[10px] font-bold ${
+                      countdown === "expired" || expiresSoon
+                        ? "text-red-400"
+                        : "text-slate-300"
+                    }`}
+                  >
+                    {countdown === "expired" ? "Expired" : countdown}
+                  </span>
+                </div>
+              )}
               <button
                 onClick={handleReconnect}
                 disabled={isConnecting}
@@ -280,9 +385,64 @@ export default function AccountPanel({
                       {Math.round(settings.cache.positionsTtlMs / 60000)}m
                     </span>
                   </div>
+                  {/* Cron opt-in toggle */}
+                  {preferences && (
+                    <div className="flex items-center justify-between py-1.5">
+                      <span className="font-mono text-[11px] text-white">Monthly Recalibration</span>
+                      <button
+                        onClick={handleCronToggle}
+                        disabled={cronSaving}
+                        className={`relative w-9 h-5 rounded-full transition-colors ${
+                          preferences.cronOptIn ? "bg-emerald-500/80" : "bg-white/[0.08]"
+                        } ${cronSaving ? "opacity-50" : ""}`}
+                      >
+                        <span
+                          className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                            preferences.cronOptIn ? "translate-x-4" : ""
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </PanelSection>
+
+            {/* Account (Cloud Mode only) */}
+            {account && !isDev && (
+              <PanelSection title="Account" icon="shield" noBorder>
+                {account.createdAt && (
+                  <div className="flex items-center justify-between py-1.5">
+                    <span className="font-mono text-[11px] text-white">Created</span>
+                    <span className="font-mono text-[9px] text-slate-500">
+                      {new Date(account.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                )}
+                {account.lastSignInAt && (
+                  <div className="flex items-center justify-between py-1.5">
+                    <span className="font-mono text-[11px] text-white">Last Sign-in</span>
+                    <span className="font-mono text-[9px] text-slate-500">
+                      {new Date(account.lastSignInAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                )}
+                <div className="flex gap-2 mt-2">
+                  <a
+                    href="/reset"
+                    className="flex-1 py-1.5 rounded font-mono text-[10px] font-bold border border-white/10 text-slate-400 hover:text-white hover:border-white/20 hover:bg-white/[0.03] transition-colors text-center"
+                  >
+                    Change Password
+                  </a>
+                  <button
+                    onClick={handleSignOut}
+                    className="flex-1 py-1.5 rounded font-mono text-[10px] font-bold border border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50 transition-colors"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              </PanelSection>
+            )}
 
             {/* Environment */}
             <PanelSection title="Environment" icon="info" noBorder>

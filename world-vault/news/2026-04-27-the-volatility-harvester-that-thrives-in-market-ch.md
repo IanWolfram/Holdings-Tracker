@@ -6,7 +6,7 @@ verdict: HOLD
 confidence: 0.50
 relevance: 0.00
 decayScore: 0.3510
-verified: true
+verified: false
 country: US
 source: polygon
 url: "https://www.investing.com/analysis/the-volatility-harvester-that-thrives-in-market-chaos-200679210"

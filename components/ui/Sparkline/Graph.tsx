@@ -12,7 +12,6 @@ export function Graph({ data, width = 60, height = 24, purchaseDate }: GraphProp
   const py = 6;
 
   if (!data || data.length < 2) {
-    // Show axes skeleton while real data loads
     return (
       <div className="relative" style={{ width, height }}>
         <svg width={width} height={height} className="overflow-visible select-none">
@@ -27,6 +26,20 @@ export function Graph({ data, width = 60, height = 24, purchaseDate }: GraphProp
             strokeWidth={0.5}
             strokeDasharray="2,2"
           />
+          {/* Shimmer pulse while data loads */}
+          <rect
+            x={pl} y={py}
+            width={width - pl - pr} height={height - py * 2}
+            fill="rgba(255,255,255,0.03)"
+            rx={2}
+          >
+            <animate
+              attributeName="opacity"
+              values="0.4;1;0.4"
+              dur="2s"
+              repeatCount="indefinite"
+            />
+          </rect>
         </svg>
       </div>
     );

@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getQuote, getHistory } from "@/lib/market-data";
 import { getCompanyName } from "@/lib/company-names";
+import { requireUser } from "@/lib/auth/requireUser";
 import type { Position } from "@/types/position.types";
 
 interface ProposedTarget {
@@ -17,6 +18,9 @@ export default async function handler(
     res.setHeader("Allow", "POST");
     return res.status(405).end("Method Not Allowed");
   }
+
+  const user = await requireUser(req, res);
+  if (!user) return;
 
   const { targets }: { targets?: ProposedTarget[] } = req.body;
   if (!Array.isArray(targets) || targets.length === 0) {

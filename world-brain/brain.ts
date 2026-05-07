@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { resolveVaultPath } from "../lib/constants";
+import type { VaultStore } from "../lib/vault/store";
 
 // ---------------------------------------------------------------------------
 // Agent context — split into system prompt and rules for /api/chat
@@ -12,61 +12,47 @@ export function invalidateSystemPromptCache(): void {
   systemPrompt = null;
 }
 
-export function getSystemPrompt(): string {
-  if (!systemPrompt) {
-    const dir = path.join(process.cwd(), "world-brain");
-    const agentsDir = path.join(dir, "agents");
+export async function getSystemPrompt(store: VaultStore): Promise<string> {
+  if (systemPrompt) return systemPrompt;
 
-    const baseParts = [
-      { name: "AGENT.md", path: path.join(agentsDir, "AGENT.md") },
-      { name: "sector-rules.md", path: path.join(dir, "sector-rules.md") }
-    ].map((f) => {
-        try { return fs.readFileSync(f.path, "utf-8"); } catch { return ""; }
-      })
+  const dir = path.join(process.cwd(), "world-brain");
+  const agentsDir = path.join(dir, "agents");
+
+  // Agent prompts and sector rules are source code, not vault data
+  const baseParts = [
+    { name: "AGENT.md", filePath: path.join(agentsDir, "AGENT.md") },
+    { name: "sector-rules.md", filePath: path.join(dir, "sector-rules.md") }
+  ].map((f) => {
+      try { return fs.readFileSync(f.filePath, "utf-8"); } catch { return ""; }
+    })
+    .filter(Boolean);
+
+  // Load the N most recent session insights from the vault
+  let insightsBlock = "";
+  try {
+    const notes = await store.listNotes("_insights/");
+    const recent = notes
+      .filter((n) => n.path.endsWith(".md"))
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+      .slice(0, 3);
+
+    const snippets = recent
+      .map((n) => n.body.trim())
       .filter(Boolean);
 
-    // Load the N most recent session insights from the vault (_insights/ dir)
-    // instead of the old monolithic market-insights.md, to keep the prompt lean.
-    let insightsBlock = "";
-    try {
-      const vaultPath = process.env.WORLD_VAULT_PATH;
-      if (vaultPath) {
-        const resolved = resolveVaultPath(vaultPath);
-        if (resolved) {
-          const insightsDir = path.join(resolved, "_insights");
-          if (fs.existsSync(insightsDir)) {
-            const files = fs
-              .readdirSync(insightsDir)
-              .filter((f: string) => f.endsWith(".md"))
-              .sort()
-              .reverse()
-              .slice(0, 3); // only the 3 most recent sessions
-            const snippets = files
-              .map((f: string) => {
-                try {
-                  const raw = fs.readFileSync(path.join(insightsDir, f), "utf-8");
-                  // Strip frontmatter
-                  return raw.replace(/^---[\s\S]*?---\n/, "").trim();
-                } catch { return ""; }
-              })
-              .filter(Boolean);
-            if (snippets.length > 0) {
-              insightsBlock =
-                `\n\n---\n\n## Recent Session Insights (last ${snippets.length} sessions)\n\n` +
-                snippets.join("\n\n---\n\n");
-            }
-          }
-        }
-      }
-    } catch { /* insights are optional */ }
+    if (snippets.length > 0) {
+      insightsBlock =
+        `\n\n---\n\n## Recent Session Insights (last ${snippets.length} sessions)\n\n` +
+        snippets.join("\n\n---\n\n");
+    }
+  } catch { /* insights are optional */ }
 
-    const runtimeContextGuide =
-      "\n\n---\n\n## Runtime Context Usage\n" +
-      "When the user message includes Market State or Focal Ticker State blocks, incorporate those signals into confidence calibration and reasoning.\n" +
-      "Treat macro context as a modifier, not an automatic override.";
+  const runtimeContextGuide =
+    "\n\n---\n\n## Runtime Context Usage\n" +
+    "When the user message includes Market State or Focal Ticker State blocks, incorporate those signals into confidence calibration and reasoning.\n" +
+    "Treat macro context as a modifier, not an automatic override.";
 
-    systemPrompt = baseParts.join("\n\n---\n\n") + insightsBlock + runtimeContextGuide;
-  }
+  systemPrompt = baseParts.join("\n\n---\n\n") + insightsBlock + runtimeContextGuide;
   return systemPrompt;
 }
 
@@ -110,10 +96,10 @@ export interface StoryMarketContext {
 // ---------------------------------------------------------------------------
 
 function stripThink(raw: string): string {
-  let stripped = raw.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
-  const closeIdx = stripped.lastIndexOf("</think>");
+  let stripped = raw.replace(/<tool_call>[\s\S]*?<\/think>/gi, "").trim();
+  const closeIdx = stripped.lastIndexOf("}");
   if (closeIdx !== -1) {
-    stripped = stripped.slice(closeIdx + "</think>".length).trim();
+    stripped = stripped.slice(closeIdx + 1).trim();
   }
   return stripped;
 }
@@ -164,7 +150,6 @@ import type { Verdict } from "@/types/news.types";
 import { getActiveModel, getModelKey } from "../lib/ai-config";
 import { isAiHealthy } from "../lib/ai-health";
 import { withInferenceSemaphore, withCloudSemaphore } from "../lib/classifier";
-import { WORLD_VAULT_PATH } from "../lib/constants";
 import { buildCalibrationBlock } from "./calibration";
 
 // ---------------------------------------------------------------------------
@@ -187,70 +172,48 @@ interface CorrelationReportShape {
   tickers?: string[];
 }
 
-let correlationCache: { data: CorrelationReportShape | null; mtimeMs: number; expiresAt: number } | null = null;
+let correlationCache: { data: CorrelationReportShape | null; updatedAt: string | null; expiresAt: number } | null = null;
 const CORRELATION_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-function loadCorrelationReport(): CorrelationReportShape | null {
-  if (!WORLD_VAULT_PATH) return null;
-  const resolved = resolveVaultPath(WORLD_VAULT_PATH);
-  if (!resolved) return null;
-  const corrPath = path.join(resolved, "_graph", "correlations.json");
-  let stat: fs.Stats;
-  try {
-    stat = fs.statSync(corrPath);
-  } catch {
-    return null;
-  }
-  if (correlationCache && correlationCache.mtimeMs === stat.mtimeMs && Date.now() < correlationCache.expiresAt) {
+async function loadCorrelationReport(store: VaultStore): Promise<CorrelationReportShape | null> {
+  const now = Date.now();
+  if (correlationCache && correlationCache.updatedAt && now < correlationCache.expiresAt) {
     return correlationCache.data;
   }
+
+  const note = await store.readNote("_graph/correlations.json");
+  if (!note) {
+    correlationCache = { data: null, updatedAt: null, expiresAt: now + CORRELATION_CACHE_TTL_MS };
+    return null;
+  }
+
   try {
-    const parsed = JSON.parse(fs.readFileSync(corrPath, "utf-8")) as CorrelationReportShape;
-    correlationCache = { data: parsed, mtimeMs: stat.mtimeMs, expiresAt: Date.now() + CORRELATION_CACHE_TTL_MS };
+    const parsed = JSON.parse(note.body) as CorrelationReportShape;
+    correlationCache = { data: parsed, updatedAt: note.updatedAt, expiresAt: now + CORRELATION_CACHE_TTL_MS };
     return parsed;
   } catch {
-    correlationCache = { data: null, mtimeMs: stat.mtimeMs, expiresAt: Date.now() + CORRELATION_CACHE_TTL_MS };
+    correlationCache = { data: null, updatedAt: note.updatedAt, expiresAt: now + CORRELATION_CACHE_TTL_MS };
     return null;
   }
 }
 
-function findRecentVerdictForTicker(
+async function findRecentVerdictForTicker(
+  store: VaultStore,
   ticker: string
-): { verdict: string; confidence: number; date: string } | null {
-  if (!WORLD_VAULT_PATH) return null;
-  const resolved = resolveVaultPath(WORLD_VAULT_PATH);
-  if (!resolved) return null;
-  const newsDir = path.join(resolved, "news");
-  let entries: string[];
-  try {
-    entries = fs.readdirSync(newsDir).filter((f) => f.endsWith(".md")).sort().reverse();
-  } catch {
-    return null;
-  }
+): Promise<{ verdict: string; confidence: number; date: string } | null> {
   const upper = ticker.toUpperCase();
-  for (const file of entries.slice(0, 200)) {
-    try {
-      const content = fs.readFileSync(path.join(newsDir, file), "utf-8");
-      const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
-      if (!fmMatch) continue;
-      const fm: Record<string, string> = {};
-      for (const line of fmMatch[1].split("\n")) {
-        const idx = line.indexOf(":");
-        if (idx === -1) continue;
-        fm[line.slice(0, idx).trim()] = line
-          .slice(idx + 1)
-          .trim()
-          .replace(/^["']|["']$/g, "");
-      }
-      if (fm.ticker?.toUpperCase() !== upper) continue;
-      if (!fm.verdict || !["BUY", "SELL", "HOLD"].includes(fm.verdict)) continue;
-      if (fm.analysisFailed === "true") continue;
-      if (fm.confidence === "0.50" && fm.verdict === "HOLD" && fm.analysisFailed !== "false") continue;
-      const confidence = parseFloat(fm.confidence ?? "0.5") || 0.5;
-      return { verdict: fm.verdict, confidence, date: fm.date ?? file.slice(0, 10) };
-    } catch {
-      /* skip unreadable */
-    }
+  const notes = await store.listNotes("news/");
+  for (const note of notes) {
+    if (!note.path.endsWith(".md")) continue;
+    const fm = note.frontmatter;
+    if (String(fm.ticker).toUpperCase() !== upper) continue;
+    const verdict = String(fm.verdict ?? "");
+    if (!["BUY", "SELL", "HOLD"].includes(verdict)) continue;
+    if (fm.analysisFailed === true || fm.analysisFailed === "true") continue;
+    const confidence = parseFloat(String(fm.confidence ?? "0.5")) || 0.5;
+    if (confidence === 0.5 && verdict === "HOLD" && fm.analysisFailed !== "false") continue;
+    const date = String(fm.date ?? note.path.slice(note.path.indexOf("/") + 1, 11));
+    return { verdict, confidence, date };
   }
   return null;
 }
@@ -263,8 +226,8 @@ interface CorrelatedPeer {
   date?: string;
 }
 
-function buildCorrelatedHoldingsBlock(focalTicker: string, holdingTickers: string[]): string {
-  const report = loadCorrelationReport();
+async function buildCorrelatedHoldingsBlock(store: VaultStore, focalTicker: string, holdingTickers: string[]): Promise<string> {
+  const report = await loadCorrelationReport(store);
   if (!report?.matrix) return "";
   const focal = focalTicker.toUpperCase();
   const focalRow = report.matrix[focal];
@@ -284,7 +247,7 @@ function buildCorrelatedHoldingsBlock(focalTicker: string, holdingTickers: strin
   candidates.sort((a, b) => Math.abs(b.corr) - Math.abs(a.corr));
   const top = candidates.slice(0, 3);
   for (const peer of top) {
-    const recent = findRecentVerdictForTicker(peer.ticker);
+    const recent = await findRecentVerdictForTicker(store, peer.ticker);
     if (recent) {
       peer.verdict = recent.verdict;
       peer.confidence = recent.confidence;
@@ -477,6 +440,7 @@ function buildMarketContextBlock(context?: StoryMarketContext): string {
 // ---------------------------------------------------------------------------
 
 export async function analyzeStory(
+  store: VaultStore,
   ticker: string,
   headline: string,
   summary: string,
@@ -522,10 +486,8 @@ export async function analyzeStory(
     : "";
 
   const marketContextBlock = buildMarketContextBlock(marketContext);
-  const calibrationBlock = WORLD_VAULT_PATH
-    ? buildCalibrationBlock(ticker, WORLD_VAULT_PATH)
-    : "";
-  const correlatedBlock = buildCorrelatedHoldingsBlock(ticker, holdingTickers);
+  const calibrationBlock = await buildCalibrationBlock(ticker, store);
+  const correlatedBlock = await buildCorrelatedHoldingsBlock(store, ticker, holdingTickers);
 
   const userMessage =
     `${holdingsBlock}\n\n` +
@@ -539,15 +501,14 @@ export async function analyzeStory(
     `Summary: ${summary || "(no summary)"}\n\n` +
     `OUTPUT ONLY THE JSON OBJECT. NO MARKDOWN. NO EXPLANATION. START WITH { AND END WITH }.`;
 
-  // Token-budget logging — log when prompt gets uncomfortably large.
-  // Rough heuristic: ~4 chars/token. 8k context model → ~32k char budget;
-  // log when user message alone exceeds 6k tokens (~24k chars / 75% of floor).
   const approxTokens = Math.round(userMessage.length / 4);
   if (approxTokens > 6_000) {
     console.warn(
       `[brain] Large user message for ${ticker}: ${userMessage.length} chars (~${approxTokens} tokens). Consider truncating context blocks.`
     );
   }
+
+  const systemPromptText = await getSystemPrompt(store);
 
   let raw = "";
   const MAX_RETRIES = 3;
@@ -556,7 +517,7 @@ export async function analyzeStory(
       if (active.provider === "deepseek" || active.provider === "openai") {
         const baseUrl = active.provider === "openai" ? "https://api.openai.com/v1" : "https://api.deepseek.com/v1";
         raw = await withCloudSemaphore(() =>
-          callDeepSeekRawInternal(getSystemPrompt(), userMessage, onStream, active.model, activeApiKey, baseUrl)
+          callDeepSeekRawInternal(systemPromptText, userMessage, onStream, active.model, activeApiKey, baseUrl)
         );
       } else {
         raw = await withInferenceSemaphore(async () => {
@@ -569,7 +530,7 @@ export async function analyzeStory(
             body: JSON.stringify({
               model,
               messages: [
-                { role: "system", content: getSystemPrompt() },
+                { role: "system", content: systemPromptText },
                 { role: "user", content: userMessage },
               ],
               temperature: 0.3,

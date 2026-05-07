@@ -6,7 +6,7 @@ verdict: HOLD
 confidence: 0.50
 relevance: 0.00
 decayScore: 0.9550
-verified: true
+verified: false
 country: US
 source: polygon
 url: "https://www.benzinga.com/trading-ideas/movers/26/05/52247280/whats-going-on-with-palantir-stock-monday-4?utm_source=benzinga_taxonomy&utm_medium=rss_feed_free&utm_content=taxonomy_rss&utm_campaign=channel"

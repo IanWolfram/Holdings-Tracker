@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import type { ClassifiedStory } from "@/types/news.types";
-import { getServices } from "@/src/registry";
+import { getServices, getServicesForUser } from "@/src/registry";
+import { requireUser } from "@/lib/auth/requireUser";
 
 export default async function handler(
   req: NextApiRequest,
@@ -10,12 +11,17 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  const user = await requireUser(req, res);
+  if (!user) return;
+
   const ticker = typeof req.query.ticker === "string" ? req.query.ticker.toUpperCase() : "";
   if (!ticker) {
     return res.status(400).json({ error: "ticker query param required" });
   }
 
-  const { newsService } = getServices();
+  const { newsService } = process.env.PULSE_SINGLE_USER_MODE === "1"
+    ? getServices()
+    : await getServicesForUser(user.id);
 
   try {
     const deadline = new Promise<never>((_, reject) =>

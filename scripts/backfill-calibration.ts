@@ -12,6 +12,7 @@ import {
   savePredictions,
 } from "../world-brain/predictions";
 import { updateCalibration } from "../world-brain/calibration";
+import { FsVaultStore } from "../lib/vault/store";
 import { classifyCatalystTypes } from "../world-brain/catalyst-classifier";
 
 interface BackfillStats {
@@ -111,6 +112,7 @@ async function main(): Promise<void> {
   const dryRun = process.argv.includes("--dry-run") || !apply;
   const vaultPathRaw = process.env.WORLD_VAULT_PATH ?? "./world-vault";
   const vaultPath = resolveVaultPath(vaultPathRaw) ?? vaultPathRaw;
+  const store = new FsVaultStore(vaultPathRaw);
   const newsDir = path.join(vaultPath, "news");
 
   if (!fs.existsSync(newsDir)) {
@@ -221,7 +223,7 @@ async function main(): Promise<void> {
     const id = createPredictionId(ticker, date, sourceUrl);
     let existing = existingByTicker.get(ticker);
     if (!existing) {
-      existing = loadPredictions(vaultPath, ticker);
+      existing = await loadPredictions(store, ticker);
       existingByTicker.set(ticker, existing);
     }
 
@@ -266,12 +268,12 @@ async function main(): Promise<void> {
 
   if (apply) {
     for (const [ticker, additions] of pendingByTicker.entries()) {
-      const existing = existingByTicker.get(ticker) ?? loadPredictions(vaultPath, ticker);
+      const existing = existingByTicker.get(ticker) ?? await loadPredictions(store, ticker);
       const merged = [...existing, ...additions].sort((a, b) => a.runAt - b.runAt);
-      savePredictions(vaultPath, ticker, merged);
+      await savePredictions(store, ticker, merged);
     }
 
-    const calibration = updateCalibration(vaultPath);
+    const calibration = await updateCalibration(new FsVaultStore(vaultPath));
     console.log("[backfill] Applied backfill and regenerated calibration metrics.");
     console.log(`[backfill] Total resolved predictions: ${calibration.totalResolved}`);
   }

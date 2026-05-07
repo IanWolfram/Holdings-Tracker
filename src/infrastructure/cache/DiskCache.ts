@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import type { ICache } from "@/src/domain/interfaces/ICache";
+import type { ICache, CacheEntry } from "@/src/domain/interfaces/ICache";
 
 interface Entry {
   data: unknown;
@@ -35,24 +35,31 @@ export class DiskCache implements ICache {
   }
 
   get<T>(key: string): T | null {
-    const inMem = this.memory.get(key);
-    if (inMem) {
-      if (Date.now() > inMem.expiresAt) {
-        this.memory.delete(key);
-        return null;
-      }
-      return inMem.data as T;
+    const entry = this.getEntry(key);
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) return null;
+    return entry.data as T;
+  }
+
+  getWithMeta<T>(key: string): CacheEntry<T> | null {
+    const entry = this.getEntry(key);
+    if (!entry) return null;
+    const now = Date.now();
+    if (now > entry.expiresAt) {
+      return { value: entry.data as T, isStale: true };
     }
+    return { value: entry.data as T, isStale: false };
+  }
+
+  private getEntry(key: string): Entry | null {
+    const inMem = this.memory.get(key);
+    if (inMem) return inMem;
 
     try {
       const raw = fs.readFileSync(this.filePath(key), "utf-8");
       const entry = JSON.parse(raw) as Entry;
-      if (Date.now() > entry.expiresAt) {
-        fs.promises.unlink(this.filePath(key)).catch(() => {});
-        return null;
-      }
       this.memory.set(key, entry);
-      return entry.data as T;
+      return entry;
     } catch {
       return null;
     }

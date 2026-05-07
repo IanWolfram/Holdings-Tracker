@@ -6,7 +6,7 @@ verdict: HOLD
 confidence: 0.60
 relevance: 0.90
 decayScore: 0.3065
-verified: true
+verified: false
 country: US
 source: polygon
 url: "https://www.fool.com/investing/2026/04/26/obesity-stock-vktx-could-double-12-months/?source=iedfolrf0000001"
