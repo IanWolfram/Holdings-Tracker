@@ -126,3 +126,93 @@ Tickers: CHKP, PLTR, MMS, MDB, HOOD, VKTX. 0 BUY / 0 SELL / 27 HOLD.
 ## [2026-05-06 15:04:36] daily | Daily summary updated for 2026-05-06 (+250)
 277 stories across 3 sectors, 5 tickers.
 
+## [2026-05-07 18:51:58] daily | Daily summary updated for 2026-05-07 (new)
+283 stories across 3 sectors, 5 tickers.
+
+## [2026-05-07 18:53:01] daily | Daily summary updated for 2026-05-07 (+-42)
+241 stories across 4 sectors, 6 tickers.
+
+## [2026-05-07 18:55:10] daily | Daily summary updated for 2026-05-07 (+2)
+243 stories across 4 sectors, 6 tickers.
+
+## [2026-05-11 15:41:27] macro | Macro snapshot for 2026-05-11
+Regime risk-on · VIX 17.19 · 10Y 4.41 · DXY 118.39 (falling)
+
+## [2026-05-11 15:41:27] events | Events snapshot for 2026-05-11
+0 earnings, 0 macro events.
+
+## [2026-05-11 15:49:26] daily | Daily summary updated for 2026-05-11 (new)
+33 stories across 3 sectors, 5 tickers.
+
+## [2026-05-11 15:49:40] lint | Agent run complete for 2026-05-11
+Tickers: CHKP, PLTR, MMS, MDB, HOOD, VKTX. 0 BUY / 0 SELL / 33 HOLD.
+
+## [2026-05-11 18:59:02] macro | Macro snapshot for 2026-05-11
+Regime risk-on · VIX 17.19 · 10Y 4.41 · DXY 118.39 (falling)
+
+## [2026-05-11 18:59:02] events | Events snapshot for 2026-05-11
+0 earnings, 0 macro events.
+
+## [2026-05-11 19:00:56] daily | Daily summary updated for 2026-05-11 (+70)
+103 stories across 4 sectors, 6 tickers.
+
+## [2026-05-11 19:05:06] daily | Daily summary updated for 2026-05-11 (+-68)
+35 stories across 4 sectors, 6 tickers.
+
+## [2026-05-11 19:05:06] lint | Agent run complete for 2026-05-11
+Tickers: CHKP, PLTR, MMS, MDB, HOOD, VKTX. 0 BUY / 0 SELL / 35 HOLD.
+
+## [2026-05-11 19:12:16] macro | Macro snapshot for 2026-05-11
+Regime risk-on · VIX 17.19 · 10Y 4.41 · DXY 118.39 (falling)
+
+## [2026-05-11 19:12:16] events | Events snapshot for 2026-05-11
+0 earnings, 0 macro events.
+
+## [2026-05-11 19:14:54] daily | Daily summary updated for 2026-05-11 (+-1)
+34 stories across 3 sectors, 5 tickers.
+
+## [2026-05-11 19:14:55] lint | Agent run complete for 2026-05-11
+Tickers: CHKP, PLTR, MMS, MDB, HOOD, VKTX. 0 BUY / 0 SELL / 34 HOLD.
+
+## [2026-05-11 19:21:17] macro | Macro snapshot for 2026-05-11
+Regime risk-on · VIX 17.19 · 10Y 4.41 · DXY 118.39 (falling)
+
+## [2026-05-11 19:21:17] events | Events snapshot for 2026-05-11
+0 earnings, 0 macro events.
+
+## [2026-05-11 19:21:24] daily | Daily summary updated for 2026-05-11 (+-1)
+33 stories across 3 sectors, 5 tickers.
+
+## [2026-05-11 19:21:25] lint | Agent run complete for 2026-05-11
+Tickers: CHKP, PLTR, MMS, MDB, HOOD, VKTX. 0 BUY / 0 SELL / 33 HOLD.
+
+## [2026-05-11 19:23:40] macro | Macro snapshot for 2026-05-11
+Regime risk-on · VIX 17.19 · 10Y 4.41 · DXY 118.39 (falling)
+
+## [2026-05-11 19:23:40] events | Events snapshot for 2026-05-11
+0 earnings, 0 macro events.
+
+## [2026-05-11 19:24:22] macro | Macro snapshot for 2026-05-11
+Regime risk-on · VIX 17.19 · 10Y 4.41 · DXY 118.39 (falling)
+
+## [2026-05-11 19:24:22] events | Events snapshot for 2026-05-11
+0 earnings, 0 macro events.
+
+## [2026-05-11 19:28:06] daily | Daily summary updated for 2026-05-11 (+-2)
+31 stories across 3 sectors, 5 tickers.
+
+## [2026-05-11 19:28:23] insight | Session insights synthesized for 2026-05-11
+Tickers: CHKP, PLTR, MMS, MDB, HOOD, VKTX. Totals: 17 BUY / 3 SELL / 13 HOLD.
+
+## [2026-05-11 19:28:30] lint | Agent run complete for 2026-05-11
+Tickers: CHKP, PLTR, MMS, MDB, HOOD, VKTX. 17 BUY / 3 SELL / 13 HOLD.
+
+## [2026-05-11 19:28:33] insight | Session insights synthesized for 2026-05-11
+Tickers: CHKP, PLTR, MMS, MDB, HOOD, VKTX. Totals: 18 BUY / 2 SELL / 11 HOLD.
+
+## [2026-05-11 19:28:39] lint | Agent run complete for 2026-05-11
+Tickers: CHKP, PLTR, MMS, MDB, HOOD, VKTX. 18 BUY / 2 SELL / 11 HOLD.
+
+## [2026-05-11 23:12:56] daily | Daily summary updated for 2026-05-11 (+95)
+126 stories across 4 sectors, 6 tickers.
+

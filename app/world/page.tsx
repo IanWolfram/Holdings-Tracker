@@ -146,52 +146,54 @@ export default function WorldPage() {
        groups[sector].push(story);
     }
 
-    // Add fake example stories to populate sector UI
-    const fakeStories: GeoStory[] = [
-      {
-        ticker: "NVDA",
-        headline: "TSMC Secures $10B Subsidy for Next-Gen 2nm Wafer Fabrication Facility",
-        summary: "Massive expansion in global supply chains...",
-        url: "https://example.com/fake-semi",
-        datetime: Date.now() / 1000 - 3600,
-        verdict: "BUY",
-        confidence: 0.92,
-        reason: "Supply chain monopoly secured for the next generation of architectures.",
-        source: "finnhub",
-        originCountryCode: "TW",
-        relevanceScore: 0.98
-      },
-      {
-        ticker: "DE",
-        headline: "Brazil Drought Risks 15% Reduction in Global Soybean Yields",
-        summary: "Agricultural equipment manufacturers brace for impact...",
-        url: "https://example.com/fake-agri",
-        datetime: Date.now() / 1000 - 86400,
-        verdict: "SELL",
-        confidence: 0.85,
-        reason: "Yield reductions directly correlate to lowered cap-ex on heavy machinery.",
-        source: "newsapi",
-        originCountryCode: "BR",
-        relevanceScore: 0.91
-      },
-      {
-        ticker: "PFE",
-        headline: "EMA Approves Breakthrough mRNA Therapy for Trial Expansion",
-        summary: "European regulators fast-track phase 3 trials...",
-        url: "https://example.com/fake-health",
-        datetime: Date.now() / 1000 - 18000,
-        verdict: "HOLD",
-        confidence: 0.76,
-        reason: "Approval is positive, but trial completion is 2 years out.",
-        source: "finnhub",
-        originCountryCode: "DE",
-        relevanceScore: 0.88
-      }
-    ];
+    // Add fake example stories to populate sector UI (development only)
+    if (process.env.NODE_ENV === "development") {
+      const fakeStories: GeoStory[] = [
+        {
+          ticker: "NVDA",
+          headline: "TSMC Secures $10B Subsidy for Next-Gen 2nm Wafer Fabrication Facility",
+          summary: "Massive expansion in global supply chains...",
+          url: "https://example.com/fake-semi",
+          datetime: Date.now() / 1000 - 3600,
+          verdict: "BUY",
+          confidence: 0.92,
+          reason: "Supply chain monopoly secured for the next generation of architectures.",
+          source: "finnhub",
+          originCountryCode: "TW",
+          relevanceScore: 0.98
+        },
+        {
+          ticker: "DE",
+          headline: "Brazil Drought Risks 15% Reduction in Global Soybean Yields",
+          summary: "Agricultural equipment manufacturers brace for impact...",
+          url: "https://example.com/fake-agri",
+          datetime: Date.now() / 1000 - 86400,
+          verdict: "SELL",
+          confidence: 0.85,
+          reason: "Yield reductions directly correlate to lowered cap-ex on heavy machinery.",
+          source: "newsapi",
+          originCountryCode: "BR",
+          relevanceScore: 0.91
+        },
+        {
+          ticker: "PFE",
+          headline: "EMA Approves Breakthrough mRNA Therapy for Trial Expansion",
+          summary: "European regulators fast-track phase 3 trials...",
+          url: "https://example.com/fake-health",
+          datetime: Date.now() / 1000 - 18000,
+          verdict: "HOLD",
+          confidence: 0.76,
+          reason: "Approval is positive, but trial completion is 2 years out.",
+          source: "finnhub",
+          originCountryCode: "DE",
+          relevanceScore: 0.88
+        }
+      ];
 
-    if (!groups["Semiconductors"]) groups["Semiconductors"] = [fakeStories[0]];
-    if (!groups["Agriculture"]) groups["Agriculture"] = [fakeStories[1]];
-    if (!groups["Healthcare"]) groups["Healthcare"] = [fakeStories[2]];
+      if (!groups["Semiconductors"]) groups["Semiconductors"] = [fakeStories[0]];
+      if (!groups["Agriculture"]) groups["Agriculture"] = [fakeStories[1]];
+      if (!groups["Healthcare"]) groups["Healthcare"] = [fakeStories[2]];
+    }
 
     // Sort sectors by the highest relevance score found within them
     const sortedEntries = Object.entries(groups).sort((a, b) => {

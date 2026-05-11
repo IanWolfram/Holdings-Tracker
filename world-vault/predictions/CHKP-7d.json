@@ -28,5 +28,57 @@
     "priceAtResolution": 115.3,
     "actualPct": -16.61,
     "outcome": "INCORRECT"
+  },
+  {
+    "id": "CHKP-7d-1778527460445",
+    "ticker": "CHKP",
+    "runAt": 1778527460445,
+    "priceAtPrediction": 115.035,
+    "direction": "UP",
+    "magnitudePct": 4,
+    "horizonDays": 7,
+    "confidence": 0.65,
+    "reasoning": "Single high-confidence BUY catalyst ($2B buyback) is strong but lacks a second high-confidence verdict for cluster confirmation. Ticker patterns show consistent bullish sentiment (3 BUY sessions in last 7, no SELLs) and constructive macro (risk-on, low VIX). However, prior 7d prediction missed badly (-16.6% actual vs +4.5% predicted), warranting reduced conviction. Moderate UP forecast with tempered magnitude and confidence.",
+    "catalysts": [
+      {
+        "headline": "Check Point Software Technologies Announces $2B Buyback Plan",
+        "verdict": "BUY",
+        "confidence": 0.88,
+        "catalystTypes": [
+          "technical"
+        ]
+      }
+    ],
+    "catalystTypes": [
+      "technical"
+    ],
+    "engine": "deepseek-chat",
+    "status": "pending"
+  },
+  {
+    "id": "CHKP-7d-1778527419640",
+    "ticker": "CHKP",
+    "runAt": 1778527419640,
+    "priceAtPrediction": 115.08,
+    "direction": "UP",
+    "magnitudePct": 4,
+    "horizonDays": 7,
+    "confidence": 0.78,
+    "reasoning": "Strong BUY cluster from $2B buyback authorization (92% confidence) plus consistent bullish verdicts over past sessions. Ticker patterns show high cash flow stocks outperforming in current rate environment. Prior prediction miss was due to unexpected macro shock; current macro regime is risk-on with falling VIX and DXY, supporting tech. No significant SELL catalysts present.",
+    "catalysts": [
+      {
+        "headline": "Check Point Software Technologies Announces $2B Buyback Plan",
+        "verdict": "BUY",
+        "confidence": 0.92,
+        "catalystTypes": [
+          "technical"
+        ]
+      }
+    ],
+    "catalystTypes": [
+      "technical"
+    ],
+    "engine": "deepseek-chat",
+    "status": "pending"
   }
 ]

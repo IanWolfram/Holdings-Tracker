@@ -1,7 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { authedFetch } from "@/lib/api/client-fetch";
+
+const VERIFIER_RE = /^[A-Za-z0-9._~-]{4,64}$/;
 
 export default function ETradeVerifyPage() {
   const router = useRouter();
@@ -9,34 +12,68 @@ export default function ETradeVerifyPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [clipboardHint, setClipboardHint] = useState<string | null>(null);
+  const submittingRef = useRef(false);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  const submit = useCallback(async (code: string) => {
+    if (submittingRef.current || !code) return;
+    submittingRef.current = true;
     setError(null);
     setLoading(true);
 
     try {
-      const res = await fetch("/api/etrade/callback", {
+      const res = await authedFetch("/api/etrade/callback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ oauth_verifier: verifier }),
+        body: JSON.stringify({ oauth_verifier: code }),
       });
 
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Verification failed");
+        submittingRef.current = false;
         return;
       }
 
       setSuccess(true);
-      setTimeout(() => {
-        router.push("/world?etrade_success=true");
-      }, 1500);
+      setTimeout(() => router.push("/terminal?etrade_success=true"), 1200);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Network error");
+      submittingRef.current = false;
     } finally {
       setLoading(false);
     }
+  }, [router]);
+
+  // Try to read verifier from clipboard — called on mount and when tab regains focus
+  const tryClipboard = useCallback(async () => {
+    if (submittingRef.current || success) return;
+    try {
+      const text = await navigator.clipboard.readText();
+      const trimmed = text.trim();
+      if (VERIFIER_RE.test(trimmed)) {
+        setVerifier(trimmed);
+        setClipboardHint("Code detected from clipboard — submitting…");
+        submit(trimmed);
+      }
+    } catch {
+      // Clipboard permission denied or unavailable — user types manually
+    }
+  }, [submit, success]);
+
+  useEffect(() => {
+    // Try immediately on mount (user may have already copied the code)
+    tryClipboard();
+
+    // Also try when the user switches back to this tab after copying from E*TRADE
+    const onFocus = () => tryClipboard();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [tryClipboard]);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    submit(verifier);
   }
 
   return (
@@ -46,8 +83,7 @@ export default function ETradeVerifyPage() {
           E*Trade Verification
         </h1>
         <p className="text-sm text-[var(--color-on-surface-variant)] mb-6 text-center">
-          After authorizing on E*Trade&rsquo;s site, copy the verification code
-          and paste it below.
+          Copy the code from E*Trade — it will be detected automatically.
         </p>
 
         {success ? (
@@ -57,6 +93,10 @@ export default function ETradeVerifyPage() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
+            {clipboardHint && !error && (
+              <p className="text-xs text-[var(--color-positive)] text-center">{clipboardHint}</p>
+            )}
+
             <div>
               <label
                 htmlFor="verifier"
@@ -69,7 +109,7 @@ export default function ETradeVerifyPage() {
                 type="text"
                 required
                 value={verifier}
-                onChange={(e) => setVerifier(e.target.value)}
+                onChange={(e) => { setVerifier(e.target.value); setClipboardHint(null); }}
                 className="w-full px-3 py-2 rounded-lg bg-[var(--color-surface-container)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] placeholder:text-[var(--color-outline)] focus:outline-none focus:border-[var(--color-positive)] transition-colors font-mono text-center text-lg tracking-widest"
                 placeholder="ABC123"
                 autoFocus

@@ -85,7 +85,12 @@ function buildNoteContent(story: GeoStory, dateStr: string, sector?: string): st
 // Individual story note
 // ---------------------------------------------------------------------------
 
-export async function writeStoryNote(story: GeoStory, store: VaultStore, sector?: string): Promise<void> {
+export async function writeStoryNote(
+  story: GeoStory,
+  store: VaultStore,
+  sector?: string,
+  userId: string = "system",
+): Promise<void> {
   try {
     const date = new Date(story.datetime * 1000);
     const dateStr = date.toISOString().split("T")[0]; // YYYY-MM-DD
@@ -98,9 +103,9 @@ export async function writeStoryNote(story: GeoStory, store: VaultStore, sector?
     const content = buildNoteContent(story, dateStr, sector);
 
     // If a file for this URL already exists (possibly under a different slug), use that path
-    // and skip if it's already verified — don't downgrade an MLX-verified entry.
+    // and skip if it's already verified — don't downgrade an AI-verified entry.
     // Optimized duplicate check using the Vault Index
-    const index = await getVaultIndex(store);
+    const index = await getVaultIndex(store, userId);
     const existing = index.get(story.url);
     if (existing) {
       // Don't overwrite a successful analysis with a failed one
@@ -111,7 +116,36 @@ export async function writeStoryNote(story: GeoStory, store: VaultStore, sector?
         return;
       }
       await store.write(existing.filePath, content);
-      updateVaultIndex(story.url, {
+      updateVaultIndex(
+        story.url,
+        {
+          verdict: story.verdict,
+          confidence: story.confidence,
+          reason: story.reason,
+          relevanceScore: story.relevanceScore,
+          originCountryCode: story.originCountryCode || null,
+          catalystTypes: story.catalystTypes,
+          classifiedAt: dateStr,
+          isAnalyzed: !!story.isAnalyzed,
+          fromVault: true,
+          filePath: existing.filePath,
+          ticker: story.ticker,
+          headline: story.headline,
+          summary: story.summary ?? "",
+          datetime: story.datetime,
+          source: story.source,
+        },
+        userId,
+      );
+      return;
+    }
+
+    await store.write(noteRelPath, content);
+
+    // Update index so subsequent writes in this process know about the new file
+    updateVaultIndex(
+      story.url,
+      {
         verdict: story.verdict,
         confidence: story.confidence,
         reason: story.reason,
@@ -121,36 +155,15 @@ export async function writeStoryNote(story: GeoStory, store: VaultStore, sector?
         classifiedAt: dateStr,
         isAnalyzed: !!story.isAnalyzed,
         fromVault: true,
-        filePath: existing.filePath,
+        filePath: noteRelPath,
         ticker: story.ticker,
         headline: story.headline,
         summary: story.summary ?? "",
         datetime: story.datetime,
         source: story.source,
-      });
-      return;
-    }
-
-    await store.write(noteRelPath, content);
-
-    // Update index so subsequent writes in this process know about the new file
-    updateVaultIndex(story.url, {
-      verdict: story.verdict,
-      confidence: story.confidence,
-      reason: story.reason,
-      relevanceScore: story.relevanceScore,
-      originCountryCode: story.originCountryCode || null,
-      catalystTypes: story.catalystTypes,
-      classifiedAt: dateStr,
-      isAnalyzed: !!story.isAnalyzed,
-      fromVault: true,
-      filePath: noteRelPath,
-      ticker: story.ticker,
-      headline: story.headline,
-      summary: story.summary ?? "",
-      datetime: story.datetime,
-      source: story.source,
-    });
+      },
+      userId,
+    );
   } catch (err) {
     console.error("[obsidian] Failed to write story note:", err);
   }

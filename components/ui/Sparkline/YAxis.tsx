@@ -6,8 +6,8 @@ import type { YAxisProps } from "./types";
  */
 export function YAxis({ pl, py, height, max, min }: YAxisProps) {
   const formatAxisLabel = (val: number) => {
-    if (val >= 1000000) return (val / 1000000).toFixed(1) + "M";
-    if (val >= 1000) return (val / 1000).toFixed(1) + "K";
+    if (val >= 1_000_000) return (val / 1_000_000).toFixed(1) + "M";
+    if (val >= 1_000) return (val / 1_000).toFixed(1) + "K";
     return val.toFixed(1);
   };
 

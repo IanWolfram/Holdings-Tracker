@@ -123,7 +123,12 @@ export class FsVaultStore implements VaultStore {
   }
 
   private full(p: string): string {
-    return nodePath.join(this.root, p);
+    const joined = nodePath.resolve(this.root, p);
+    const rootWithSep = this.root.endsWith(nodePath.sep) ? this.root : this.root + nodePath.sep;
+    if (joined !== this.root && !joined.startsWith(rootWithSep)) {
+      throw new Error(`Vault path escapes root: ${p}`);
+    }
+    return joined;
   }
 
   async read(p: string): Promise<string | null> {
@@ -266,11 +271,12 @@ export class SupabaseVaultStore implements VaultStore {
 
   async delete(p: string): Promise<void> {
     const supabase = createServiceClient();
-    await supabase
+    const { error } = await supabase
       .from("vault_notes")
       .delete()
       .eq("user_id", this.userId)
       .eq("path", p);
+    if (error) throw new Error(`Failed to delete vault note ${p}: ${error.message}`);
   }
 
   async readNote(p: string): Promise<VaultNote | null> {
@@ -322,9 +328,5 @@ export class SupabaseVaultStore implements VaultStore {
 // ── Factory ──
 
 export async function getVaultStore(userId: string): Promise<VaultStore> {
-  if (process.env.PULSE_SINGLE_USER_MODE === "1") {
-    const vaultPath = process.env.WORLD_VAULT_PATH ?? "./world-vault";
-    return new FsVaultStore(vaultPath);
-  }
   return new SupabaseVaultStore(userId);
 }

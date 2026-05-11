@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import TopBar from "@/components/layout/TopBar";
 import { useAgentStatus } from "@/hooks/useAgentStatus";
+import { authedFetch } from "@/lib/api/client-fetch";
 
 interface ChatMessage {
+  id: string;
   role: "user" | "assistant";
   content: string;
 }
@@ -22,7 +24,14 @@ const ACTIVE_KEY = "pulse_chat_active_id";
 function loadConversations(): Conversation[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const convs: Conversation[] = raw ? JSON.parse(raw) : [];
+    // Ensure every message has an id (migration for pre-id messages)
+    for (const conv of convs) {
+      for (const msg of conv.messages) {
+        if (!msg.id) msg.id = crypto.randomUUID();
+      }
+    }
+    return convs;
   } catch { return []; }
 }
 
@@ -102,6 +111,8 @@ export default function AgentDashboard() {
 
   const activeConv = conversations.find(c => c.id === activeId);
   const messages = activeConv?.messages ?? [];
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
 
   const updateActiveConv = useCallback((updater: (c: Conversation) => Conversation) => {
     setConversations(prev => prev.map(c => c.id === activeId ? updater(c) : c));
@@ -111,8 +122,8 @@ export default function AgentDashboard() {
     const text = input.trim();
     if (!text || loading || !activeId) return;
 
-    const history = messages.slice(-10).map(m => ({ role: m.role, content: m.content }));
-    const userMsg: ChatMessage = { role: "user", content: text };
+    const history = messagesRef.current.slice(-10).map(m => ({ role: m.role, content: m.content }));
+    const userMsg: ChatMessage = { id: crypto.randomUUID(), role: "user", content: text };
 
     updateActiveConv(c => ({
       ...c,
@@ -125,13 +136,14 @@ export default function AgentDashboard() {
     setPendingMessage(true);
 
     try {
-      const res = await fetch("/api/agent/chat", {
+      const res = await authedFetch("/api/agent/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text, history }),
       });
       const data = await res.json();
       const reply: ChatMessage = {
+        id: crypto.randomUUID(),
         role: "assistant",
         content: res.ok ? data.reply : (data.error ?? "Error getting response."),
       };
@@ -139,7 +151,7 @@ export default function AgentDashboard() {
     } catch {
       updateActiveConv(c => ({
         ...c,
-        messages: [...c.messages, { role: "assistant", content: "Failed to reach the AI engine." }],
+        messages: [...c.messages, { id: crypto.randomUUID(), role: "assistant", content: "Failed to reach the AI engine." }],
         updatedAt: Date.now(),
       }));
     } finally {
@@ -147,7 +159,7 @@ export default function AgentDashboard() {
       setPendingMessage(false);
       inputRef.current?.focus();
     }
-  }, [input, loading, activeId, messages, updateActiveConv]);
+  }, [input, loading, activeId, updateActiveConv]);
 
   const startNewChat = () => {
     const fresh = newConversation();
@@ -309,8 +321,8 @@ export default function AgentDashboard() {
               </div>
             )}
 
-            {messages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+            {messages.map((msg) => (
+              <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                 {msg.role === "assistant" && (
                   <div className="w-6 h-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0 mr-2 mt-0.5">
                     <span className="material-symbols-outlined text-[13px] text-slate-400">neurology</span>

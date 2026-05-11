@@ -2,6 +2,9 @@
  * Polygon.io Utility for high-fidelity market data
  */
 
+import { SLOW_API_TIMEOUT_MS } from "./constants";
+import { debug } from "./debug";
+
 // Free tier: 5 calls/minute = 1 per 12 s. Use 13 s to stay safely under.
 // Override via POLYGON_RATE_MS env var on paid tiers.
 let polygonQueue: Promise<void> = Promise.resolve();
@@ -23,7 +26,7 @@ function enqueuePolygon<T>(fn: () => Promise<T>): Promise<T> {
 // starts counting once the request is actually about to fire.
 async function fetchWithRetry(url: string): Promise<Response> {
   for (let attempt = 0; attempt < 3; attempt++) {
-    const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+    const res = await fetch(url, { signal: AbortSignal.timeout(SLOW_API_TIMEOUT_MS) });
     if (res.status !== 429) return res;
     const backoff = 15_000 * (attempt + 1);
     console.warn(`[polygon] 429 on attempt ${attempt + 1}, retrying in ${backoff / 1000}s`);
@@ -59,7 +62,7 @@ export async function fetchCandlesPolygon(
       const data = await res.json();
       // Free tier returns "DELAYED" instead of "OK" — treat both as valid
       if ((data.status === "OK" || data.status === "DELAYED") && Array.isArray(data.results)) {
-        console.log(`[polygon] Fetched ${data.results.length} candles for ${ticker} (${data.status})`);
+        debug("polygon", `Fetched ${data.results.length} candles for ${ticker} (${data.status})`);
         return data.results.map((r: { c: number }) => r.c);
       }
 

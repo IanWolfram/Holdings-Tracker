@@ -18,7 +18,6 @@ import {
 import { applyCountryBuffers, applyStateBuffers } from "@/components/world/globe/buffers";
 import { rebuildHQMarkers } from "@/components/world/globe/markers";
 import { animateGlobe } from "@/components/world/globe/animation";
-import { CLUSTER_HOVER_SEP } from "@/components/world/globe/types";
 import type { GlobeFocusTarget } from "@/components/world/globe/focus";
 
 interface UseGlobeSceneParams {
@@ -79,6 +78,7 @@ export function useGlobeScene({
   const geoJSONCacheRef = useRef<GeoJSON | null>(null);
   const workerRef = useRef<Worker | null>(null);
   const focusedTickerRef = useRef<string | null>(null);
+  const selectedDiamondRef = useRef<THREE.Mesh | null>(null);
   const [webglAvailable, setWebglAvailable] = useState<boolean>(true);
 
   useEffect(() => {
@@ -103,6 +103,62 @@ export function useGlobeScene({
     focusedTickerRef.current = focusedTicker ?? null;
   }, [focusedTicker]);
 
+  // Diamond plumbob selected-marker — appears on the focused HQ dot, spins around surface normal
+  useEffect(() => {
+    const globeGroup = globeGroupRef.current;
+    if (!globeGroup) return;
+
+    // Tear down old diamond
+    if (selectedDiamondRef.current) {
+      globeGroup.remove(selectedDiamondRef.current);
+      selectedDiamondRef.current.geometry.dispose();
+      (selectedDiamondRef.current.material as THREE.Material).dispose();
+      selectedDiamondRef.current = null;
+    }
+
+    // Restore all marker groups to fully visible
+    for (const ms of hqMarkersRef.current) {
+      ms.group.visible = true;
+    }
+
+    if (!focusedTicker || !worldData) return;
+    const profile = worldData.profiles[focusedTicker];
+    if (!profile || profile.lat === undefined || profile.lon === undefined) return;
+
+    // Hide the entire group for this ticker (selected diamond replaces it)
+    const ms = hqMarkersRef.current.find((m) => m.ticker === focusedTicker);
+    if (ms) ms.group.visible = false;
+
+    // Build the plumbob: a vertically elongated octahedron (diamond shape)
+    const radius = 0.016;
+    const geo = new THREE.OctahedronGeometry(radius, 0);
+    geo.applyMatrix4(new THREE.Matrix4().makeScale(1, 2.4, 1));
+
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0x00ff88,
+      transparent: true,
+      opacity: 0.88,
+      side: THREE.DoubleSide,
+    });
+
+    const diamond = new THREE.Mesh(geo, mat);
+
+    // Surface position — 1.018 matches marker placement
+    const surfacePos = latLonToVector3(profile.lat, profile.lon, 1.018);
+    const outward = surfacePos.clone().normalize();
+
+    // Sit the bottom tip ON the surface: move center up by one half-height
+    const halfHeight = radius * 2.4;
+    diamond.position.copy(surfacePos.clone().addScaledVector(outward, halfHeight));
+
+    // Orient so local +Y points radially outward from globe center
+    const localUp = new THREE.Vector3(0, 1, 0);
+    diamond.quaternion.setFromUnitVectors(localUp, outward);
+
+    globeGroup.add(diamond);
+    selectedDiamondRef.current = diamond;
+  }, [focusedTicker, worldData]);
+
   useEffect(() => {
     if (!navigateTo) {
       return;
@@ -119,17 +175,6 @@ export function useGlobeScene({
       pathEl.setAttribute("d", "M -9999 -9999");
     }
   }, [navigateTo]);
-
-  useEffect(() => {
-    const globeGroup = globeGroupRef.current;
-    if (!globeGroup || !worldData) {
-      return;
-    }
-
-    for (const ms of hqMarkersRef.current) {
-      ms.visible = true;
-    }
-  }, [focusedTicker, worldData]);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -215,6 +260,7 @@ export function useGlobeScene({
         scene,
         hqMarkersRef.current,
         markerInstancesRef.current,
+        selectedDiamondRef.current,
         hoveredMarkerTickerRef.current,
         focusedTickerRef.current,
         isFocusedRef.current,
@@ -470,21 +516,18 @@ export function useGlobeScene({
       mount.removeEventListener("mouseleave", onMouseLeave);
       // Dispose marker sphere groups
       for (const ms of hqMarkersRef.current) {
-        if (ms.sphereGroup) {
-          ms.sphereGroup.traverse((child) => {
-            const mesh = child as THREE.Mesh;
-            if (mesh.geometry && !(mesh.geometry as any)._shared) {
-              mesh.geometry.dispose();
-            }
-            const mat = mesh.material as THREE.Material;
-            if (mat) {
-              if ("map" in mat && (mat as THREE.MeshBasicMaterial).map) {
-                ((mat as THREE.MeshBasicMaterial).map as THREE.Texture).dispose();
-              }
-              mat.dispose();
-            }
-          });
-        }
+        ms.sphere.geometry.dispose();
+        (ms.sphere.material as THREE.Material).dispose();
+        ms.hitSphere.geometry.dispose();
+        (ms.hitSphere.material as THREE.Material).dispose();
+        ms.hoverDiamond.geometry.dispose();
+        (ms.hoverDiamond.material as THREE.Material).dispose();
+      }
+      // Dispose selected diamond plumbob
+      if (selectedDiamondRef.current) {
+        selectedDiamondRef.current.geometry.dispose();
+        (selectedDiamondRef.current.material as THREE.Material).dispose();
+        selectedDiamondRef.current = null;
       }
       renderer.dispose();
       scene.clear();

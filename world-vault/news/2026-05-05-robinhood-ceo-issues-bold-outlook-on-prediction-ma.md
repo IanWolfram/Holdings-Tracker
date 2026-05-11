@@ -5,7 +5,7 @@ sector: Financial Services
 verdict: HOLD
 confidence: 0.50
 relevance: 0.50
-decayScore: 0.9037
+decayScore: 0.4301
 verified: false
 analysisFailed: false
 country: US

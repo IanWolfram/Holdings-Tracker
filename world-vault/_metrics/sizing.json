@@ -1,57 +1,57 @@
 {
-  "updatedAt": "2026-05-06T14:26:11.459Z",
+  "updatedAt": "2026-05-11T19:28:39.411Z",
   "entries": {
     "CHKP": {
       "ticker": "CHKP",
       "base": 0.1667,
-      "directionConfidence": 0.72,
+      "directionConfidence": 0,
       "historicalAccuracy": 0.5,
-      "portfolioCorrelation": 0.165,
-      "suggestedAllocation": 0.0501,
-      "rationale": "UP 4.5% @ 72% conf, 50% historical accuracy, mean |corr| 0.17"
+      "portfolioCorrelation": 0.1604,
+      "suggestedAllocation": 0,
+      "rationale": "no directional 7d prediction available — sizing collapses to 0"
     },
     "PLTR": {
       "ticker": "PLTR",
       "base": 0.1667,
-      "directionConfidence": 0.72,
+      "directionConfidence": 0,
       "historicalAccuracy": 0.5,
-      "portfolioCorrelation": 0.3905,
-      "suggestedAllocation": 0.0366,
-      "rationale": "UP 4.5% @ 72% conf, 50% historical accuracy, mean |corr| 0.39"
+      "portfolioCorrelation": 0.3639,
+      "suggestedAllocation": 0,
+      "rationale": "no directional 7d prediction available — sizing collapses to 0"
     },
     "MMS": {
       "ticker": "MMS",
       "base": 0.1667,
       "directionConfidence": 0,
       "historicalAccuracy": 0.5,
-      "portfolioCorrelation": 0.1503,
+      "portfolioCorrelation": 0.1123,
       "suggestedAllocation": 0,
       "rationale": "no directional 7d prediction available — sizing collapses to 0"
     },
     "MDB": {
       "ticker": "MDB",
       "base": 0.1667,
-      "directionConfidence": 0.78,
+      "directionConfidence": 0,
       "historicalAccuracy": 0.5,
-      "portfolioCorrelation": 0.3665,
-      "suggestedAllocation": 0.0412,
-      "rationale": "UP 6.5% @ 78% conf, 50% historical accuracy, mean |corr| 0.37"
+      "portfolioCorrelation": 0.3388,
+      "suggestedAllocation": 0,
+      "rationale": "no directional 7d prediction available — sizing collapses to 0"
     },
     "HOOD": {
       "ticker": "HOOD",
       "base": 0.1667,
-      "directionConfidence": 0.78,
+      "directionConfidence": 0,
       "historicalAccuracy": 0.5,
-      "portfolioCorrelation": 0.3577,
-      "suggestedAllocation": 0.0417,
-      "rationale": "DOWN 6.5% @ 78% conf, 50% historical accuracy, mean |corr| 0.36"
+      "portfolioCorrelation": 0.2776,
+      "suggestedAllocation": 0,
+      "rationale": "no directional 7d prediction available — sizing collapses to 0"
     },
     "VKTX": {
       "ticker": "VKTX",
       "base": 0.1667,
       "directionConfidence": 0,
       "historicalAccuracy": 0.5,
-      "portfolioCorrelation": 0.221,
+      "portfolioCorrelation": 0.2266,
       "suggestedAllocation": 0,
       "rationale": "no directional 7d prediction available — sizing collapses to 0"
     }

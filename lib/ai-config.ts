@@ -19,5 +19,10 @@ export function getActiveModel(): SavedModel {
 }
 
 export function getModelKey(_modelId: string): string | undefined {
-  return process.env.DEEPSEEK_API_KEY;
+  if (process.env.DEEPSEEK_API_KEY) return process.env.DEEPSEEK_API_KEY;
+  // Fallback: legacy multi-model config wrote keys as MODEL_KEY_deepseek_<suffix>.
+  const legacy = Object.entries(process.env).find(
+    ([k, v]) => k.startsWith("MODEL_KEY_deepseek") && typeof v === "string" && v.length > 0,
+  );
+  return legacy?.[1];
 }

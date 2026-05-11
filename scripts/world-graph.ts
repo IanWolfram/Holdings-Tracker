@@ -41,7 +41,7 @@ async function main(): Promise<void> {
   const tickers = Object.keys(profiles);
   console.log(`[world-graph] Tickers: ${tickers.join(", ") || "(none)"}`);
 
-  await runGraphPass(store, profiles, tickers);
+  await runGraphPass(vaultPathRaw, profiles, tickers, store);
   console.log("[world-graph] Done.");
 }
 

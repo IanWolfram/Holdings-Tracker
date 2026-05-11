@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
+import { authedFetch } from "@/lib/api/client-fetch";
 
 export interface AccountSettings {
   etrade: { env: string };
-  ai: { activeModel: string; activeProvider: string; supportsLocalMlx: boolean; hasKey: boolean };
+  ai: { activeModel: string; activeProvider: string; hasKey: boolean };
   dataSources: { finnhub: boolean; polygon: boolean; newsapi: boolean; fred: boolean };
   telegram: { configured: boolean };
   ui: { mode: string };
@@ -16,7 +17,7 @@ export function useAccountSettings() {
   const fetchSettings = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/settings");
+      const res = await authedFetch("/api/settings");
       if (res.ok) {
         const data = await res.json();
         setSettings(data);

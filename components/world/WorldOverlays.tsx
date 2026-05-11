@@ -1,11 +1,57 @@
-import CountryFocusPanel from "@/components/world/CountryFocusPanel";
-import CountryTooltip from "@/components/world/CountryTooltip";
+import CountryFocusPanel from "@/components/world/countrypanel";
+import CountryTooltip from "@/components/world/countrytooltip";
 import type { GlobeFocusTarget } from "@/components/world/GlobeCanvas";
 import CubeHoverLabel from "@/components/world/CubeHoverLabel";
 import StockDetailPanel from "@/components/world/StockDetailPanel";
 import type { CountryState, WorldData } from "@/types/geo.types";
 import type { Position } from "@/types/position.types";
 import { AnimatePresence } from "framer-motion";
+import type { CSSProperties } from "react";
+
+const LOADING_OVERLAY_STYLE: CSSProperties = {
+  background: "rgba(5, 8, 5, 0.75)",
+  backdropFilter: "blur(8px)",
+  WebkitBackdropFilter: "blur(8px)",
+  zIndex: 10,
+};
+
+const SPINNER_STYLE: CSSProperties = {
+  width: 48,
+  height: 48,
+  border: "2px solid rgba(0,255,136,0.2)",
+  borderTop: "2px solid #00FF88",
+  borderRadius: "50%",
+  animation: "spin 1s linear infinite",
+  margin: "0 auto",
+};
+
+const LOADING_TEXT_STYLE: CSSProperties = {
+  fontFamily: "'Space Grotesk', sans-serif",
+  fontSize: 15,
+  color: "#94a3b8",
+  margin: 0,
+};
+
+const LOADING_SUBTEXT_STYLE: CSSProperties = {
+  fontFamily: "'JetBrains Mono', monospace",
+  fontSize: 11,
+  color: "#334155",
+  margin: 0,
+};
+
+const FOCUS_OVERLAY_STYLE: CSSProperties = {
+  background: "transparent",
+};
+
+const CONNECTOR_SVG_STYLE: CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  width: "100vw",
+  height: "100vh",
+  pointerEvents: "none",
+  zIndex: 39,
+  overflow: "visible",
+};
 
 interface WorldOverlaysProps {
   loading: boolean;
@@ -41,42 +87,19 @@ export default function WorldOverlays({
       {loading && (
         <div
           className="absolute inset-0 flex items-center justify-center"
-          style={{
-            background: "rgba(5, 8, 5, 0.75)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-            zIndex: 10,
-          }}
+          style={LOADING_OVERLAY_STYLE}
         >
           <div className="text-center space-y-4">
             <div
-              style={{
-                width: 48,
-                height: 48,
-                border: "2px solid rgba(0,255,136,0.2)",
-                borderTop: "2px solid #00FF88",
-                borderRadius: "50%",
-                animation: "spin 1s linear infinite",
-                margin: "0 auto",
-              }}
+              style={SPINNER_STYLE}
             />
             <p
-              style={{
-                fontFamily: "'Space Grotesk', sans-serif",
-                fontSize: 15,
-                color: "#94a3b8",
-                margin: 0,
-              }}
+              style={LOADING_TEXT_STYLE}
             >
               Building world intelligence…
             </p>
             <p
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 11,
-                color: "#334155",
-                margin: 0,
-              }}
+              style={LOADING_SUBTEXT_STYLE}
             >
               First load: 2–3 min (cached for 15 min after)
             </p>
@@ -101,12 +124,12 @@ export default function WorldOverlays({
       {isFocused && (
         <div
           className="absolute inset-0 z-30 pointer-events-none"
-          style={{ background: "transparent" }}
+          style={FOCUS_OVERLAY_STYLE}
         />
       )}
 
       {focusTarget?.type === "stock" && (
-        <svg style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh", pointerEvents: "none", zIndex: 39, overflow: "visible" }}>
+        <svg style={CONNECTOR_SVG_STYLE}>
           <defs>
             <filter id="connector-glow" x="-50%" y="-50%" width="200%" height="200%">
               <feGaussianBlur stdDeviation="2.5" result="blur" />

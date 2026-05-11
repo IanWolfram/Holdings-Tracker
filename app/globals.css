@@ -14,9 +14,9 @@
   --color-positive: #00FF88;
   --color-negative: #FF4444;
 
-  --font-headline: "Space Grotesk", sans-serif;
-  --font-body: "Inter", sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
+  --font-headline: var(--font-space-grotesk), "Space Grotesk", sans-serif;
+  --font-body: var(--font-inter), "Inter", sans-serif;
+  --font-mono: var(--font-jetbrains-mono), "JetBrains Mono", monospace;
 
   /* ── Liquid Glass Tokens ── */
   --color-glass: rgba(255, 255, 255, 0.05);
@@ -28,7 +28,7 @@
 }
 
 body {
-  font-family: "Inter", sans-serif;
+  font-family: var(--font-inter), "Inter", sans-serif;
   background-color: #080808;
   color: #e2e2e6;
   background-image: 

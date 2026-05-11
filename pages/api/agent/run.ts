@@ -7,7 +7,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const user = await requireUser(req, res);
   if (!user) return;
 
-  const access = requirePremiumAccess();
+  const access = await requirePremiumAccess();
   if (!access.ok) {
     return res.status(access.statusCode).json({ error: access.error });
   }
@@ -16,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const progress = getAgentProgress();
     return res.status(200).json({
       ...progress,
-      isMock: process.env.ETRADE_ENV === "mock"
+      isMock: false
     });
   }
 
@@ -33,7 +33,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Fire and forget (it updates global state)
     // We don't await it here so we can return "Started" immediately
-    runStockAgent().catch((err) => {
+    runStockAgent(user.id).catch((err) => {
       console.error("[api/agent/run] Background agent run failed:", err);
     });
 

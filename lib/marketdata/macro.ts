@@ -1,3 +1,5 @@
+import { API_TIMEOUT_MS } from "../constants";
+
 export type MacroRegime = "risk-on" | "risk-off" | "neutral";
 export type TrendDirection = "rising" | "falling" | "flat" | "unknown";
 
@@ -89,7 +91,7 @@ async function fetchSeriesSample(seriesId: string, apiKey: string): Promise<Seri
 
   const res = await fetch(url, {
     headers: { Accept: "application/json" },
-    signal: AbortSignal.timeout(10_000),
+    signal: AbortSignal.timeout(API_TIMEOUT_MS),
   });
 
   if (!res.ok) {

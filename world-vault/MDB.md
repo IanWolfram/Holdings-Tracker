@@ -1,5 +1,5 @@
 ---
-date: "2026-05-04"
+date: "2026-05-11"
 type: ticker-knowledge
 ticker: MDB
 sector: Tech
@@ -12,25 +12,26 @@ tags:
 
 # MDB — Knowledge Hub
 
-> Tech · Last updated 2026-05-04
+> Tech · Last updated 2026-05-11
 
 ## Verdict Trend (last 7 sessions)
 
 | Date | BUY | SELL | HOLD | Top Signal |
 |------|----:|-----:|-----:|------------|
-| 2026-05-04 | 1 | 0 | 0 | **BUY** 82% — MongoDB Could Be Setting Up for a Sharp Earnings Rebound |
+| 2026-05-11 | 1 | 0 | 1 | **BUY** 78% — MongoDB: Atlas And AI Keep The Growth Story Alive |
+| 2026-05-07 | 0 | 1 | 0 | **SELL** 70% — Attention Long-Term Shareholders of FS KKR Capital Corp. (NYSE: FSK);  |
+| 2026-05-06 | 0 | 0 | 3 | **HOLD** 50% — Palantir: A Record-Breaking 145% Rule 40 Score Signals Hypergrowth Pha |
+| 2026-05-05 | 0 | 0 | 1 | **HOLD** 50% — MongoDB Could Be Setting Up for a Sharp Earnings Rebound |
 | 2026-04-30 | 1 | 0 | 4 | **BUY** 82% — MongoDB (MDB): 10 Best NASDAQ Stocks with the Highest Upside Potential |
-| 2026-04-29 | 1 | 0 | 4 | **BUY** 82% — MongoDB (MDB): 10 Best NASDAQ Stocks with the Highest Upside Potential |
-| 2026-04-28 | 0 | 0 | 1 | **HOLD** 50% — Carillon Scout Mid Cap Fund Q1 2026 Portfolio Review |
-| 2026-04-27 | 0 | 0 | 1 | **HOLD** 65% — Major SaaS Earnings Calendar: April – June |
-| 2026-04-26 | 3 | 0 | 2 | **BUY** 82% — MongoDB announces EUR74m Ireland expansion, 200 jobs, and new Cork off |
 
 ## Top Recent Stories
 
-- **BUY** 82% — [[news/2026-04-30-mongodb-could-be-setting-up-for-a-sharp-earnings-r|MongoDB Could Be Setting Up for a Sharp Earnings Rebound]] _(2026-04-30)_
+- **BUY** 78% — [[news/2026-05-10-mongodb-atlas-and-ai-keep-the-growth-story-alive|MongoDB: Atlas And AI Keep The Growth Story Alive]] _(2026-05-10)_
+- **HOLD** 50% — [[news/2026-05-08-important-notice-to-long-term-shareholders-of-lkq-|Important Notice to Long-Term Shareholders of LKQ Corporation (NASDAQ: LKQ); Molina Health]] _(2026-05-08)_
+- **HOLD** 50% — [[news/2026-05-06-attention-long-term-shareholders-of-fs-kkr-capital|Attention Long-Term Shareholders of FS KKR Capital Corp. (NYSE: FSK); LKQ Corporation (NAS]] _(2026-05-06)_
 
 ## Learned Patterns
 
-When MDB announces direct operational investment in geographic expansion, such as the €74M Ireland expansion adding 200 jobs, it reliably triggers high-confidence BUY signals at 82% confidence. Pre-earnings setups with oversold conditions and low analyst bars also produce BUY signals at 82% confidence, while executive appointments to product leadership roles generate BUY signals at 78% confidence. SELL signals are rare for MDB, but sector-wide SaaS earnings misses or sympathy weakness from competitors like ServiceNow can create HOLD signals at 20-65% confidence, indicating contagion risk rather than company-specific deterioration. Amazon DocumentDB compatibility upgrades produce BUY signals at 92% confidence, reflecting that competitive validation from hyperscalers is a uniquely strong catalyst for MDB. Confidence calibration shows that operational investment catalysts consistently score 0.78-0.82, while competitive validation from hyperscalers scores 0.92, and pre-earnings setups score 0.82.
+When MDB announces direct operational investment such as geographic expansion, job creation, or executive appointments in product and engineering, BUY signals emerge at 78-82% confidence, and these have historically been reliable with actual outcomes exceeding predicted magnitude. Amazon DocumentDB compatibility upgrades for MongoDB produce high-confidence BUY signals at 92% confidence, reflecting a strong catalyst from ecosystem validation. SELL signals are absent from the observed data; the only negative sentiment comes from broad tech sector sympathy weakness or speculative legal claims, which produce HOLD signals at 20-50% confidence and lack company-specific fundamental triggers. Recurring sector themes include AI-native database adoption and cloud migration tailwinds, which consistently underpin BUY signals but do not independently trigger them without a direct MDB catalyst. Calibration note: operational investment and ecosystem compatibility catalysts for MDB have historically under-predicted actual upside magnitude by roughly 50%, as seen in the 78% confidence prediction yielding a +15.6% move versus the expected +/-6.5%.
 
-_Last updated: 2026-05-04_
+_Last updated: 2026-05-11_

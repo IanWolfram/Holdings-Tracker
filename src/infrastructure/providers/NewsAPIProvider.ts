@@ -1,4 +1,5 @@
 import type { INewsProvider, RawNewsItem } from "@/src/domain/interfaces/INewsProvider";
+import { API_TIMEOUT_MS } from "@/lib/constants";
 
 export class NewsAPIProvider implements INewsProvider {
   constructor(private readonly apiKey: string) {}
@@ -15,7 +16,7 @@ const url = `https://newsapi.org/v2/everything?q=${query}&language=en&sortBy=pub
 
     const res = await fetch(url, {
       headers: { "X-Api-Key": this.apiKey },
-      signal: AbortSignal.timeout(10_000),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
 
     if (!res.ok) {

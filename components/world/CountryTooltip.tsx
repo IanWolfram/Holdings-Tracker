@@ -1,8 +1,7 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
-import VerdictBadge from "@/components/bars/VerdictBadge";
-import type { CountryState, GeoStory } from "@/types/geo.types";
+import StockLogo from "@/components/ui/StockLogo";
+import type { CountryState } from "@/types/geo.types";
 
 // ---------------------------------------------------------------------------
 // Country name + emoji flag by ISO alpha-2 code
@@ -29,68 +28,6 @@ function flagEmoji(code: string): string {
     .join("");
 }
 
-function formatMoney(value: number): string {
-  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
-  if (value >= 1_000) return `$${(value / 1_000).toFixed(0)}K`;
-  return `$${value.toFixed(0)}`;
-}
-
-// ---------------------------------------------------------------------------
-// Story row
-// ---------------------------------------------------------------------------
-
-function StoryRow({ story }: { story: GeoStory }) {
-  const verdictColors: Record<string, string> = {
-    BUY: "#00FF88",
-    SELL: "#FF4444",
-    HOLD: "#64748b",
-  };
-  const color = verdictColors[story.verdict] ?? "#64748b";
-  const confidence = Math.round(story.confidence * 100);
-
-  return (
-    <div
-      style={{ borderLeft: `2px solid ${color}`, paddingLeft: 10, paddingBottom: 2 }}
-      className="flex flex-col gap-1.5"
-    >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, fontWeight: 700, color, letterSpacing: "0.05em" }}>
-            {story.verdict}
-          </span>
-          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "#475569" }}>
-            {story.ticker}
-          </span>
-          {story.relevanceScore >= 0.7 && (
-            <span style={{ fontSize: 9, color: "#00FF88" }}>● HI-REL</span>
-          )}
-        </div>
-        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color, opacity: 0.9 }}>
-          {confidence}%
-        </span>
-      </div>
-      <p
-        style={{
-          fontFamily: "'Inter', sans-serif",
-          fontSize: 12,
-          color: "#94a3b8",
-          margin: 0,
-          lineHeight: 1.4,
-          overflow: "hidden",
-          display: "-webkit-box",
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: "vertical",
-        }}
-      >
-        {story.headline}
-      </p>
-      <div className="h-0.5 w-full bg-white/5 rounded-full overflow-hidden mt-0.5">
-        <div className="h-full rounded-full transition-all duration-700 ease-out" style={{ width: `${confidence}%`, background: color }} />
-      </div>
-    </div>
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
@@ -106,105 +43,91 @@ interface CountryTooltipProps {
 // ---------------------------------------------------------------------------
 
 export default function CountryTooltip({ state, mouseX, mouseY }: CountryTooltipProps) {
-  const tooltipRef = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState({ x: mouseX, y: mouseY });
-
-  // Clamp position so tooltip never goes off screen
-  useEffect(() => {
-    const el = tooltipRef.current;
-    if (!el) return;
-    const w = el.offsetWidth;
-    const h = el.offsetHeight;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    const padding = 16;
-    const x = Math.min(mouseX + 14, vw - w - padding);
-    const y = Math.min(mouseY - 10, vh - h - padding);
-    setPos({ x: Math.max(padding, x), y: Math.max(padding, y) });
-  }, [mouseX, mouseY]);
-
   const countryName = COUNTRY_NAMES[state.countryCode] ?? state.countryCode;
   const flag = flagEmoji(state.countryCode);
-  const stories = state.stories.slice(0, 5);
+  const tickers = state.hqTickers;
 
   return (
     <div
-      ref={tooltipRef}
       className="absolute z-50 pointer-events-none"
-      style={{ left: pos.x, top: pos.y, maxWidth: 380 }}
+      style={{ left: mouseX + 14, top: mouseY - 10, maxWidth: 320 }}
     >
-      {/* Glass card */}
       <div
         style={{
-          background: "rgba(14, 20, 14, 0.88)",
+          background: "rgba(14, 20, 14, 0.92)",
           backdropFilter: "blur(20px) saturate(160%)",
           WebkitBackdropFilter: "blur(20px) saturate(160%)",
-          border: "1px solid rgba(0,255,136,0.15)",
-          borderRadius: 14,
+          border: "1px solid rgba(0,255,136,0.18)",
+          borderRadius: 12,
           boxShadow: "0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,255,136,0.04)",
-          padding: "16px 18px",
-          minWidth: 280,
+          padding: "12px 14px",
         }}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span style={{ fontSize: 22 }}>{flag}</span>
-            <div>
-              <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 15, color: "#e2e8f0", margin: 0 }}>
-                {countryName}
-              </p>
-              <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#64748b", margin: 0 }}>
-                {state.countryCode}
-              </p>
-            </div>
+        {/* Country header */}
+        <div className="flex items-center gap-2">
+          <span style={{ fontSize: 22, lineHeight: 1 }}>{flag}</span>
+          <div className="min-w-0">
+            <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 14, color: "#e2e8f0", margin: 0 }}>
+              {countryName}
+            </p>
+            <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "#475569", margin: 0 }}>
+              {state.countryCode} · {state.stories.length} signal{state.stories.length !== 1 ? "s" : ""}
+            </p>
           </div>
-          {state.netVerdict && (
-            <VerdictBadge verdict={state.netVerdict} confidence={Math.abs(state.netScore)} />
-          )}
         </div>
 
-        {/* HQ info */}
-        {state.isHQCountry && state.hqTickers.length > 0 && (
-          <div
-            style={{
-              background: "rgba(0,255,136,0.05)",
-              border: "1px solid rgba(0,255,136,0.1)",
-              borderRadius: 8,
-              padding: "8px 10px",
-              marginBottom: 12,
-            }}
-          >
-            <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#00FF88", margin: 0 }}>
-              HQ: {state.hqTickers.join(" · ")}
-            </p>
-            {state.totalPositionValue > 0 && (
-              <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#64748b", margin: "2px 0 0" }}>
-                Position: {formatMoney(state.totalPositionValue)}
-              </p>
-            )}
-          </div>
-        )}
+        {/* Position grid: logos above tickers, max 3 per row */}
+        {state.isHQCountry && tickers.length > 0 && (
+          <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 8, marginTop: 8 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gap: 6,
+              }}
+            >
+              {tickers.slice(0, 9).map((ticker) => (
+                <div
+                  key={ticker}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 3,
+                    padding: "4px 0 2px",
+                    borderRadius: 6,
+                    background: "rgba(255,255,255,0.02)",
+                  }}
+                >
+                  <StockLogo ticker={ticker} size={28} />
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, fontWeight: 600, color: "#94a3b8", letterSpacing: "0.03em" }}>
+                    {ticker}
+                  </span>
+                </div>
+              ))}
+            </div>
 
-        {/* Stories */}
-        {stories.length > 0 ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {stories.map((story) => (
-              <StoryRow
-                key={`${story.ticker}-${story.source}-${story.datetime}-${story.url}`}
-                story={story}
-              />
-            ))}
-            {state.stories.length > 5 && (
-              <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#475569", margin: 0, textAlign: "center" }}>
-                +{state.stories.length - 5} more stories
-              </p>
+            {/* Total position value */}
+            {state.totalPositionValue > 0 && (
+              <div
+                style={{
+                  marginTop: 6,
+                  padding: "5px 8px",
+                  borderRadius: 6,
+                  background: "rgba(0,255,136,0.04)",
+                  border: "1px solid rgba(0,255,136,0.09)",
+                  textAlign: "center",
+                }}
+              >
+                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 700, color: "#00FF88" }}>
+                  ${state.totalPositionValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "#475569", marginLeft: 4 }}>
+                  total
+                </span>
+              </div>
             )}
           </div>
-        ) : (
-          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: "#475569", margin: 0 }}>
-            HQ location — no news stories yet
-          </p>
         )}
       </div>
     </div>

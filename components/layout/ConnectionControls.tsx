@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { authedFetch } from "@/lib/api/client-fetch";
 import AccountIconDiv from "@/components/layout/AccountIconDiv";
 import TopBarDivider from "@/components/layout/TopBarDivider";
 import AgentTrigger from "@/components/triggers/AgentTrigger";
@@ -32,16 +33,16 @@ export default function ConnectionControls({
     setError(null);
     setIsConnecting(true);
     try {
-      const res = await fetch("/api/etrade/auth");
+      const res = await authedFetch("/api/etrade/auth");
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Failed to start auth");
         setIsConnecting(false);
         return;
       }
-      // Redirect to E*TRADE authorization page
-      // After authorizing, user copies the verifier and goes to /etrade-verify
-      window.location.href = data.authUrl;
+      // Open E*TRADE auth in a new tab, then navigate to the verify page
+      window.open(data.authUrl, "_blank", "noopener,noreferrer");
+      window.location.href = "/etrade-verify";
     } catch {
       setError("Network error");
       setIsConnecting(false);

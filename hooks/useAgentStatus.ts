@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { AgentProgress } from "@/lib/agent/service";
+import { authedFetch } from "@/lib/api/client-fetch";
 
 type Listener = (state: AgentProgress) => void;
 
@@ -13,7 +14,7 @@ let fetchPromise: Promise<void> | null = null;
 
 async function fetchState() {
   if (fetchPromise) return; // dedupe concurrent calls
-  fetchPromise = fetch("/api/agent/run")
+  fetchPromise = authedFetch("/api/agent/run")
     .then(async (res) => {
       if (res.ok) {
         cachedState = await res.json();
@@ -76,7 +77,7 @@ export function useAgentStatus() {
       // POST returns { message } (202) — not an AgentProgress object — so we
       // optimistically flip to "running" to start the polling loop, then let
       // fetchState() refresh with the real server snapshot.
-      const res = await fetch("/api/agent/run", { method: "POST" });
+      const res = await authedFetch("/api/agent/run", { method: "POST" });
       if (res.ok) {
         cachedState = { status: "running", message: "Agent run started." };
         listeners.forEach((fn) => fn(cachedState));
@@ -87,7 +88,7 @@ export function useAgentStatus() {
 
   const cancelAgent = useCallback(async () => {
     try {
-      await fetch("/api/agent/run", { method: "DELETE" });
+      await authedFetch("/api/agent/run", { method: "DELETE" });
       await fetchState(); // refresh to get idle state
     } catch {}
   }, []);

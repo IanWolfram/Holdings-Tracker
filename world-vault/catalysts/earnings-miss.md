@@ -4,7 +4,7 @@ name: "earnings-miss"
 n: 0
 winRate: 0.0000
 avgConfidence: 0.0000
-newsCount: 18
+newsCount: 19
 tags:
   - catalyst
   - graph
@@ -14,10 +14,11 @@ tags:
 # Catalyst — earnings-miss
 
 Win rate: insufficient resolved predictions yet.
-Recent stories tagged with this catalyst: 18
-Verdict mix: 1 BUY / 13 SELL / 4 HOLD
+Recent stories tagged with this catalyst: 19
+Verdict mix: 1 BUY / 13 SELL / 5 HOLD
 
 ## Recent Stories
+- [2026-05-07] **HOLD** 50.0% — [[MMS]] — Maximus, Inc. (MMS) Q2 2026 Earnings Call Transcript
 - [2026-04-30] **SELL** 82.0% — [[HOOD]] — Barclays resets Robinhood stock price target for the rest of 2026
 - [2026-04-30] **SELL** 88.0% — [[HOOD]] — HOOD Stock Tumbles Post Q1 Earnings: Time to Buy the Dip or Bail Out?
 - [2026-04-29] **HOLD** 50.0% — [[HOOD]] — Jim Cramer questions Robinhood's priorities on earnings miss

@@ -5,7 +5,6 @@ const fs = require("fs");
 const { spawn } = require("child_process");
 const waitOn = require("wait-on");
 const { ensureLicensedOrTrial } = require("./license");
-const { ensureModeChosen } = require("./mode");
 
 const APP_TITLE = "Pulse";
 app.name = APP_TITLE;
@@ -64,7 +63,7 @@ function ensureUserDataConfigFiles() {
   };
 }
 
-async function startNextServer(mode) {
+async function startNextServer() {
   const root = appRootPath();
   const userData = userDataPath();
   const { envPath } = ensureUserDataConfigFiles();
@@ -77,8 +76,6 @@ async function startNextServer(mode) {
     NODE_ENV: process.env.NODE_ENV || "production",
     PULSE_DESKTOP: "1",
     PULSE_USER_DATA_PATH: userData,
-    // Personal Mode: single-user, no auth. Cloud Mode: full auth.
-    PULSE_SINGLE_USER_MODE: mode === "personal" ? "1" : "0",
   };
 
   process.env = env;
@@ -108,7 +105,7 @@ async function startNextServer(mode) {
   });
 }
 
-function createMainWindow(mode) {
+function createMainWindow() {
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -123,9 +120,8 @@ function createMainWindow(mode) {
     },
   });
 
-  // Personal Mode goes straight to /world. Cloud Mode starts at /login.
-  const startPath = mode === "personal" ? "/world" : "/login";
-  win.loadURL(`http://localhost:${PORT}${startPath}`);
+  // Always start at /login — auth is required
+  win.loadURL(`http://localhost:${PORT}/login`);
 }
 
 function stopNextServer() {
@@ -145,10 +141,7 @@ app.on("window-all-closed", () => {
 
 app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    const mode = ensureModeChosen(userDataPath());
-    // In practice, the mode is already chosen at this point since
-    // it was persisted. This is a fallback for macOS dock click.
-    createMainWindow(typeof mode === "string" ? mode : "personal");
+    createMainWindow();
   }
 });
 
@@ -164,14 +157,8 @@ app.whenReady().then(async () => {
       return;
     }
 
-    const mode = await ensureModeChosen(userDataPath());
-    if (!mode) {
-      app.quit();
-      return;
-    }
-
-    await startNextServer(mode);
-    createMainWindow(mode);
+    await startNextServer();
+    createMainWindow();
   } catch (err) {
     console.error("[electron] Startup failed:", err);
     app.quit();

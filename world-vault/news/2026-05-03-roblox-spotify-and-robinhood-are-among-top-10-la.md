@@ -5,21 +5,19 @@ sector: Tech
 verdict: HOLD
 confidence: 0.50
 relevance: 0.15
-decayScore: 0.8296
+decayScore: 0.5045
 verified: false
+analysisFailed: false
 country: US
 source: polygon
 url: "https://www.benzinga.com/markets/large-cap/26/05/52238549/roblox-spotify-and-robinhood-are-among-top-10-large-cap-losers-last-week-april-27-may-1-are-the?utm_source=benzinga_taxonomy&utm_medium=rss_feed_free&utm_content=taxonomy_rss&utm_campaign=channel"
-catalystTypes:
-  - other
+headline: "Roblox, Spotify, And Robinhood Are Among Top 10 Large-Cap Losers Last Week (April 27-May 1): Are The Others In Your Portfolio?"
 tags:
   - news
   - chkp
   - hold
   - world-brain
   - tech
-  - catalyst-other
-  - m5-verified
 ---
 
 # Roblox, Spotify, And Robinhood Are Among Top 10 Large-Cap Losers Last Week (April 27-May 1): Are The Others In Your Portfolio?
@@ -37,5 +35,4 @@ Article lists sector peers' earnings misses but does not mention CHKP; no direct
 ## Links
 - [Source Article](https://www.benzinga.com/markets/large-cap/26/05/52238549/roblox-spotify-and-robinhood-are-among-top-10-large-cap-losers-last-week-april-27-may-1-are-the?utm_source=benzinga_taxonomy&utm_medium=rss_feed_free&utm_content=taxonomy_rss&utm_campaign=channel)
 - [[CHKP]]
-- [[catalysts/other]]
 - [[US-news]]

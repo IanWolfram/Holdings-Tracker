@@ -1,3 +1,5 @@
+import { FINNHUB_BASE_URL, API_TIMEOUT_MS } from "../constants";
+
 export interface EarningsEvent {
   ticker: string;
   date: string;
@@ -78,12 +80,12 @@ async function fetchFinnhubEarnings(
   if (!apiKey || tickers.length === 0) return [];
 
   const url =
-    `https://finnhub.io/api/v1/calendar/earnings` +
+    `${FINNHUB_BASE_URL}/calendar/earnings` +
     `?from=${fromDate}&to=${toDate}&token=${apiKey}`;
 
   const res = await fetch(url, {
     headers: { Accept: "application/json" },
-    signal: AbortSignal.timeout(10_000),
+    signal: AbortSignal.timeout(API_TIMEOUT_MS),
   });
 
   if (!res.ok) {

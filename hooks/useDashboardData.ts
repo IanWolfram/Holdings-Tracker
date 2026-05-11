@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { POLL_INTERVAL_MS } from "@/lib/constants";
+import { authedFetch } from "@/lib/api/client-fetch";
 import type { Position } from "@/types/position.types";
 import type { ClassifiedStory, CongressTrade } from "@/types/news.types";
 import type { AgentProgress, TickerResult } from "@/lib/agent/service";
@@ -45,7 +46,7 @@ export function useDashboardData() {
 
   const fetchPredictions = useCallback(async () => {
     try {
-      const res = await fetch("/api/predictions");
+      const res = await authedFetch("/api/predictions");
       if (!res.ok) return;
       const { predictions: data } = await res.json();
       setPredictions(data);
@@ -61,7 +62,7 @@ export function useDashboardData() {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), 300_000);
         try {
-          const res = await fetch(`/api/news?ticker=${ticker}`, { signal: controller.signal });
+          const res = await authedFetch(`/api/news?ticker=${ticker}`, { signal: controller.signal });
           if (!res.ok) return;
           const data: ClassifiedStory[] = await res.json();
           setNews((prev) => ({ ...prev, [ticker]: data }));
@@ -78,7 +79,7 @@ export function useDashboardData() {
   const fetchCongress = useCallback(async (tickers: string[]) => {
     if (tickers.length === 0) return;
     try {
-      const res = await fetch("/api/congress");
+      const res = await authedFetch("/api/congress");
       if (!res.ok) return;
       const { trades }: { trades: CongressTrade[] } = await res.json();
       const tickerSet = new Set(tickers.map((ticker) => ticker.toUpperCase()));
@@ -103,7 +104,7 @@ export function useDashboardData() {
       return;
     }
     try {
-      const res = await fetch("/api/proposed-quotes", {
+      const res = await authedFetch("/api/proposed-quotes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -137,9 +138,9 @@ export function useDashboardData() {
     setRefreshing(true);
     try {
       const [posRes, balRes, pnlRes] = await Promise.all([
-        fetch("/api/positions"),
-        fetch("/api/balance"),
-        fetch("/api/pnl"),
+        authedFetch("/api/positions"),
+        authedFetch("/api/balance"),
+        authedFetch("/api/pnl"),
       ]);
       if (!posRes.ok) throw new Error(`Positions fetch failed: ${posRes.status}`);
       const data: Position[] = await posRes.json();
@@ -221,7 +222,7 @@ export function useDashboardData() {
     setAnalyzingTickers(new Set(analyzingTickersRef.current));
 
     try {
-      const res = await fetch("/api/agent/run-ticker", {
+      const res = await authedFetch("/api/agent/run-ticker", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ticker: upper }),
@@ -235,7 +236,7 @@ export function useDashboardData() {
       // Poll for completion
       const poll = setInterval(async () => {
         try {
-          const pollRes = await fetch(`/api/agent/run-ticker?ticker=${upper}`);
+          const pollRes = await authedFetch(`/api/agent/run-ticker?ticker=${upper}`);
           if (!pollRes.ok) return;
           const data = await pollRes.json();
           if (data.status === "complete" || data.status === "error") {
@@ -260,7 +261,7 @@ export function useDashboardData() {
 
   const pollAgent = useCallback(async () => {
     try {
-      const res = await fetch("/api/agent/run");
+      const res = await authedFetch("/api/agent/run");
       if (!res.ok) return;
       const data: AgentProgress = await res.json();
 

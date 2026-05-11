@@ -1,5 +1,5 @@
 ---
-date: "2026-05-04"
+date: "2026-05-11"
 type: ticker-knowledge
 ticker: PLTR
 sector: Tech
@@ -12,19 +12,19 @@ tags:
 
 # PLTR — Knowledge Hub
 
-> Tech · Last updated 2026-05-04
+> Tech · Last updated 2026-05-11
 
 ## Verdict Trend (last 7 sessions)
 
 | Date | BUY | SELL | HOLD | Top Signal |
 |------|----:|-----:|-----:|------------|
-| 2026-05-04 | 0 | 0 | 10 | **HOLD** 65% — Palantir Reports Earnings After the Bell. Here's How this High-Flying  |
+| 2026-05-11 | 5 | 1 | 4 | **BUY** 92% — Palantir Technologies Has Just Created History. Here's Where the Stock |
+| 2026-05-07 | 33 | 5 | 112 | **BUY** 90% — Stock Market Today: Apple Earnings Power S&P 500, Nasdaq To Records; T |
+| 2026-05-06 | 23 | 5 | 118 | **BUY** 90% — Stock Market Today: Apple Earnings Power S&P 500, Nasdaq To Records; T |
+| 2026-05-05 | 0 | 0 | 10 | **HOLD** 50% — Is Palantir Technologies Inc. (PLTR) Losing Its Moat as AI Rivals Catc |
+| 2026-05-04 | 0 | 0 | 10 | **HOLD** 50% — Palantir Reports Earnings After the Bell. Here's How this High-Flying  |
 | 2026-05-03 | 0 | 0 | 10 | **HOLD** 65% — Palantir Q1 Earnings Preview: A Make Or Break Moment For The Bull Case |
 | 2026-04-30 | 8 | 1 | 17 | **BUY** 82% — Palantir Cleveland Cliffs Deal Tests Industrial AI Adoption Story |
-| 2026-04-29 | 9 | 1 | 16 | **BUY** 82% — Cleveland-Cliffs Signs 3-Year AI Deal With Palantir To Modernize Opera |
-| 2026-04-28 | 0 | 0 | 2 | **HOLD** 50% — Palantir Stock Is Down 20% This Year, but That Could All Change on May |
-| 2026-04-27 | 5 | 1 | 21 | **BUY** 92% — Palantir (PLTR) Secures $300M USDA Agreement to Modernize National Far |
-| 2026-04-26 | 4 | 1 | 22 | **BUY** 92% — Palantir Aims to Protect the U.S. Food Supply. Is Its $300M USDA Deal  |
 
 ## Open Contradictions
 
@@ -35,17 +35,17 @@ tags:
 
 ## Top Recent Stories
 
-- **BUY** 80% — [[news/2026-05-04-high-growth-tech-stocks-in-us-with-promising-poten|High Growth Tech Stocks In US With Promising Potential]] _(2026-05-04)_
-- **SELL** 60% — [[news/2026-05-04-nvidia-palantir-and-broadcom-are-sending-shockwa|Nvidia, Palantir, and Broadcom Are Sending Shockwaves Through Wall Street With This $4.6 B]] _(2026-05-04)_
-- **BUY** 60% — [[news/2026-05-04-earnings-live-updates-palantir-to-kick-off-busy-w|Earnings live updates: Palantir to kick off busy week as S&P 500 earnings growth trend imp]] _(2026-05-04)_
-- **HOLD** 50% — [[news/2026-05-04-us-equity-investors-to-focus-on-risk-of-iran-cease|US Equity Investors to Focus on Risk of Iran Ceasefire Falling Apart, Quarterly Earnings, ]] _(2026-05-04)_
-- **HOLD** 50% — [[news/2026-05-04-us-equity-futures-slip-as-middle-east-conflict-ent|US Equity Futures Slip as Middle East Conflict Enters Third Month, Oil Prices Rise]] _(2026-05-04)_
-- **HOLD** 50% — [[news/2026-05-04-update-us-equity-investors-to-focus-this-week-on-|Update: US Equity Investors to Focus This Week on Risk of Iran Ceasefire Falling Apart, Ea]] _(2026-05-04)_
-- **HOLD** 50% — [[news/2026-05-04-truist-financial-agm-shareholders-back-directors-|Truist Financial AGM: Shareholders Back Directors, Pay, PwC as CEO Rogers Reaffirms ROTCE ]] _(2026-05-04)_
-- **HOLD** 50% — [[news/2026-05-04-top-bank-downgrades-palantir-stock-ahead-of-q1-ear|Top Bank Downgrades Palantir Stock Ahead of Q1 Earnings]] _(2026-05-04)_
+- **BUY** 88% — [[news/2026-05-11-palantir-technologies-has-just-created-history-he|Palantir Technologies Has Just Created History. Here's Where the Stock Could Be in 5 Years]] _(2026-05-11)_
+- **BUY** 78% — [[news/2026-05-11-palantir-i-was-wrong-why-i-dropped-my-sell-ratin|Palantir: I Was Wrong, Why I Dropped My Sell Rating (Rating Upgrade)]] _(2026-05-11)_
+- **BUY** 72% — [[news/2026-05-11-palantir-reset-unveils-a-massive-buying-opportuni|Palantir: Reset Unveils A Massive Buying Opportunity]] _(2026-05-11)_
+- **SELL** 72% — [[news/2026-05-11-palantir-nhs-data-access-concerns-test-privacy-con|Palantir NHS Data Access Concerns Test Privacy Controls And Contract Prospects]] _(2026-05-11)_
+- **BUY** 72% — [[news/2026-05-11-palantir-industrial-reshoring-may-maintain-growth|Palantir: Industrial Reshoring May Maintain Growth Momentum, Ushering In Industry 4.0]] _(2026-05-11)_
+- **BUY** 72% — [[news/2026-05-10-palantir-stock-is-cheaper-than-alphabet-on-this-va|Palantir stock is cheaper than Alphabet on this valuation metric]] _(2026-05-10)_
+- **BUY** 70% — [[news/2026-05-09-pltr-s-strong-growth-and-technical-breakout-setup-|PLTR's Strong Growth and Technical Breakout Setup: A Dual-Lens Opportunity]] _(2026-05-09)_
+- **BUY** 70% — [[news/2026-05-09-palantir-tech-pltr-10-best-high-volume-stocks-t|Palantir Tech (PLTR): 10 Best High Volume Stocks to Invest In According to Hedge Funds]] _(2026-05-09)_
 
 ## Learned Patterns
 
-Government contract pursuit headlines, particularly those involving international border security or defense agencies, reliably trigger high-confidence BUY signals for PLTR, with confidence typically above 0.80. Pre-earnings speculation, analyst downgrades, and options flow warnings consistently produce HOLD signals near 0.50, as they lack fundamental catalyst data and are unreliable for directional conviction. Post-earnings technical setups with heavy call open interest and high implied volatility can trigger SELL signals around 0.72, especially when resistance levels are well-defined and downside targets are supported by options flow. Geopolitical macro events, such as Middle East conflict or oil price spikes, do not directly move PLTR and should be treated as noise unless tied to specific government contract announcements. Analyst upgrades or downgrades without accompanying contract wins or earnings beats are unreliable and should be capped at 0.50 confidence.
+When PLTR reports accelerating revenue growth with raised guidance, especially Q1 2026's 85% YoY surge to $1.63B, BUY signals emerge at 72-88% confidence, with the highest confidence reserved for articles explicitly framing the post-earnings drawdown as a buying opportunity. SELL signals at 72% confidence are triggered by direct threats to PLTR's government contract pipeline, such as the NHS data access controversy, which undermines its trust-dependent business model. Recurring sector themes include industrial reshoring and Industry 4.0 tailwinds expanding PLTR's addressable market for Foundry, while macro rotation away from semiconductors toward power/chemicals/silver is too indirect to move the ticker. Analyst upgrades from Sell to Buy score 78% confidence and signal a fundamental inflection point, but the 34% drawdown from 52-week high combined with extreme valuation (150x earnings) creates a pattern where strong earnings beats often precede price declines, as seen in the April 29 prediction where a 72% confidence UP call was incorrect by -1.9%.
 
-_Last updated: 2026-05-04_
+_Last updated: 2026-05-11_

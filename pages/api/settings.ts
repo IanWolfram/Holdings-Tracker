@@ -12,7 +12,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   return res.status(200).json({
     etrade: {
-      env: process.env.ETRADE_ENV ?? "mock",
+      env: process.env.ETRADE_ENV ?? "live",
     },
     ai: {
       activeModel: "DeepSeek",

@@ -9,7 +9,7 @@
  *   npm run agent
  *
  * Requirements:
- *   - MLX server running locally (npm run start:mlx)
+ *   - DEEPSEEK_API_KEY in .env.local
  *   - Live E*TRADE tokens (npm run etrade:auth if expired)
  */
 
@@ -106,11 +106,11 @@ function renderStory(
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
-  const model = process.env.MLX_MODEL ?? "mlx-community/DeepSeek-R1-Distill-Qwen-14B-4bit";
+  const model = process.env.DEEPSEEK_MODEL ?? "deepseek-chat";
 
   console.log(`\n${B}${C}Pulse — Stock Agent${R}`);
   console.log(hr("═"));
-  console.log(`${D}Engine: ${B}MLX (Native M5)${R}  ${D}│  Model: ${B}${model}${R}`);
+  console.log(`${D}Engine: ${B}DeepSeek${R}  ${D}│  Model: ${B}${model}${R}`);
 
   // Single-ticker mode via --ticker flag
   if (tickerArg) {

@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import type { Position } from "@/types/position.types";
 import { getHistory } from "@/lib/market-data";
-import { getServices, getServicesForUser } from "@/src/registry";
+import { getServicesForUser } from "@/src/registry";
 import { requireUser } from "@/lib/auth/requireUser";
 import { fetchCompanyProfile } from "@/lib/company-profile";
 import { withSyntheticHistory } from "@/src/mappers/positionMapper";
@@ -51,16 +51,13 @@ export default async function handler(
   if (!user) return;
 
   try {
-    const { portfolioService } = process.env.PULSE_SINGLE_USER_MODE === "1"
-      ? getServices()
-      : await getServicesForUser(user.id);
+    const { portfolioService } = await getServicesForUser(user.id);
     const isRefresh = req.query.refresh === "true";
     const { positions } = await portfolioService.getPositionsSafe(isRefresh);
-    const isMock = process.env.ETRADE_ENV === "mock";
 
-    if (isMock) {
-      const withNames = await enrichWithCompanyNames(positions);
-      return res.status(200).json(withSyntheticHistory(withNames));
+    // No positions (not connected to E*TRADE) — return empty array
+    if (positions.length === 0) {
+      return res.status(200).json([]);
     }
 
     const withNames = await enrichWithCompanyNames(positions);

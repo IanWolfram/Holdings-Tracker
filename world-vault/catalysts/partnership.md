@@ -18,7 +18,6 @@ Recent stories tagged with this catalyst: 25
 Verdict mix: 5 BUY / 1 SELL / 19 HOLD
 
 ## Recent Stories
-- [2026-05-05] **HOLD** 50.0% — [[HOOD]] — Robinhood CEO Defends the Math Behind 'Trump Accounts' Partnership
 - [2026-05-05] **HOLD** 50.0% — [[PLTR]] — Why Nvidia Stock Popped 14% in April and Could Go Even Higher
 - [2026-05-03] **BUY** 82.0% — [[HOOD]] — Robinhood’s Trump Accounts Role Recasts Growth, Regulation And Crypto Ambitions
 - [2026-05-03] **HOLD** 50.0% — [[PLTR]] — Wall Street Week Ahead
@@ -43,3 +42,4 @@ Verdict mix: 5 BUY / 1 SELL / 19 HOLD
 - [2026-04-29] **HOLD** 50.0% — [[PLTR]] — Startup Blockworks wants to become the crypto equivalent of Morningstar. How it plans to do it
 - [2026-04-29] **HOLD** 50.0% — [[PLTR]] — Which S&P500 stocks are the most active on Wednesday?
 - [2026-04-29] **BUY** 82.0% — [[PLTR]] — Why I Keep Pressing the Buy Button on Palantir’s $4.38B Deal Pipeline
+- [2026-04-28] **HOLD** 50.0% — [[PLTR]] — Are Wall Street Analysts Bullish on Palantir Technologies Stock?

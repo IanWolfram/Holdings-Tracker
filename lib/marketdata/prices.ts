@@ -1,14 +1,13 @@
 import { getQuote as getCoreQuote } from "../market-data";
 import { fetchOHLCPolygon } from "../polygon";
+import {
+  YAHOO_HEADERS,
+  FINNHUB_BASE_URL,
+  API_TIMEOUT_MS,
+} from "../constants";
 
 const QUOTE_CACHE_TTL_MS = 60 * 1000;
 const BARS_CACHE_TTL_MS = 60 * 60 * 1000;
-
-const YAHOO_HEADERS = {
-  "User-Agent":
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-  Accept: "application/json",
-};
 
 export interface DailyBar {
   date: string;
@@ -173,10 +172,10 @@ async function fetchFinnhubDailyBars(ticker: string, days: number): Promise<Dail
   const to = Math.floor(Date.now() / 1000);
   const from = to - Math.max(days * 2, 365) * 86_400;
   const url =
-    `https://finnhub.io/api/v1/stock/candle?symbol=${encodeURIComponent(ticker)}` +
+    `${FINNHUB_BASE_URL}/stock/candle?symbol=${encodeURIComponent(ticker)}` +
     `&resolution=D&from=${from}&to=${to}&token=${apiKey}`;
 
-  const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+  const res = await fetch(url, { signal: AbortSignal.timeout(API_TIMEOUT_MS) });
   if (!res.ok) {
     throw new Error(`Finnhub candles HTTP ${res.status}`);
   }

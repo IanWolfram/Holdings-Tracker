@@ -5,7 +5,7 @@ sector: Tech
 verdict: HOLD
 confidence: 0.50
 relevance: 0.50
-decayScore: 0.9840
+decayScore: 0.4684
 verified: false
 analysisFailed: false
 country: US

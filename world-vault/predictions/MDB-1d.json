@@ -1,0 +1,72 @@
+[
+  {
+    "id": "MDB-1d-1778527460445",
+    "ticker": "MDB",
+    "runAt": 1778527460445,
+    "priceAtPrediction": 290.71,
+    "direction": "FLAT",
+    "magnitudePct": 0.5,
+    "horizonDays": 1,
+    "confidence": 0.75,
+    "reasoning": "Only one BUY verdict at 72% confidence — below the ≥2 high-confidence threshold for a directional call. The HOLD verdict is noise. No same-day catalyst (earnings, product launch, regulatory event) to justify a directional 1d move. Ticker shows no recent SELL signals. Default to FLAT for 1d horizon.",
+    "catalysts": [
+      {
+        "headline": "MongoDB: Atlas And AI Keep The Growth Story Alive",
+        "verdict": "BUY",
+        "confidence": 0.72,
+        "catalystTypes": [
+          "macro"
+        ]
+      },
+      {
+        "headline": "Attention Long-Term Shareholders of FS KKR Capital Corp. (NYSE: FSK); LKQ Corporation (NASDAQ: LKQ);",
+        "verdict": "HOLD",
+        "confidence": 0.5,
+        "catalystTypes": [
+          "regulatory"
+        ]
+      }
+    ],
+    "catalystTypes": [
+      "macro",
+      "regulatory"
+    ],
+    "engine": "deepseek-chat",
+    "status": "pending"
+  },
+  {
+    "id": "MDB-1d-1778527419640",
+    "ticker": "MDB",
+    "runAt": 1778527419640,
+    "priceAtPrediction": 290.785,
+    "direction": "FLAT",
+    "magnitudePct": 0.5,
+    "horizonDays": 1,
+    "confidence": 0.75,
+    "reasoning": "Only one high-confidence BUY signal (78%) from an Atlas/AI growth article; the other signal is a low-confidence HOLD (50%) from an unrelated legal claim. No cluster of ≥2 high-confidence verdicts in same direction. 1d horizon defaults to FLAT absent strong same-day catalyst. No earnings or major event within 24h.",
+    "catalysts": [
+      {
+        "headline": "MongoDB: Atlas And AI Keep The Growth Story Alive",
+        "verdict": "BUY",
+        "confidence": 0.78,
+        "catalystTypes": [
+          "technical"
+        ]
+      },
+      {
+        "headline": "Attention Long-Term Shareholders of FS KKR Capital Corp. (NYSE: FSK); LKQ Corporation (NASDAQ: LKQ);",
+        "verdict": "HOLD",
+        "confidence": 0.5,
+        "catalystTypes": [
+          "regulatory"
+        ]
+      }
+    ],
+    "catalystTypes": [
+      "technical",
+      "regulatory"
+    ],
+    "engine": "deepseek-chat",
+    "status": "pending"
+  }
+]

@@ -1,4 +1,6 @@
-const BASE_URL = "https://finnhub.io/api/v1";
+import { FINNHUB_BASE_URL, API_TIMEOUT_MS } from "./constants";
+
+const BASE_URL = FINNHUB_BASE_URL;
 
 // Permanent in-memory cache — company names don't change
 const nameCache = new Map<string, string>();
@@ -31,7 +33,7 @@ export async function getCompanyName(ticker: string): Promise<string> {
   try {
     const url = `${BASE_URL}/stock/profile2?symbol=${encodeURIComponent(ticker)}&token=${key}`;
     const res = await fetch(url, {
-      signal: AbortSignal.timeout(10_000),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
     if (!res.ok) return ticker;
 

@@ -4,12 +4,7 @@
  */
 
 import type { HistoryData } from "@/types/market-data.types";
-
-const YAHOO_HEADERS = {
-  "User-Agent":
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-  "Accept-Language": "en-US,en;q=0.9",
-};
+import { YAHOO_HEADERS } from "./constants";
 
 let crumbCache: { crumb: string; cookie: string; expiresAt: number } | null =
   null;

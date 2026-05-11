@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { PARQET_LOGO_BASE_URL } from "@/lib/constants";
 
 interface StockLogoProps {
   ticker: string;
@@ -10,7 +11,7 @@ interface StockLogoProps {
 export default function StockLogo({ ticker, size = 36 }: StockLogoProps) {
   const [logoFailed, setLogoFailed] = useState(false);
   const initials = ticker.replace(/[^A-Z0-9]/gi, "").slice(0, 2).toUpperCase();
-  const logoUrl = `https://assets.parqet.com/logos/symbol/${encodeURIComponent(ticker)}?format=svg`;
+  const logoUrl = `${PARQET_LOGO_BASE_URL}/${encodeURIComponent(ticker)}?format=svg`;
 
   return (
     <div

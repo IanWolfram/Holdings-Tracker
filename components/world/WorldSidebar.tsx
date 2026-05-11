@@ -41,7 +41,7 @@ export default function WorldSidebar({
     return {
       ...story,
       source: normalizedSource,
-      classifiedAt: new Date(story.datetime < 10000000000 ? story.datetime * 1000 : story.datetime).toISOString(),
+      classifiedAt: new Date(story.datetime < 10_000_000_000 ? story.datetime * 1000 : story.datetime).toISOString(),
     };
   };
 

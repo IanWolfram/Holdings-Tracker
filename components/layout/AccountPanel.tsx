@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useEffect, useState, useCallback } from "react";
+import { authedFetch } from "@/lib/api/client-fetch";
 import { useAccountSettings } from "@/hooks/useAccountSettings";
 import { useAccount } from "@/hooks/useAccount";
 
@@ -70,8 +71,8 @@ function formatExpiry(expiresAt: string | null): string | null {
   if (!expiresAt) return null;
   const diff = new Date(expiresAt).getTime() - Date.now();
   if (diff <= 0) return "expired";
-  const hours = Math.floor(diff / 3600000);
-  const mins = Math.floor((diff % 3600000) / 60000);
+  const hours = Math.floor(diff / 3_600_000);
+  const mins = Math.floor((diff % 3_600_000) / 60_000);
   if (hours > 0) return `${hours}h ${mins}m`;
   return `${mins}m`;
 }
@@ -103,7 +104,7 @@ export default function AccountPanel({
       setCountdown(formatted);
     };
     update();
-    const id = setInterval(update, 60000);
+    const id = setInterval(update, 60_000);
     return () => clearInterval(id);
   }, [etradeExpiry?.expiresAt]);
 
@@ -127,10 +128,11 @@ export default function AccountPanel({
 
   const handleReconnect = async () => {
     try {
-      const res = await fetch("/api/etrade/auth");
+      const res = await authedFetch("/api/etrade/auth");
       const data = await res.json();
       if (res.ok && data.authUrl) {
-        window.location.href = data.authUrl;
+        window.open(data.authUrl, "_blank", "noopener,noreferrer");
+        window.location.href = "/etrade-verify";
       }
     } catch {
       /* ignore */
@@ -139,7 +141,7 @@ export default function AccountPanel({
 
   const handleSendDigest = async () => {
     try {
-      await fetch("/api/digest", { method: "POST" });
+      await authedFetch("/api/digest", { method: "POST" });
     } catch {
       /* ignore */
     }
@@ -230,14 +232,25 @@ export default function AccountPanel({
               Settings & Configuration
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="flex items-center justify-center w-7 h-7 rounded hover:bg-white/[0.06] transition-colors"
-          >
-            <span className="material-symbols-outlined text-[16px] text-slate-400 hover:text-white">
-              close
-            </span>
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={handleSignOut}
+              className="flex items-center justify-center w-7 h-7 rounded hover:bg-red-500/10 transition-colors"
+              title="Sign out"
+            >
+              <span className="material-symbols-outlined text-[16px] text-red-400/70 hover:text-red-400">
+                logout
+              </span>
+            </button>
+            <button
+              onClick={onClose}
+              className="flex items-center justify-center w-7 h-7 rounded hover:bg-white/[0.06] transition-colors"
+            >
+              <span className="material-symbols-outlined text-[16px] text-slate-400 hover:text-white">
+                close
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -376,13 +389,13 @@ export default function AccountPanel({
                   <div className="flex items-center justify-between py-1.5">
                     <span className="font-mono text-[11px] text-white">News Cache</span>
                     <span className="font-mono text-[9px] text-slate-500">
-                      {Math.round(settings.cache.newsTtlMs / 60000)}m
+                      {Math.round(settings.cache.newsTtlMs / 60_000)}m
                     </span>
                   </div>
                   <div className="flex items-center justify-between py-1.5">
                     <span className="font-mono text-[11px] text-white">Positions Cache</span>
                     <span className="font-mono text-[9px] text-slate-500">
-                      {Math.round(settings.cache.positionsTtlMs / 60000)}m
+                      {Math.round(settings.cache.positionsTtlMs / 60_000)}m
                     </span>
                   </div>
                   {/* Cron opt-in toggle */}
@@ -450,9 +463,7 @@ export default function AccountPanel({
                 <div>
                   <div className="flex items-center justify-between py-1.5">
                     <span className="font-mono text-[11px] text-white">Platform</span>
-                    <span className="font-mono text-[9px] text-slate-500">
-                      {settings.ai.supportsLocalMlx ? "Apple Silicon (MLX)" : "Cloud Only"}
-                    </span>
+                    <span className="font-mono text-[9px] text-slate-500">Cloud</span>
                   </div>
                   <div className="flex items-center justify-between py-1.5">
                     <span className="font-mono text-[11px] text-white">AI Model</span>

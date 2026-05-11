@@ -15,11 +15,11 @@ tags:
 
 Win rate: insufficient resolved predictions yet.
 Recent stories tagged with this catalyst: 25
-Verdict mix: 12 BUY / 1 SELL / 12 HOLD
+Verdict mix: 13 BUY / 1 SELL / 11 HOLD
 
 ## Recent Stories
+- [2026-05-11] **BUY** 72.0% — [[PLTR]] — Palantir: Reset Unveils A Massive Buying Opportunity
 - [2026-05-04] **SELL** 78.0% — [[HOOD]] — All eyes on Coinbase after Robinhood's crypto revenue falls 47%
-- [2026-05-04] **HOLD** 50.0% — [[CHKP]] — Norwegian Cruise Line Holdings Ltd. Investigated for Securities Fraud Violations by Block & Leviton:
 - [2026-05-04] **HOLD** 50.0% — [[PLTR]] — Options Traders Send Stark Warning Ahead of Palantir Earnings
 - [2026-05-04] **HOLD** 50.0% — [[PLTR]] — Palantir Technologies Inc-A (NASDAQ:PLTR) Q1 2026 Blowout: Revenue and EPS Smash Estimates as Growth
 - [2026-05-04] **HOLD** 50.0% — [[HOOD]] — Prediction Market ETFs Delayed As SEC Demands More Disclosure

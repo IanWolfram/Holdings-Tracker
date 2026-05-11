@@ -62,9 +62,32 @@ export class ETradeProvider implements IBrokerProvider {
     const accounts = json?.AccountListResponse?.Accounts?.Account ?? [];
     if (accounts.length === 0) throw new Error("No E*Trade accounts found");
 
-    this.cachedAccountIdKeys = accounts.map((a: any) => a.accountIdKey as string);
+    this.cachedAccountIdKeys = (accounts as Array<{ accountIdKey?: string }>).map(
+      (a) => a.accountIdKey ?? "",
+    ).filter((k) => k.length > 0);
     this.accountIdKeysExpiresAt = now + ETradeProvider.ACCOUNT_CACHE_TTL_MS;
     return this.cachedAccountIdKeys;
+  }
+
+  async getCashBalance(): Promise<number> {
+    const accountIdKeys = await this.fetchAccountIdKeys();
+    const key = accountIdKeys[0];
+    const oauth = this.buildOAuth();
+    const url = `${this.cfg.baseUrl}/v1/accounts/${key}/balance.json?instType=BROKERAGE&realTimeNAV=true`;
+    const headers = this.toHeader(oauth, oauth.authorize({ url, method: "GET" }, this.accessToken()));
+
+    const res = await fetch(url, { headers: { ...headers, Accept: "application/json" } });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Balance fetch failed ${res.status}: ${body}`);
+    }
+
+    const json = await res.json();
+    return (
+      json?.BalanceResponse?.Computed?.cashAvailableForInvestment ??
+      json?.BalanceResponse?.Computed?.netCash ??
+      0
+    );
   }
 
   async getPositions(): Promise<Position[]> {

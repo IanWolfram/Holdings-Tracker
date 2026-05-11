@@ -15,6 +15,7 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { authedFetch } from "@/lib/api/client-fetch";
 
 function SearchParamsWatcher({
   pathname,
@@ -33,7 +34,7 @@ function SearchParamsWatcher({
       const newParams = new URLSearchParams(searchParams.toString());
       newParams.delete("etrade_success");
       router.replace(`${pathname}?${newParams.toString()}`);
-    }, 5000);
+    }, 5_000);
     return () => clearTimeout(timer);
   }, [searchParams, pathname, router, setSuccessVisible]);
   return null;
@@ -83,7 +84,7 @@ export default function TopBar({
 
   const checkStatus = async () => {
     try {
-      const res = await fetch("/api/etrade/status");
+      const res = await authedFetch("/api/etrade/status");
       if (res.ok) {
         const data = await res.json();
         setIsConnected(data.connected);
@@ -96,14 +97,14 @@ export default function TopBar({
   useEffect(() => {
     checkStatus();
     // Poll every 30 seconds to detect token expiration
-    const id = setInterval(checkStatus, 30000);
+    const id = setInterval(checkStatus, 30_000);
     return () => clearInterval(id);
   }, []);
 
   // Poll status more frequently while connecting
   useEffect(() => {
     if (isConnecting) {
-      const id = setInterval(checkStatus, 2000);
+      const id = setInterval(checkStatus, 2_000);
       return () => clearInterval(id);
     }
   }, [isConnecting]);

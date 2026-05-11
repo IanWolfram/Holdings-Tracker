@@ -1,10 +1,10 @@
 ---
 type: sector
 name: "Financial Services"
-momentum: weak
-todayBuyPct: 0.0000
-rolling7dBuyPct: 0.1606
-rolling30dBuyPct: 0.2302
+momentum: neutral
+todayBuyPct: 0.6000
+rolling7dBuyPct: 0.3333
+rolling30dBuyPct: 0.2660
 tags:
   - sector
   - graph
@@ -15,7 +15,7 @@ tags:
 Tickers: [[HOOD]]
 
 ## Breadth
-- Today: 2 stories, 0.0% BUY
-- Rolling 7d: 137 stories, 16.1% BUY
-- Rolling 30d: 291 stories, 23.0% BUY
-- Momentum: **weak**
+- Today: 5 stories, 60.0% BUY
+- Rolling 7d: 57 stories, 33.3% BUY
+- Rolling 30d: 312 stories, 26.6% BUY
+- Momentum: **neutral**

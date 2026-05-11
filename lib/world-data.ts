@@ -1,7 +1,7 @@
 import { getServices } from "@/src/registry";
 import { fetchCompanyProfile } from "./company-profile";
 import { writeStoryNote, writeDailySummary } from "../world-brain/obsidian";
-import { WORLD_CACHE_TTL_MS, WORLD_VAULT_PATH } from "./constants";
+import { WORLD_CACHE_TTL_MS, WORLD_VAULT_PATH, VERDICT_THRESHOLD } from "./constants";
 import { FsVaultStore } from "@/lib/vault/store";
 import type { WorldData, GeoStory, CountryState, CompanyProfile } from "@/types/geo.types";
 import type { Position } from "@/types/position.types";
@@ -177,7 +177,7 @@ async function refreshWorldData(
       }, 0) / state.stories.length;
 
     state.netScore = score;
-    state.netVerdict = score > 0.15 ? "BUY" : score < -0.15 ? "SELL" : "HOLD";
+    state.netVerdict = score > VERDICT_THRESHOLD ? "BUY" : score < -VERDICT_THRESHOLD ? "SELL" : "HOLD";
   }
 
   const data: WorldData = { countries, profiles, fetchedAt: Date.now() };
@@ -250,7 +250,7 @@ async function runBackgroundEnrichment(
         let analysis;
         try {
           analysis = await analyzeStory(
-            store!, story.ticker, story.headline, story.summary ?? "",
+            story.ticker, story.headline, story.summary ?? "",
             holdingTickers, holdingSectors
           );
         } catch {
@@ -305,7 +305,7 @@ async function runBackgroundEnrichment(
         return acc + dir * s.confidence * s.relevanceScore;
       }, 0) / state.stories.length;
       state.netScore = score;
-      state.netVerdict = score > 0.15 ? "BUY" : score < -0.15 ? "SELL" : "HOLD";
+      state.netVerdict = score > VERDICT_THRESHOLD ? "BUY" : score < -VERDICT_THRESHOLD ? "SELL" : "HOLD";
     }
 
     const enriched: WorldData = {

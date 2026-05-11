@@ -1,4 +1,4 @@
-import { callMlxRaw } from "./brain";
+import { callLlm } from "./brain";
 import { CATALYST_TYPES, type CatalystType } from "../types/predictions";
 
 export interface CatalystClassificationInput {
@@ -173,7 +173,7 @@ export async function classifyCatalystTypesWithModelFallback(
     ". Return strict JSON array, e.g. [\"govt-contract\",\"analyst-upgrade\"].";
 
   const userMessage = `Text:\n${text}\n\nOutput JSON array only.`;
-  const raw = await callMlxRaw(systemPrompt, userMessage);
+  const raw = await callLlm(systemPrompt, userMessage);
   if (!raw) return regexTypes;
 
   try {

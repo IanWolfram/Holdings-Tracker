@@ -62,6 +62,73 @@
       "macro"
     ],
     "engine": "deepseek_1776977666998",
+    "status": "resolved",
+    "resolvedAt": 1778514087451,
+    "priceAtResolution": 134.38,
+    "actualPct": -1.88,
+    "outcome": "INCORRECT"
+  },
+  {
+    "id": "PLTR-7d-1778527460445",
+    "ticker": "PLTR",
+    "runAt": 1778527460445,
+    "priceAtPrediction": 136.4,
+    "direction": "FLAT",
+    "magnitudePct": 0,
+    "horizonDays": 7,
+    "confidence": 0.75,
+    "reasoning": "Mixed signals: one high-confidence BUY (88%, earnings beat) but offset by a high-confidence SELL (72%, NHS data controversy) and multiple HOLD verdicts. The SELL catalyst is specific and threatens a key contract pipeline, while the BUY reflects past results already priced in. Ticker patterns show no strong directional bias from recent sessions. Prior 7d prediction was incorrect (overestimated upside), warranting caution. Insufficient high-confidence cluster for directional call.",
+    "catalysts": [
+      {
+        "headline": "The Costly Mistake Investors Are Making With Palantir Technologies Stock",
+        "verdict": "HOLD",
+        "confidence": 0.6,
+        "catalystTypes": [
+          "other"
+        ]
+      },
+      {
+        "headline": "Palantir NHS Data Access Concerns Test Privacy Controls And Contract Prospects",
+        "verdict": "SELL",
+        "confidence": 0.72,
+        "catalystTypes": [
+          "govt-contract",
+          "regulatory"
+        ]
+      },
+      {
+        "headline": "Why Silver, Power And Chemicals Will Be The Next Micron Trade, Top AI Expert Says",
+        "verdict": "HOLD",
+        "confidence": 0.5,
+        "catalystTypes": [
+          "macro"
+        ]
+      },
+      {
+        "headline": "Palantir Technologies Has Just Created History. Here's Where the Stock Could Be in 5 Years",
+        "verdict": "BUY",
+        "confidence": 0.88,
+        "catalystTypes": [
+          "technical"
+        ]
+      },
+      {
+        "headline": "Investors Heavily Search Palantir Technologies Inc. (PLTR): Here is What You Need to Know",
+        "verdict": "HOLD",
+        "confidence": 0.5,
+        "catalystTypes": [
+          "govt-contract"
+        ]
+      }
+    ],
+    "catalystTypes": [
+      "other",
+      "govt-contract",
+      "regulatory",
+      "macro",
+      "technical"
+    ],
+    "engine": "deepseek-chat",
     "status": "pending"
   }
 ]

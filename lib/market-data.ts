@@ -4,7 +4,7 @@ import {
   isYahooCrumbRateLimitedError,
 } from "./yahoo-finance";
 import { fetchCandlesPolygon } from "./polygon";
-import { NEWS_CACHE_TTL_MS, ACCOUNT_CACHE_TTL_MS } from "./constants";
+import { NEWS_CACHE_TTL_MS, ACCOUNT_CACHE_TTL_MS, FINNHUB_BASE_URL, API_TIMEOUT_MS } from "./constants";
 import type { QuoteData, HistoryData } from "@/types/market-data.types";
 
 const quoteCache = new Map<string, { data: QuoteData; expiresAt: number }>();
@@ -40,9 +40,9 @@ export async function getQuote(ticker: string): Promise<QuoteData | null> {
   if (finnhubKey) {
     try {
       const res = await fetch(
-        `https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${finnhubKey}`,
+        `${FINNHUB_BASE_URL}/quote?symbol=${ticker}&token=${finnhubKey}`,
         {
-          signal: AbortSignal.timeout(10_000),
+          signal: AbortSignal.timeout(API_TIMEOUT_MS),
         }
       );
       if (res.ok) {
@@ -132,9 +132,9 @@ export async function getHistory(
       const to = Math.floor(Date.now() / 1000);
       const from = to - 120 * 86_400; // ~4 months for 90 trading days
       const url =
-        `https://finnhub.io/api/v1/stock/candle?symbol=${encodeURIComponent(ticker)}` +
+        `${FINNHUB_BASE_URL}/stock/candle?symbol=${encodeURIComponent(ticker)}` +
         `&resolution=D&from=${from}&to=${to}&token=${finnhubKey}`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+      const res = await fetch(url, { signal: AbortSignal.timeout(API_TIMEOUT_MS) });
       if (res.ok) {
         const json = (await res.json()) as {
           s?: string;

@@ -17,7 +17,10 @@ export interface Quote {
   timestamp: number;
 }
 
-const BASE = "https://finnhub.io/api/v1";
+import { FINNHUB_BASE_URL, API_TIMEOUT_MS } from "./constants";
+import { debug } from "./debug";
+
+const BASE = FINNHUB_BASE_URL;
 
 function requireKey(): string {
   const key = process.env.FINNHUB_API_KEY;
@@ -43,7 +46,7 @@ export async function fetchFinnhubNews(ticker: string): Promise<NewsArticle[]> {
   const url = `${BASE}/company-news?symbol=${ticker}&from=${daysAgo(7)}&to=${today()}&token=${key}`;
 
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+    const res = await fetch(url, { signal: AbortSignal.timeout(API_TIMEOUT_MS) });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
@@ -89,7 +92,7 @@ export async function fetchQuote(ticker: string): Promise<Quote> {
   const url = `${BASE}/quote?symbol=${ticker}&token=${key}`;
 
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+    const res = await fetch(url, { signal: AbortSignal.timeout(API_TIMEOUT_MS) });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
@@ -124,15 +127,15 @@ export async function fetchCandles(
 
   const to = Math.floor(Date.now() / 1000);
   const from = to - days * 24 * 60 * 60;
-  const url = `https://finnhub.io/api/v1/stock/candle?symbol=${ticker}&resolution=D&from=${from}&to=${to}&token=${key}`;
+  const url = `${FINNHUB_BASE_URL}/stock/candle?symbol=${ticker}&resolution=D&from=${from}&to=${to}&token=${key}`;
 
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+    const res = await fetch(url, { signal: AbortSignal.timeout(API_TIMEOUT_MS) });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     
     const data = await res.json();
     if (data.s === "ok" && Array.isArray(data.c)) {
-      console.log(`[finnhub] 2026 Sync: Fetched ${data.c.length} candles for ${ticker}`);
+      debug("finnhub", `2026 Sync: Fetched ${data.c.length} candles for ${ticker}`);
       return data.c;
     }
     console.warn(`[finnhub] No candles for ${ticker} in 2026 range:`, data.s);

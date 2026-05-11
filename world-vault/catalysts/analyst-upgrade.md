@@ -15,9 +15,12 @@ tags:
 
 Win rate: insufficient resolved predictions yet.
 Recent stories tagged with this catalyst: 25
-Verdict mix: 12 BUY / 0 SELL / 13 HOLD
+Verdict mix: 11 BUY / 0 SELL / 14 HOLD
 
 ## Recent Stories
+- [2026-05-11] **HOLD** 50.0% — [[HOOD]] — Is Robinhood Markets (HOOD) a Buy as Wall Street Analysts Look Optimistic?
+- [2026-05-11] **BUY** 78.0% — [[PLTR]] — Palantir: I Was Wrong, Why I Dropped My Sell Rating (Rating Upgrade)
+- [2026-05-10] **HOLD** 50.0% — [[PLTR]] — Dan Ives Can’t Make It Any Clearer: Palantir Stock Is Still a ‘Golden Goose’ Despite Q1 Earnings Fea
 - [2026-05-05] **HOLD** 50.0% — [[PLTR]] — Oppenheimer Initiates Coverage of Palantir (PLTR) with Outperform
 - [2026-05-05] **HOLD** 50.0% — [[PLTR]] — Palantir Shares Slip Despite Strong Growth and Upgraded Outlook
 - [2026-05-05] **HOLD** 50.0% — [[PLTR]] — Rosenblatt Maintains Buy on Palantir Technologies, Raises Price Target to $225
@@ -40,6 +43,3 @@ Verdict mix: 12 BUY / 0 SELL / 13 HOLD
 - [2026-04-30] **HOLD** 50.0% — [[HOOD]] — UBS Highlights Generative AI as Key Revenue Driver for Meta Platforms, Inc. (META)
 - [2026-04-29] **HOLD** 65.0% — [[HOOD]] — Barclays Cuts Robinhood Price Target to $82: Is the Crypto Drag Worth the Worry?
 - [2026-04-29] **BUY** 65.0% — [[PLTR]] — Palantir Has Become A Buy Ahead Of Earnings (Preview, Upgrade)
-- [2026-04-29] **BUY** 72.0% — [[PLTR]] — Palantir Technologies Q1 expectations buoyed by commercial acceleration, government contracts
-- [2026-04-28] **HOLD** 50.0% — [[PLTR]] — A 40% Margin Of Safety On Palantir, Plus 12% Yield As You Wait
-- [2026-04-28] **BUY** 82.0% — [[PLTR]] — Palantir's Growth Is Stunning; The Answer Lies In Global Expansion (Rating Upgrade)

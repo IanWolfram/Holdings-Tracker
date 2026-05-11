@@ -25,6 +25,136 @@
       "technical"
     ],
     "engine": "deepseek_1776977666998",
+    "status": "resolved",
+    "resolvedAt": 1778514087451,
+    "priceAtResolution": 61.21,
+    "actualPct": -5.54,
+    "outcome": "INCORRECT"
+  },
+  {
+    "id": "MMS-7d-1778527460445",
+    "ticker": "MMS",
+    "runAt": 1778527460445,
+    "priceAtPrediction": 62.37,
+    "direction": "UP",
+    "magnitudePct": 6.5,
+    "horizonDays": 7,
+    "confidence": 0.82,
+    "reasoning": "Two high-confidence BUY verdicts (82% and 88%) from earnings beat and AI-driven margin gains form a strong directional cluster; ticker's 35% drawdown and oversold RSI support reversal potential. Prior 7d miss was a -5.5% downside, but current catalysts are fundamentally positive with raised guidance and buyback, outweighing that. No significant SELL signals. 7d horizon allows catalyst absorption.",
+    "catalysts": [
+      {
+        "headline": "Be Sure To Check Out Maximus, Inc. (NYSE:MMS) Before It Goes Ex-Dividend",
+        "verdict": "HOLD",
+        "confidence": 0.5,
+        "catalystTypes": [
+          "govt-contract",
+          "technical"
+        ]
+      },
+      {
+        "headline": "The Bull Case For Maximus (MMS) Could Change Following AI-Driven Margin Gains Amid Softer Revenue Gr",
+        "verdict": "BUY",
+        "confidence": 0.82,
+        "catalystTypes": [
+          "earnings-beat"
+        ]
+      },
+      {
+        "headline": "Earnings Beat: Maximus, Inc. Just Beat Analyst Forecasts, And Analysts Have Been Updating Their Mode",
+        "verdict": "BUY",
+        "confidence": 0.88,
+        "catalystTypes": [
+          "govt-contract",
+          "earnings-beat"
+        ]
+      },
+      {
+        "headline": "Maximus, Inc. (MMS) Q2 2026 Earnings Call Transcript",
+        "verdict": "HOLD",
+        "confidence": 0.5,
+        "catalystTypes": [
+          "earnings-beat",
+          "earnings-miss",
+          "earnings-revenue-decline"
+        ]
+      },
+      {
+        "headline": "Maximus (MMS) Q2 2026 Earnings Transcript",
+        "verdict": "BUY",
+        "confidence": 0.88,
+        "catalystTypes": [
+          "technical"
+        ]
+      }
+    ],
+    "catalystTypes": [
+      "govt-contract",
+      "technical",
+      "earnings-beat",
+      "earnings-miss",
+      "earnings-revenue-decline"
+    ],
+    "engine": "deepseek-chat",
+    "status": "pending"
+  },
+  {
+    "id": "MMS-7d-1778527419640",
+    "ticker": "MMS",
+    "runAt": 1778527419640,
+    "priceAtPrediction": 62.4,
+    "direction": "UP",
+    "magnitudePct": 4.5,
+    "horizonDays": 7,
+    "confidence": 0.75,
+    "reasoning": "Three high-confidence BUY verdicts (88%) from Q2 earnings beat, raised FY EBITDA margin guidance, and $400M buyback authorization form a strong fundamental catalyst cluster. The lone SELL (82%) cites a Q1 revenue miss that is stale relative to the Q2 beat. Ticker patterns show upgrades historically underperform, and prior 7d prediction missed on the high side, so magnitudePct reduced from ~6% to 4.5%. Mixed signals and prior miss cap confidence at 0.75.",
+    "catalysts": [
+      {
+        "headline": "Maximus (MMS) Q2 2026 Earnings Transcript",
+        "verdict": "BUY",
+        "confidence": 0.88,
+        "catalystTypes": [
+          "technical"
+        ]
+      },
+      {
+        "headline": "Compared to Estimates, Maximus (MMS) Q2 Earnings: A Look at Key Metrics",
+        "verdict": "BUY",
+        "confidence": 0.88,
+        "catalystTypes": [
+          "earnings-beat"
+        ]
+      },
+      {
+        "headline": "Maximus (MMS) shares decline after revenue miss despite earnings beat",
+        "verdict": "HOLD",
+        "confidence": 0.65,
+        "catalystTypes": [
+          "earnings-beat"
+        ]
+      },
+      {
+        "headline": "Maximus (MMS) Q2 Earnings Beat Estimates",
+        "verdict": "BUY",
+        "confidence": 0.88,
+        "catalystTypes": [
+          "earnings-beat"
+        ]
+      },
+      {
+        "headline": "Maximus (NYSE:MMS) Misses Q1 CY2026 Revenue Estimates",
+        "verdict": "SELL",
+        "confidence": 0.82,
+        "catalystTypes": [
+          "govt-contract"
+        ]
+      }
+    ],
+    "catalystTypes": [
+      "technical",
+      "earnings-beat",
+      "govt-contract"
+    ],
+    "engine": "deepseek-chat",
     "status": "pending"
   }
 ]

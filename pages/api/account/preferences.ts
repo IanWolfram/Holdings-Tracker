@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { requireUser, isDevUser } from "@/lib/auth/requireUser";
-import { getServicesForUser, getServices } from "@/src/registry";
+import { requireUser } from "@/lib/auth/requireUser";
+import { getServicesForUser } from "@/src/registry";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "PATCH") {
@@ -21,7 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: "No valid fields to update" });
   }
 
-  const services = isDevUser(user) ? getServices() : await getServicesForUser(user.id);
+  const services = await getServicesForUser(user.id);
   const updated = await services.accountInfo.updatePreferences(user.id, patch);
 
   return res.status(200).json({

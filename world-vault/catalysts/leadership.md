@@ -18,7 +18,6 @@ Recent stories tagged with this catalyst: 25
 Verdict mix: 6 BUY / 2 SELL / 17 HOLD
 
 ## Recent Stories
-- [2026-05-05] **HOLD** 50.0% — [[HOOD]] — Robinhood CEO Vlad Tenev on prediction markets: It's a great source of information
 - [2026-05-04] **SELL** 78.0% — [[HOOD]] — All eyes on Coinbase after Robinhood's crypto revenue falls 47%
 - [2026-05-04] **HOLD** 50.0% — [[PLTR]] — Forget Palantir — Serious Investors Are Placing Their Bets on the AI Chokepoints Right Now
 - [2026-05-04] **HOLD** 50.0% — [[PLTR]] — Palantir raises annual revenue forecast on strong US government demand
@@ -43,3 +42,4 @@ Verdict mix: 6 BUY / 2 SELL / 17 HOLD
 - [2026-04-25] **HOLD** 50.0% — [[PLTR]] — AI talent war: Software industry is a new target as top executives jump ship to OpenAI
 - [2026-04-24] **HOLD** 20.0% — [[PLTR]] — Raj Mehra, Sage CEO: A Fortt Knox Conversation
 - [2026-04-22] **BUY** 78.0% — [[MDB]] — MongoDB Expands Product Leadership to Accelerate Growth and Innovation
+- [2026-04-21] **HOLD** 50.0% — [[PLTR]] — 'Disturbing' And 'Narcissistic': UK Lawmakers Slam Palantir CEO's Manifesto

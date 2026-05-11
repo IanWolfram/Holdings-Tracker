@@ -4,10 +4,6 @@ import { classifyNews } from "@/lib/classifier";
 
 export interface ClassifierConfig {
   engine: string;
-  mlx: {
-    baseUrl: string;
-    model: string;
-  };
   ollama: {
     enabled: boolean;
     baseUrl: string;
@@ -16,9 +12,12 @@ export interface ClassifierConfig {
 }
 
 export class ClassifierService implements IClassifier {
-  constructor(private readonly cfg: ClassifierConfig) {}
+  constructor(
+    private readonly cfg: ClassifierConfig,
+    private readonly userId: string = "system",
+  ) {}
 
   async classify(ticker: string, headline: string, summary: string, url?: string): Promise<Classification> {
-    return classifyNews(ticker, headline, summary, url);
+    return classifyNews(ticker, headline, summary, url, this.userId);
   }
 }

@@ -23,10 +23,10 @@ function getLicensePath(): string {
   return path.join(getUserDataPath(), "license.json");
 }
 
-function readState(): LicenseState {
+async function readState(): Promise<LicenseState> {
   const licensePath = getLicensePath();
   try {
-    const raw = fs.readFileSync(licensePath, "utf-8");
+    const raw = await fs.promises.readFile(licensePath, "utf-8");
     return JSON.parse(raw) as LicenseState;
   } catch {
     return {};
@@ -35,7 +35,7 @@ function readState(): LicenseState {
 
 function checksumSeed(input: string): string {
   const sum = [...input].reduce((acc, ch, idx) => acc + ch.charCodeAt(0) * (idx + 17), 0);
-  return (sum % 1679616).toString(36).toUpperCase().padStart(4, "0").slice(-4);
+  return (sum % 1_679_616).toString(36).toUpperCase().padStart(4, "0").slice(-4);
 }
 
 export function isValidLicenseKeyFormat(key: string): boolean {
@@ -47,8 +47,8 @@ export function isValidLicenseKeyFormat(key: string): boolean {
   return expected === parts[3];
 }
 
-export function getLicenseStatus(): LicenseStatus {
-  const state = readState();
+export async function getLicenseStatus(): Promise<LicenseStatus> {
+  const state = await readState();
   const isLicensed = Boolean(state.licenseKey && isValidLicenseKeyFormat(state.licenseKey));
 
   const firstLaunch = state.firstLaunchAt ? Date.parse(state.firstLaunchAt) : Date.now();
@@ -64,12 +64,12 @@ export function getLicenseStatus(): LicenseStatus {
   };
 }
 
-export function requirePremiumAccess(): { ok: true } | { ok: false; statusCode: number; error: string } {
+export async function requirePremiumAccess(): Promise<{ ok: true } | { ok: false; statusCode: number; error: string }> {
   if (process.env.PULSE_DESKTOP !== "1") {
     return { ok: true };
   }
 
-  const status = getLicenseStatus();
+  const status = await getLicenseStatus();
   if (status.isLicensed || !status.trialExpired) {
     return { ok: true };
   }

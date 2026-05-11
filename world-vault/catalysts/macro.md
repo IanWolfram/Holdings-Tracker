@@ -15,10 +15,14 @@ tags:
 
 Win rate: insufficient resolved predictions yet.
 Recent stories tagged with this catalyst: 25
-Verdict mix: 1 BUY / 1 SELL / 23 HOLD
+Verdict mix: 4 BUY / 0 SELL / 21 HOLD
 
 ## Recent Stories
-- [2026-05-05] **HOLD** 50.0% — [[HOOD]] — Earnings Season Hits Overdrive
+- [2026-05-11] **BUY** 72.0% — [[PLTR]] — Palantir: Reset Unveils A Massive Buying Opportunity
+- [2026-05-11] **BUY** 88.0% — [[PLTR]] — Palantir Technologies Has Just Created History. Here's Where the Stock Could Be in 5 Years
+- [2026-05-11] **HOLD** 50.0% — [[PLTR]] — Why Silver, Power And Chemicals Will Be The Next Micron Trade, Top AI Expert Says
+- [2026-05-10] **BUY** 72.0% — [[PLTR]] — Palantir stock is cheaper than Alphabet on this valuation metric
+- [2026-05-08] **HOLD** 50.0% — [[MDB]] — Important Notice to Long-Term Shareholders of LKQ Corporation (NASDAQ: LKQ); Molina Healthcare, Inc.
 - [2026-05-04] **HOLD** 50.0% — [[PLTR]] — Earnings Soar While the Economy Heats Up
 - [2026-05-04] **HOLD** 50.0% — [[PLTR]] — Equities Fall Intraday, Oil Prices Climb as Traders Monitor Middle East Developments
 - [2026-05-04] **HOLD** 50.0% — [[PLTR]] — Palantir Technologies Q1 Earnings Call Highlights
@@ -39,7 +43,3 @@ Verdict mix: 1 BUY / 1 SELL / 23 HOLD
 - [2026-04-30] **HOLD** 50.0% — [[VKTX]] — Should You Forget This High-Yield Pharma Stock and Buy a Growth Name Instead?
 - [2026-04-29] **HOLD** 50.0% — [[HOOD]] — Equity Futures Rise Ahead of Mega-Cap Tech Earnings, Fed Decision
 - [2026-04-29] **HOLD** 50.0% — [[PLTR]] — Nasdaq called higher ahead of Fed decision, Alphabet, Microsoft earnings
-- [2026-04-29] **HOLD** 50.0% — [[HOOD]] — Oil Surges 6%, S&P 500 Wobbles Before Fed And Tech Earnings: Stock Market Today
-- [2026-04-29] **HOLD** 50.0% — [[HOOD]] — Stock Market Today: Dow Futures Drop, Nasdaq Gains Ahead Of Powell's Last Speech As Fed Chair— Robin
-- [2026-04-29] **SELL** 72.0% — [[HOOD]] — Stock Market Today: Dow Slips Ahead Of Fed Decision, Powell; Robinhood Sinks On Earnings (Live Cover
-- [2026-04-29] **HOLD** 50.0% — [[HOOD]] — US Equity Futures Largely Flat Pre-Bell as Traders Await Tech Earnings, Fed Rate Decision

@@ -10,8 +10,11 @@ export interface VaultEntry extends Classification {
   source: string;
 }
 
-let vaultIndex: Map<string, VaultEntry> | null = null;
-let lastIndexTime = 0;
+interface CachedIndex {
+  index: Map<string, VaultEntry>;
+  builtAt: number;
+}
+const indexCache = new Map<string, CachedIndex>();
 const CACHE_TTL = 30 * 1000; // 30 seconds
 
 /**
@@ -67,10 +70,14 @@ function toUnixTimestamp(dateStr: unknown): number {
 /**
  * Scans the World Vault via VaultStore and builds an in-memory index of news stories by URL.
  */
-export async function getVaultIndex(store: VaultStore): Promise<Map<string, VaultEntry>> {
+export async function getVaultIndex(
+  store: VaultStore,
+  userId: string = "system",
+): Promise<Map<string, VaultEntry>> {
   const now = Date.now();
-  if (vaultIndex && (now - lastIndexTime < CACHE_TTL)) {
-    return vaultIndex;
+  const cached = indexCache.get(userId);
+  if (cached && now - cached.builtAt < CACHE_TTL) {
+    return cached.index;
   }
 
   const newIndex = new Map<string, VaultEntry>();
@@ -110,23 +117,30 @@ export async function getVaultIndex(store: VaultStore): Promise<Map<string, Vaul
     console.error("[vault-index] Failed to build index:", err);
   }
 
-  vaultIndex = newIndex;
-  lastIndexTime = now;
+  indexCache.set(userId, { index: newIndex, builtAt: now });
   return newIndex;
 }
 
 /**
  * Updates the index with a single story without a full re-scan.
+ * Applies to every cached per-user index that already contains the URL
+ * (so a freshly classified story is visible to all readers immediately).
  */
-export function updateVaultIndex(url: string, entry: VaultEntry): void {
-  if (vaultIndex) {
-    vaultIndex.set(url, entry);
+export function updateVaultIndex(url: string, entry: VaultEntry, userId?: string): void {
+  if (userId) {
+    const cached = indexCache.get(userId);
+    if (cached) cached.index.set(url, entry);
+    return;
+  }
+  for (const cached of indexCache.values()) {
+    if (cached.index.has(url)) cached.index.set(url, entry);
   }
 }
 
 /**
- * Clear the cache to force a re-scan.
+ * Clear the cache to force a re-scan. Without a userId, clears all users.
  */
-export function invalidateVaultIndex(): void {
-  vaultIndex = null;
+export function invalidateVaultIndex(userId?: string): void {
+  if (userId) indexCache.delete(userId);
+  else indexCache.clear();
 }

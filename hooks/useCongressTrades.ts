@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { authedFetch } from "@/lib/api/client-fetch";
 import type { CongressTrade } from "@/types/news.types";
 
 const CONGRESS_POLL_MS = 60_000;
@@ -18,7 +19,7 @@ export function useCongressTrades(pathname: string) {
   useEffect(() => {
     const compute = async () => {
       try {
-        const res = await fetch("/api/congress");
+        const res = await authedFetch("/api/congress");
         if (!res.ok) return;
         const { trades }: { trades: CongressTrade[] } = await res.json();
         const lastSeen = Number(localStorage.getItem(LS_KEY) ?? "0");

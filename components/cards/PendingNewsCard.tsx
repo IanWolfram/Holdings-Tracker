@@ -17,48 +17,22 @@ export default function PendingNewsCard({
   compact?: boolean;
 }) {
   const [progress, setProgress] = useState(0);
-  const mockAnimStartedRef = useRef(false);
-
-  const isMock = agentState?.isMock ?? false;
 
   // Exact match: this specific headline is under the microscope right now
   const isBeingAnalyzed =
-    !isMock &&
     agentState?.status === "running" &&
     agentState?.ticker === story.ticker &&
     agentState?.currentHeadline === story.headline;
 
   // Coarser match: the agent is running on this ticker (stories queued)
   const isTickerQueued =
-    !isMock &&
     agentState?.status === "running" &&
     agentState?.ticker === story.ticker &&
     !isBeingAnalyzed;
 
-  // ── Mock mode: fake progress animation (original behavior) ──────────────
+  // Live progress while being analyzed
   useEffect(() => {
-    if (!isMock || story.isAnalyzed || mockAnimStartedRef.current) return;
-    mockAnimStartedRef.current = true;
-
-    const duration = 6000 + Math.random() * 8000;
-    const start = Date.now();
-    let frame: number;
-
-    const animate = () => {
-      const p = Math.min(((Date.now() - start) / duration) * 100, 100);
-      setProgress(p);
-      if (p < 100) {
-        frame = requestAnimationFrame(animate);
-      }
-    };
-
-    frame = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(frame);
-  }, [isMock, story.isAnalyzed]);
-
-  // ── Live mode: real progress while being analyzed ─────────────────────
-  useEffect(() => {
-    if (isMock || story.isAnalyzed) return;
+    if (story.isAnalyzed) return;
 
     if (isBeingAnalyzed) {
       const duration = 20_000;
@@ -76,7 +50,7 @@ export default function PendingNewsCard({
     } else {
       setProgress(0);
     }
-  }, [isMock, story.isAnalyzed, isBeingAnalyzed]);
+  }, [story.isAnalyzed, isBeingAnalyzed]);
 
   const isSeconds = story.datetime && story.datetime < 10_000_000_000;
   const timestampMs = isSeconds ? story.datetime * 1000 : story.datetime;
@@ -85,7 +59,6 @@ export default function PendingNewsCard({
     : "";
 
   const statusLabel = (() => {
-    if (isMock) return progress < 100 ? "Analyzing..." : "Pending";
     if (isBeingAnalyzed) return "Analyzing...";
     if (isTickerQueued) return `In Queue`;
     if (agentState?.status === "running") return "Waiting";
@@ -94,7 +67,7 @@ export default function PendingNewsCard({
 
   const statusColor = isBeingAnalyzed ? "#00FF88" : isTickerQueued ? "#94a3b8" : "#64748b";
   const statusBg = isBeingAnalyzed ? "rgba(0,255,136,0.1)" : "rgba(255,255,255,0.05)";
-  const borderColor = isBeingAnalyzed ? "#00FF88" : isMock ? "#00FF88" : "#1e293b";
+  const borderColor = isBeingAnalyzed ? "#00FF88" : "#1e293b";
 
   const SourceBadge =
     story.source === "finnhub" ? (

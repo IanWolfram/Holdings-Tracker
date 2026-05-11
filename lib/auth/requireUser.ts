@@ -2,36 +2,10 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { createServerClient } from "@supabase/ssr";
 import type { User } from "@supabase/supabase-js";
 
-/**
- * Dev-mode user returned when PULSE_SINGLE_USER_MODE=1.
- * Lets every API route function without a real Supabase session.
- */
-const DEV_USER: User = Object.freeze({
-  id: "dev-user-id",
-  email: "dev@local",
-  aud: "authenticated",
-  created_at: "2025-01-01T00:00:00Z",
-  role: "authenticated",
-  app_metadata: {},
-  user_metadata: {},
-} as unknown as User);
-
-/**
- * Extract the authenticated user from the request.
- *
- * - When PULSE_SINGLE_USER_MODE=1, returns a static dev user immediately
- *   (no Supabase call, no cookie parsing).
- * - Otherwise, validates the Supabase session cookie and returns the user.
- * - On missing/invalid session, writes 401 JSON and returns null.
- */
 export async function requireUser(
   req: NextApiRequest,
   res: NextApiResponse,
 ): Promise<User | null> {
-  if (process.env.PULSE_SINGLE_USER_MODE === "1") {
-    return DEV_USER;
-  }
-
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -55,7 +29,7 @@ export async function requireUser(
             if (options.secure) parts.push("Secure");
             if (options.httpOnly) parts.push("HttpOnly");
             if (options.sameSite) parts.push(`SameSite=${options.sameSite}`);
-            res.setHeader("Set-Cookie", parts.join("; "));
+            res.appendHeader("Set-Cookie", parts.join("; "));
           }
         },
       },
@@ -74,10 +48,3 @@ export async function requireUser(
   return user;
 }
 
-/**
- * Type guard to check if the given user is the dev-mode singleton.
- * Useful for skipping per-user DB calls in single-user mode.
- */
-export function isDevUser(user: User): boolean {
-  return user.id === "dev-user-id";
-}

@@ -1,9 +1,9 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { callMlxRaw, getSystemPrompt } from "@/world-brain/brain";
-import { getPositions } from "@/lib/etrade";
+import { callLlm, getSystemPrompt } from "@/world-brain/brain";
 import { WORLD_VAULT_PATH } from "@/lib/constants";
 import { FsVaultStore, type VaultStore } from "@/lib/vault/store";
 import { requireUser } from "@/lib/auth/requireUser";
+import { getServicesForUser } from "@/src/registry";
 
 // ---------------------------------------------------------------------------
 // Vault context helpers (async, VaultStore-based)
@@ -190,7 +190,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   let holdingTickers: string[] = [];
   let holdingsContext = "";
   try {
-    const positions = await getPositions();
+    const { portfolioService } = await getServicesForUser(user.id);
+    const { positions } = await portfolioService.getPositionsSafe();
     if (positions.length > 0) {
       holdingTickers = positions.map((p) => p.ticker);
       holdingsContext =
@@ -248,7 +249,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // ---- 3. Build system prompt ---------------------------------------------
-  const systemPrompt = (await getSystemPrompt(store!)) + CHAT_ADDENDUM + holdingsContext + vaultContext;
+  const systemPrompt = getSystemPrompt() + CHAT_ADDENDUM + holdingsContext + vaultContext;
 
   // ---- 4. Build user message with history ---------------------------------
   let fullMessage = message;
@@ -261,7 +262,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // ---- 5. Inference -------------------------------------------------------
   try {
-    const reply = await callMlxRaw(systemPrompt, fullMessage);
+    const reply = await callLlm(systemPrompt, fullMessage);
     if (!reply) {
       return res.status(503).json({
         error: "AI engine unavailable. Check that your model is configured and running.",

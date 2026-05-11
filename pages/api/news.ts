@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import type { ClassifiedStory } from "@/types/news.types";
-import { getServices, getServicesForUser } from "@/src/registry";
+import { getServicesForUser } from "@/src/registry";
 import { requireUser } from "@/lib/auth/requireUser";
 
 export default async function handler(
@@ -19,9 +19,7 @@ export default async function handler(
     return res.status(400).json({ error: "ticker query param required" });
   }
 
-  const { newsService } = process.env.PULSE_SINGLE_USER_MODE === "1"
-    ? getServices()
-    : await getServicesForUser(user.id);
+  const { newsService } = await getServicesForUser(user.id);
 
   try {
     const deadline = new Promise<never>((_, reject) =>

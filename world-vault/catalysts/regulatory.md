@@ -15,13 +15,15 @@ tags:
 
 Win rate: insufficient resolved predictions yet.
 Recent stories tagged with this catalyst: 25
-Verdict mix: 3 BUY / 2 SELL / 20 HOLD
+Verdict mix: 3 BUY / 3 SELL / 19 HOLD
 
 ## Recent Stories
-- [2026-05-06] **HOLD** 50.0% — [[HOOD]] — Robinhood (HOOD) Receives In-Principle Approval to Launch Brokerage Services in Singapore
+- [2026-05-11] **HOLD** 50.0% — [[HOOD]] — Cowboy Space Corporation Raises $275M Series B For Vertically-Integrated Orbital Data Centers and Ro
+- [2026-05-11] **SELL** 72.0% — [[PLTR]] — Palantir NHS Data Access Concerns Test Privacy Controls And Contract Prospects
+- [2026-05-08] **HOLD** 50.0% — [[MDB]] — Important Notice to Long-Term Shareholders of LKQ Corporation (NASDAQ: LKQ); Molina Healthcare, Inc.
+- [2026-05-08] **BUY** 72.0% — [[HOOD]] — Robinhood's Next Big Growth Engine May Not Be Crypto. Here's Why Prediction Markets Could Matter Mor
+- [2026-05-06] **HOLD** 50.0% — [[MDB]] — Attention Long-Term Shareholders of FS KKR Capital Corp. (NYSE: FSK); LKQ Corporation (NASDAQ: LKQ);
 - [2026-05-05] **HOLD** 50.0% — [[HOOD]] — DraftKings Conference: Execs Debate Prediction Markets, Regulation and Sportsbook Edge
-- [2026-05-05] **HOLD** 50.0% — [[HOOD]] — Robinhood CEO Vlad Tenev’s Vision of the Future of Investing
-- [2026-05-04] **HOLD** 50.0% — [[CHKP]] — Norwegian Cruise Line Holdings Ltd. Investigated for Securities Fraud Violations by Block & Leviton:
 - [2026-05-04] **HOLD** 50.0% — [[HOOD]] — Planet Ventures Appoints Dr. Bora Uygun as Head of Space Investments and Grants Options and RSUs
 - [2026-05-04] **HOLD** 50.0% — [[HOOD]] — Prediction Market ETFs Delayed As SEC Demands More Disclosure
 - [2026-05-04] **HOLD** 50.0% — [[PLTR]] — Stock Market Today, May 4: Strait of Hormuz Tensions Weigh on Stocks at Midday
@@ -41,5 +43,3 @@ Verdict mix: 3 BUY / 2 SELL / 20 HOLD
 - [2026-04-29] **HOLD** 50.0% — [[HOOD]] — These S&P500 stocks that are showing activity before the opening bell on Wednesday.
 - [2026-04-29] **HOLD** 50.0% — [[HOOD]] — US Equity Futures Largely Flat Pre-Bell as Traders Await Tech Earnings, Fed Rate Decision
 - [2026-04-29] **HOLD** 50.0% — [[HOOD]] — Wednesday's session: gap up and gap down stock in the S&P500 index
-- [2026-04-28] **HOLD** 50.0% — [[HOOD]] — 'Fintechs are a force for social good,' says QED's Nigel Morris
-- [2026-04-28] **BUY** 72.0% — [[HOOD]] — E-Brokerage Market Share Analysis and Growth Outlook (2026-2031) Featuring Profiles of Key Players -

@@ -5,7 +5,8 @@ import type { NextRequest } from "next/server";
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/world";
+  const rawNext = searchParams.get("next") ?? "/terminal";
+  const next = rawNext.startsWith("/") ? rawNext : "/terminal";
 
   if (!code) {
     return NextResponse.redirect(new URL("/login", req.url));

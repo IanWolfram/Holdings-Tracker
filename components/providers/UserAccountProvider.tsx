@@ -5,11 +5,14 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
+  useRef,
   useState,
 } from "react";
 import type { IAccountClient, MeResponse } from "@/lib/account/client";
 import { HttpAccountClient } from "@/lib/account/client";
 import type { UserPreferences } from "@/src/domain/interfaces/IAccountInfoProvider";
+import { createClient } from "@/lib/supabase/browser";
 
 interface UserAccountState {
   account: MeResponse["account"] | null;
@@ -31,7 +34,12 @@ export function UserAccountProvider({
   client?: IAccountClient;
   children: React.ReactNode;
 }) {
-  const client = clientProp ?? new HttpAccountClient();
+  // Stable reference: create HttpAccountClient once, never recreate on re-renders
+  const clientRef = useRef<IAccountClient | null>(null);
+  if (!clientRef.current) {
+    clientRef.current = clientProp ?? new HttpAccountClient();
+  }
+  const client = clientRef.current;
 
   const [account, setAccount] = useState<MeResponse["account"] | null>(null);
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
@@ -60,6 +68,20 @@ export function UserAccountProvider({
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // Listen for auth state changes — redirect to /login on sign-out
+  useEffect(() => {
+    const supabase = createClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string) => {
+      if (event === "SIGNED_OUT") {
+        setAccount(null);
+        setPreferences(null);
+        setEtradeExpiry(null);
+        window.location.href = "/login";
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   const handleUpdatePreferences = useCallback(
     async (patch: Partial<UserPreferences>) => {

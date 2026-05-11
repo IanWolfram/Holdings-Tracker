@@ -39,10 +39,11 @@ function vaultEntryToStory(entry: VaultEntry, originalUrl: string): ClassifiedSt
 
 export async function getVaultStoriesForTicker(
   ticker: string,
-  windowDays: number = DEFAULT_WINDOW_DAYS
+  windowDays: number = DEFAULT_WINDOW_DAYS,
+  userId: string = "system",
 ): Promise<ClassifiedStory[]> {
-  const store = await getVaultStore("system");
-  const index = await getVaultIndex(store);
+  const store = await getVaultStore(userId);
+  const index = await getVaultIndex(store, userId);
   const cutoff = Math.floor(Date.now() / 1000) - (windowDays * 24 * 60 * 60);
   const upper = ticker.toUpperCase();
 

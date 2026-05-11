@@ -26,10 +26,6 @@ export interface AppConfig {
   };
   ai: {
     engine: string;
-    mlx: {
-      baseUrl: string;
-      model: string;
-    };
     ollama: {
       enabled: boolean;
       baseUrl: string;
@@ -45,7 +41,7 @@ export interface AppConfig {
 export function buildConfig(): AppConfig {
   return {
     etrade: {
-      env: process.env.ETRADE_ENV ?? "mock",
+      env: process.env.ETRADE_ENV ?? "live",
       consumerKey: process.env.ETRADE_CONSUMER_KEY ?? "",
       consumerSecret: process.env.ETRADE_CONSUMER_SECRET ?? "",
       oauthToken: process.env.ETRADE_OAUTH_TOKEN ?? "",
@@ -63,11 +59,7 @@ export function buildConfig(): AppConfig {
       apiKey: process.env.NEWSAPI_API_KEY,
     },
     ai: {
-      engine: process.env.AI_ENGINE ?? "ollama",
-      mlx: {
-        baseUrl: process.env.MLX_BASE_URL ?? "http://localhost:8080/v1",
-        model: process.env.MLX_MODEL ?? "mlx-community/DeepSeek-R1-Distill-Qwen-14B-4bit",
-      },
+      engine: process.env.AI_ENGINE ?? "deepseek",
       ollama: {
         enabled: process.env.OLLAMA_ENABLED === "true",
         baseUrl: process.env.OLLAMA_BASE_URL ?? "http://localhost:11434",

@@ -6,6 +6,7 @@
  */
 
 import type { QuoteData } from "@/types/market-data.types";
+import { BROWSER_USER_AGENT, API_TIMEOUT_MS } from "./constants";
 
 export async function fetchStooqQuote(ticker: string): Promise<QuoteData> {
   const symbol = `${ticker.toLowerCase()}.us`;
@@ -13,12 +14,11 @@ export async function fetchStooqQuote(ticker: string): Promise<QuoteData> {
 
   const res = await fetch(url, {
     headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+      "User-Agent": BROWSER_USER_AGENT,
       Accept: "text/csv,text/plain,*/*",
     },
     next: { revalidate: 0 },
-    signal: AbortSignal.timeout(10_000),
+    signal: AbortSignal.timeout(API_TIMEOUT_MS),
   });
 
   if (!res.ok) {

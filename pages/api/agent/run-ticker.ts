@@ -7,7 +7,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const user = await requireUser(req, res);
   if (!user) return;
 
-  const access = requirePremiumAccess();
+  const access = await requirePremiumAccess();
   if (!access.ok) {
     return res.status(access.statusCode).json({ error: access.error });
   }
@@ -35,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Fire and forget
-    runTickerAnalysis(upperTicker).catch((err) => {
+    runTickerAnalysis(upperTicker, user.id).catch((err) => {
       console.error(`[api/agent/run-ticker] Analysis failed for ${upperTicker}:`, err);
     });
 

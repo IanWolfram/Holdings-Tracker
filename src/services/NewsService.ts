@@ -1,10 +1,7 @@
-import fs from "fs";
-import path from "path";
 import type { INewsProvider } from "@/src/domain/interfaces/INewsProvider";
 import type { IClassifier } from "@/src/domain/interfaces/IClassifier";
 import type { ICache } from "@/src/domain/interfaces/ICache";
 import type { ClassifiedStory } from "@/types/news.types";
-import { MOCK_NEWS, MOCK_PENDING } from "@/lib/mock-news";
 import { getCompanyName } from "@/lib/company-names";
 import { NEWS_CACHE_TTL_MS } from "@/lib/constants";
 import { dedupeStories } from "@/lib/utils/dedupeStories";
@@ -17,18 +14,6 @@ function withinNewsWindow(stories: ClassifiedStory[]): ClassifiedStory[] {
   return stories.filter((s) => s.datetime >= cutoff);
 }
 
-function loadMockVerdicts(): Record<string, ClassifiedStory[]> | null {
-  try {
-    const p = path.join(process.cwd(), "lib", "mock-verdicts.json");
-    return JSON.parse(fs.readFileSync(p, "utf-8")) as Record<string, ClassifiedStory[]>;
-  } catch {
-    return null;
-  }
-}
-
-// Load once per process
-const MOCK_VERDICTS = loadMockVerdicts();
-
 export class NewsService {
   private readonly _revalidationLocks = new Map<string, Promise<void>>();
 
@@ -39,7 +24,8 @@ export class NewsService {
       newsapi?: INewsProvider;
     },
     private readonly classifier: IClassifier,
-    private readonly cache: ICache
+    private readonly cache: ICache,
+    private readonly userId: string = "system",
   ) {}
 
   invalidateTicker(ticker: string): void {
@@ -98,28 +84,9 @@ export class NewsService {
     const totalRealStories = finnhubItems.length + newsapiItems.length;
 
     if (totalRealStories === 0) {
-      if (MOCK_VERDICTS?.[ticker]) {
-        const deduped = dedupeStories(MOCK_VERDICTS[ticker], companyName);
-        const data = withinNewsWindow(deduped);
-        this.cache.set(ticker, data, NEWS_CACHE_TTL_MS);
-        this.kickOffPolygonEnrichment(ticker, companyName);
-        return data;
-      }
-
-      const mockStories = MOCK_NEWS[ticker] ?? [];
-      const classified: ClassifiedStory[] = [];
-      for (const s of mockStories) {
-        if (s.reason) { classified.push(s); continue; }
-        const cls = await this.classifier.classify(s.ticker, s.headline, s.summary ?? "", s.url);
-        classified.push({ ...s, ...cls });
-      }
-      const pending = MOCK_PENDING[ticker] || [];
-      const deduped = dedupeStories(classified, companyName);
-      const filtered = withinNewsWindow(deduped);
-      const allResult = [...pending, ...filtered];
-      this.cache.set(ticker, allResult, NEWS_CACHE_TTL_MS);
+      this.cache.set(ticker, [], NEWS_CACHE_TTL_MS);
       this.kickOffPolygonEnrichment(ticker, companyName);
-      return allResult;
+      return [];
     }
 
     const cutoff = Math.floor(Date.now() / 1000) - NEWS_WINDOW_S;
@@ -129,19 +96,18 @@ export class NewsService {
     ].filter((s) => s.datetime >= cutoff);
 
     const classified: ClassifiedStory[] = [];
-    // classifier.classify is now vault-lookup + keyword only (no MLX), so it's safe to call for all.
+    // classifier.classify is now vault-lookup + keyword only (no AI call), so it's safe to call for all.
     // This ensures vault verdicts from prior agent runs are surfaced across the full article list.
     for (const s of allItems) {
       const cls = await this.classifier.classify(s.ticker, s.headline, s.summary ?? "", s.url);
       classified.push({ ...s, ...cls });
     }
 
-    const pending = MOCK_PENDING[ticker] || [];
-    const vaultStories = await getVaultStoriesForTicker(ticker, 7);
+    const vaultStories = await getVaultStoriesForTicker(ticker, 7, this.userId);
     const allClassified = [...classified, ...vaultStories];
     const deduped = dedupeStories(allClassified, companyName);
     const recent = withinNewsWindow(deduped).sort((a, b) => b.datetime - a.datetime);
-    const allRecent = [...pending, ...recent];
+    const allRecent = recent;
 
     this.cache.set(ticker, allRecent, NEWS_CACHE_TTL_MS);
     this.kickOffPolygonEnrichment(ticker, companyName);
@@ -180,15 +146,9 @@ export class NewsService {
       newClassified.push({ ...s, ...cls });
     }
 
-    // Pending mock items are statically derived per ticker; preserve them
-    // unchanged on the front of the merged list rather than dedupe-merging.
-    const pending = MOCK_PENDING[ticker] || [];
-    const pendingUrls = new Set(pending.map((s) => s.url));
-    const realCached = cached.filter((s) => !pendingUrls.has(s.url));
-
-    const merged = dedupeStories([...realCached, ...newClassified], companyName);
+    const merged = dedupeStories([...cached, ...newClassified], companyName);
     const recent = withinNewsWindow(merged).sort((a, b) => b.datetime - a.datetime);
-    this.cache.set(ticker, [...pending, ...recent], NEWS_CACHE_TTL_MS);
+    this.cache.set(ticker, recent, NEWS_CACHE_TTL_MS);
   }
 
   /** Check if a background revalidation is already in flight for this ticker. */

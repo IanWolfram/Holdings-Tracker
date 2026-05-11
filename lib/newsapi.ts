@@ -1,3 +1,5 @@
+import { API_TIMEOUT_MS } from "./constants";
+
 export interface NewsAPIArticle {
   headline: string;
   summary: string;
@@ -26,7 +28,7 @@ export async function fetchNewsAPIArticles(
 
   const res = await fetch(url, {
     headers: { "X-Api-Key": key },
-    signal: AbortSignal.timeout(10_000),
+    signal: AbortSignal.timeout(API_TIMEOUT_MS),
   });
 
   if (!res.ok) {

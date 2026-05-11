@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { authedFetch } from "@/lib/api/client-fetch";
 import type { CongressTrade, ClassifiedStory } from "@/types/news.types";
 import type { HotTicker } from "@/types/market-data.types";
 
@@ -26,7 +27,7 @@ export function useHotTickers() {
 
   const fetchHot = useCallback(async () => {
     try {
-      const res = await fetch("/api/hot");
+      const res = await authedFetch("/api/hot");
       if (!res.ok) return;
       const data: { tickers: HotTicker[] } = await res.json();
       setHotTickers(data.tickers);
@@ -39,7 +40,7 @@ export function useHotTickers() {
 
   const fetchCongress = useCallback(async () => {
     try {
-      const res = await fetch("/api/congress");
+      const res = await authedFetch("/api/congress");
       if (!res.ok) return;
       const { trades }: { trades: CongressTrade[] } = await res.json();
       setCongressTrades(trades);
@@ -71,7 +72,7 @@ export function useHotTickers() {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), 50_000);
         try {
-          const res = await fetch(`/api/news?ticker=${ticker}`, { signal: controller.signal });
+          const res = await authedFetch(`/api/news?ticker=${ticker}`, { signal: controller.signal });
           if (res.ok) {
             const data: ClassifiedStory[] = await res.json();
             setTickerNews((prev) => ({ ...prev, [ticker]: data }));

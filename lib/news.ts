@@ -1,11 +1,8 @@
-import fs from "fs";
-import path from "path";
 import { fetchFinnhubNews } from "./finnhub";
 import { fetchPolygonNews } from "./polygon";
 import { fetchNewsAPIArticles } from "./newsapi";
 import { getCompanyName } from "./company-names";
 import { classifyNews } from "./classifier";
-import { MOCK_NEWS } from "./mock-news";
 import { NEWS_CACHE_TTL_MS, WORLD_VAULT_PATH } from "./constants";
 import { dedupeStories } from "./utils/dedupeStories";
 import { getVaultStoriesForTicker } from "./vault-stories";
@@ -15,19 +12,6 @@ import { buildRelevanceProfile, isRelevantToTicker } from "./relevance";
 import type { ClassifiedStory } from "@/types/news.types";
 import type { GeoStory } from "@/types/geo.types";
 export type { ClassifiedStory } from "@/types/news.types";
-
-// Pre-classified verdicts from scripts/review-verdicts.ts --save
-// If absent, falls back to classifying mock stories through the AI Brain
-function loadMockVerdicts(): Record<string, ClassifiedStory[]> | null {
-  try {
-    const p = path.join(process.cwd(), "lib", "mock-verdicts.json");
-    return JSON.parse(fs.readFileSync(p, "utf-8")) as Record<string, ClassifiedStory[]>;
-  } catch {
-    return null;
-  }
-}
-// Load once per process
-const MOCK_VERDICTS = loadMockVerdicts();
 
 const NEWS_WINDOW_S = 7 * 24 * 60 * 60; // seconds
 
@@ -103,28 +87,12 @@ async function fetchNewsForTicker(
       : [],
   ]);
 
-  // If all real sources came back empty, classify and cache mock news so
-  // tooltips still show AI reasoning instead of being empty
+  // If all real sources came back empty, return empty — no mock data
   const totalRealStories =
     finnhubArticles.length + polygonArticles.length + newsAPIArticles.length;
   if (totalRealStories === 0) {
-    // Use pre-classified verdicts if available (run scripts/review-verdicts.ts --save to generate)
-    if (MOCK_VERDICTS?.[ticker]) {
-      const data = withinNewsWindow(MOCK_VERDICTS[ticker]);
-      cache.set(ticker, { data, expiresAt: Date.now() + NEWS_CACHE_TTL_MS });
-      return data;
-    }
-    // Fall back to classifying mock stories sequentially through the AI Brain
-    const mockStories = MOCK_NEWS[ticker] ?? [];
-    const classified: ClassifiedStory[] = [];
-    for (const s of mockStories) {
-      if (s.reason) { classified.push(s); continue; }
-      const cls = await classifyNews(s.ticker, s.headline, s.summary ?? "", s.url);
-      classified.push({ ...s, verdict: cls.verdict, confidence: cls.confidence, reason: cls.reason, classifiedAt: cls.classifiedAt });
-    }
-    const filtered = withinNewsWindow(classified);
-    cache.set(ticker, { data: filtered, expiresAt: Date.now() + NEWS_CACHE_TTL_MS });
-    return filtered;
+    cache.set(ticker, { data: [], expiresAt: Date.now() + NEWS_CACHE_TTL_MS });
+    return [];
   }
 
   const cutoff = Math.floor(Date.now() / 1000) - NEWS_WINDOW_S;

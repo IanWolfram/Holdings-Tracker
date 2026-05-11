@@ -32,6 +32,290 @@ const VERDICT_PILL_BG: Record<string, string> = {
   HOLD: "rgba(100,116,139,0.12)",
 };
 
+/** Format a timestamp (seconds or milliseconds) into a human-readable "time ago" string. */
+function formatTimeAgo(datetime: number | undefined): string {
+  if (!datetime) return "";
+  const isSeconds = datetime < 10_000_000_000;
+  const ms = isSeconds ? datetime * 1_000 : datetime;
+  return formatDistanceToNow(new Date(ms), { addSuffix: true });
+}
+
+/** Source badge icon: Finnhub, Polygon, or generic "News". */
+function SourceBadgeIcon({ source }: { source: string }) {
+  if (source === "finnhub") return <FinnhubBadge />;
+  if (source === "polygon") return <PolygonBadge />;
+  return <span className="text-[10px] text-slate-400 font-bold">News</span>;
+}
+
+/** Animated arrow icon that rotates on hover. */
+function NavArrowIcon({ hovered, sourceColor }: { hovered: boolean; sourceColor: string }) {
+  return (
+    <motion.div
+      className="flex items-center justify-center relative w-4 h-4 shrink-0"
+      animate={{
+        rotate: hovered ? -45 : 0,
+        scale: hovered ? 1.1 : 1,
+      }}
+      transition={{ duration: 0.4, ease: REVEAL_EASE }}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        className="absolute inset-0 w-full h-full overflow-visible"
+      >
+        <path
+          d="M 4 12 H 20 M 14 6 L 20 12 L 14 18"
+          fill="none"
+          stroke={hovered ? sourceColor : "#64748b"}
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{
+            opacity: hovered ? 1 : 0.4,
+            filter: hovered ? `drop-shadow(0 0 2px ${sourceColor})` : "none",
+          }}
+        />
+      </svg>
+    </motion.div>
+  );
+}
+
+/** Button to toggle the duplicate stories panel. */
+function DupeToggleButton({
+  count,
+  color,
+  expanded,
+  onToggle,
+  compact,
+}: {
+  count: number;
+  color: string;
+  expanded: boolean;
+  onToggle: () => void;
+  compact: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggle();
+      }}
+      aria-expanded={expanded}
+      aria-label={`${count} similar coverage stories`}
+      className={`${compact ? "px-1 py-[1px]" : "ml-1 px-1.5 py-[1px]"} rounded-full text-[9px] font-bold tracking-wide tabular-nums transition-colors hover:bg-white/[0.06]`}
+      style={{
+        color,
+        backgroundColor: "rgba(255,255,255,0.04)",
+        border: `1px solid ${color}33`,
+      }}
+    >
+      +{count}{compact ? "" : " similar"}
+    </button>
+  );
+}
+
+/** Expandable list of duplicate stories. */
+function DuplicateList({
+  duplicates,
+  compact,
+}: {
+  duplicates: ClassifiedStory[];
+  compact: boolean;
+}) {
+  if (duplicates.length === 0) return null;
+  return (
+    <AnimatePresence initial={false}>
+      <motion.div
+        key="duplicates"
+        initial={{ opacity: 0, height: 0 }}
+        animate={{ opacity: 1, height: "auto" }}
+        exit={{ opacity: 0, height: 0 }}
+        transition={{ duration: 0.25, ease: REVEAL_EASE }}
+        className="overflow-hidden"
+      >
+        <div
+          className={`${compact ? "mt-1.5 pt-1.5 space-y-1" : "mt-2 pt-2 space-y-1.5"} border-t`}
+          style={{ borderColor: "rgba(255,255,255,0.06)" }}
+        >
+          <div className={`${compact ? "text-[8.5px]" : "text-[9.5px]"} font-bold uppercase tracking-wider text-slate-500`}>
+            Similar coverage
+          </div>
+          {duplicates.map((d) => (
+            <DuplicateItem key={`${d.source}-${d.url}-${d.datetime}`} story={d} compact={compact} />
+          ))}
+        </div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+/** Single duplicate story row. */
+function DuplicateItem({ story, compact }: { story: ClassifiedStory; compact: boolean }) {
+  const timeAgo = formatTimeAgo(story.datetime);
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        window.open(story.url, "_blank");
+      }}
+      className="w-full text-left flex items-center gap-1.5 px-1.5 py-1 rounded-md hover:bg-white/[0.04] transition-colors"
+    >
+      <SourceBadgeIcon source={story.source} />
+      <span className={`flex-1 ${compact ? "text-[10px]" : "text-[11px]"} text-slate-300 line-clamp-1`}>
+        {story.headline}
+      </span>
+      {timeAgo && (
+        <span className={`${compact ? "text-[9px]" : "text-[10px]"} text-slate-500 shrink-0 tabular-nums`}>
+          {timeAgo}
+        </span>
+      )}
+    </button>
+  );
+}
+
+/** Compact layout for small-form-factor news cards. */
+function CompactCardContent({
+  story,
+  timeAgo,
+  duplicates,
+  dupeBadgeColor,
+  showDuplicates,
+  setShowDuplicates,
+  hovered,
+  sourceColor,
+  color,
+  expanded,
+  activeIsAnalyzed,
+  activeVerdict,
+  verdictBg,
+  confidence,
+  activeReason,
+}: {
+  story: ClassifiedStory;
+  timeAgo: string;
+  duplicates: ClassifiedStory[];
+  dupeBadgeColor: string;
+  showDuplicates: boolean;
+  setShowDuplicates: React.Dispatch<React.SetStateAction<boolean>>;
+  hovered: boolean;
+  sourceColor: string;
+  color: string;
+  expanded: boolean;
+  activeIsAnalyzed: boolean;
+  activeVerdict: string;
+  verdictBg: string;
+  confidence: number;
+  activeReason: string | undefined;
+}) {
+  return (
+    <>
+      <div className="flex items-start gap-1.5">
+        <p className="flex-1 min-w-0 text-[12px] font-semibold leading-[1.25] line-clamp-2 text-white transition-colors break-words m-0">
+          {story.headline}
+        </p>
+      </div>
+
+      <div className="mt-[3px] flex items-center gap-[5px] text-[10px] text-slate-500">
+        <SourceBadgeIcon source={story.source} />
+        {timeAgo && <span className="text-[10px]">{timeAgo}</span>}
+        {duplicates.length > 0 && (
+          <DupeToggleButton
+            count={duplicates.length}
+            color={dupeBadgeColor}
+            expanded={showDuplicates}
+            onToggle={() => setShowDuplicates((v) => !v)}
+            compact
+          />
+        )}
+        <span className="ml-auto" />
+        <NavArrowIcon hovered={hovered} sourceColor={sourceColor} />
+      </div>
+
+      <NewsCardAiPanel
+        hovered={expanded}
+        color={color}
+        activeIsAnalyzed={activeIsAnalyzed}
+        activeVerdict={activeVerdict}
+        verdictBg={verdictBg}
+        confidence={confidence}
+        activeReason={activeReason}
+        compact
+      />
+    </>
+  );
+}
+
+/** Default (non-compact) layout for news cards. */
+function DefaultCardContent({
+  story,
+  timeAgo,
+  duplicates,
+  dupeBadgeColor,
+  showDuplicates,
+  setShowDuplicates,
+  hovered,
+  sourceColor,
+  color,
+  expanded,
+  activeIsAnalyzed,
+  activeVerdict,
+  verdictBg,
+  confidence,
+  activeReason,
+}: {
+  story: ClassifiedStory;
+  timeAgo: string;
+  duplicates: ClassifiedStory[];
+  dupeBadgeColor: string;
+  showDuplicates: boolean;
+  setShowDuplicates: React.Dispatch<React.SetStateAction<boolean>>;
+  hovered: boolean;
+  sourceColor: string;
+  color: string;
+  expanded: boolean;
+  activeIsAnalyzed: boolean;
+  activeVerdict: string;
+  verdictBg: string;
+  confidence: number;
+  activeReason: string | undefined;
+}) {
+  return (
+    <>
+      <p className="block text-[13px] font-semibold leading-snug line-clamp-2 text-white transition-colors">
+        {story.headline}
+      </p>
+
+      <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
+        <div className="flex items-center gap-1.5">
+          <SourceBadgeIcon source={story.source} />
+          {timeAgo && <span>{timeAgo}</span>}
+          {duplicates.length > 0 && (
+            <DupeToggleButton
+              count={duplicates.length}
+              color={dupeBadgeColor}
+              expanded={showDuplicates}
+              onToggle={() => setShowDuplicates((v) => !v)}
+              compact={false}
+            />
+          )}
+        </div>
+        <NavArrowIcon hovered={hovered} sourceColor={sourceColor} />
+      </div>
+
+      <NewsCardAiPanel
+        hovered={expanded}
+        color={color}
+        activeIsAnalyzed={activeIsAnalyzed}
+        activeVerdict={activeVerdict}
+        verdictBg={verdictBg}
+        confidence={confidence}
+        activeReason={activeReason}
+      />
+    </>
+  );
+}
+
 export default function NewsCard({
   story,
   isAnalyzed = false,
@@ -71,7 +355,7 @@ export default function NewsCard({
     expandTimerRef.current = setTimeout(() => {
       setExpanded(true);
       expandTimerRef.current = null;
-    }, HOVER_EXPAND_DELAY * 1000);
+    }, HOVER_EXPAND_DELAY * 1_000);
   };
 
   const handleMouseLeave = () => {
@@ -85,7 +369,7 @@ export default function NewsCard({
     setExpanded(false);
   };
 
-  const activeVerdict = story.verdict;
+  const activeVerdict = story.verdict ?? "";
   const activeConfidence = story.confidence;
   const activeReason = story.reason;
   const activeIsAnalyzed = isAnalyzed;
@@ -96,27 +380,11 @@ export default function NewsCard({
     VERDICT_PILL_BG[activeVerdict] ?? "rgba(100,116,139,0.12)";
   const confidence = Math.round((activeConfidence ?? 0) * 100);
 
-  const isSeconds = story.datetime && story.datetime < 10000000000;
-  const timestampMs = isSeconds ? story.datetime * 1000 : story.datetime;
-  const timeAgo = story.datetime
-    ? formatDistanceToNow(new Date(timestampMs), { addSuffix: true })
-    : "";
-
+  const timeAgo = formatTimeAgo(story.datetime);
   const sourceColor = getSourceColor(story.source);
-
-  // Badge color = the duplicate's source color (e.g. purple +1 on a green Finnhub story)
   const dupeBadgeColor = duplicates.length > 0
     ? getSourceColor(duplicates[0].source)
     : sourceColor;
-
-  const SourceBadge =
-    story.source === "finnhub" ? (
-      <FinnhubBadge />
-    ) : story.source === "polygon" ? (
-      <PolygonBadge />
-    ) : (
-      <span className="text-[10px] text-slate-400 font-bold">News</span>
-    );
 
   return (
     <GlassView
@@ -156,205 +424,44 @@ export default function NewsCard({
 
         <div className="relative" style={{ zIndex: 2 }}>
           {compact ? (
-            // ---------- COMPACT LAYOUT ----------
-            <>
-              {/* Row 1: headline */}
-              <div className="flex items-start gap-1.5">
-                <p className="flex-1 min-w-0 text-[12px] font-semibold leading-[1.25] line-clamp-2 text-white transition-colors break-words m-0">
-                  {story.headline}
-                </p>
-              </div>
-
-              {/* Row 2: source + time + confidence mini + arrow */}
-              <div className="mt-[3px] flex items-center gap-[5px] text-[10px] text-slate-500">
-                {SourceBadge}
-                {timeAgo && <span className="text-[10px]">{timeAgo}</span>}
-                {duplicates.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowDuplicates((v) => !v);
-                    }}
-                    aria-expanded={showDuplicates}
-                    aria-label={`${duplicates.length} similar coverage stories`}
-                    className="px-1 py-[1px] rounded-full text-[9px] font-bold tracking-wide tabular-nums transition-colors hover:bg-white/[0.06]"
-                    style={{
-                      color: dupeBadgeColor,
-                      backgroundColor: "rgba(255,255,255,0.04)",
-                      border: `1px solid ${dupeBadgeColor}33`,
-                    }}
-                  >
-                    +{duplicates.length}
-                  </button>
-                )}
-
-                <span className="ml-auto" />
-
-                <motion.div
-                  className="flex items-center justify-center relative w-4 h-4 shrink-0"
-                  animate={{
-                    rotate: hovered ? -45 : 0,
-                    scale: hovered ? 1.1 : 1,
-                  }}
-                  transition={{ duration: 0.4, ease: REVEAL_EASE }}
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="absolute inset-0 w-full h-full overflow-visible"
-                  >
-                    <path
-                      d="M 4 12 H 20 M 14 6 L 20 12 L 14 18"
-                      fill="none"
-                      stroke={hovered ? sourceColor : "#64748b"}
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      style={{
-                        opacity: hovered ? 1 : 0.4,
-                        filter: hovered ? `drop-shadow(0 0 2px ${sourceColor})` : "none",
-                      }}
-                    />
-                  </svg>
-                </motion.div>
-              </div>
-
-              {/* AI panel (compact = reasoning only) */}
-              <NewsCardAiPanel
-                hovered={expanded}
-                color={color}
-                activeIsAnalyzed={activeIsAnalyzed}
-                activeVerdict={activeVerdict}
-                verdictBg={verdictBg}
-                confidence={confidence}
-                activeReason={activeReason}
-                compact
-              />
-            </>
+            <CompactCardContent
+              story={story}
+              timeAgo={timeAgo}
+              duplicates={duplicates}
+              dupeBadgeColor={dupeBadgeColor}
+              showDuplicates={showDuplicates}
+              setShowDuplicates={setShowDuplicates}
+              hovered={hovered}
+              sourceColor={sourceColor}
+              color={color}
+              expanded={expanded}
+              activeIsAnalyzed={activeIsAnalyzed}
+              activeVerdict={activeVerdict}
+              verdictBg={verdictBg}
+              confidence={confidence}
+              activeReason={activeReason}
+            />
           ) : (
-            // ---------- ORIGINAL LAYOUT ----------
-            <>
-              <p className="block text-[13px] font-semibold leading-snug line-clamp-2 text-white transition-colors">
-                {story.headline}
-              </p>
-
-              <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
-                <div className="flex items-center gap-1.5">
-                  {SourceBadge}
-                  {timeAgo && <span>{timeAgo}</span>}
-                  {duplicates.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowDuplicates((v) => !v);
-                      }}
-                      aria-expanded={showDuplicates}
-                      aria-label={`${duplicates.length} similar coverage stories`}
-                      className="ml-1 px-1.5 py-[1px] rounded-full text-[9.5px] font-bold tracking-wide tabular-nums transition-colors hover:bg-white/[0.06]"
-                      style={{
-                        color: dupeBadgeColor,
-                        backgroundColor: "rgba(255,255,255,0.04)",
-                        border: `1px solid ${dupeBadgeColor}33`,
-                      }}
-                    >
-                      +{duplicates.length} similar
-                    </button>
-                  )}
-                </div>
-
-                <motion.div
-                  className="flex items-center justify-center relative w-[24px] h-[24px]"
-                  animate={{
-                    rotate: hovered ? -45 : 0,
-                    scale: hovered ? 1.1 : 1,
-                  }}
-                  transition={{ duration: 0.4, ease: REVEAL_EASE }}
-                >
-                  <svg viewBox="0 0 24 24" className="absolute inset-0 w-full h-full overflow-visible">
-                    <path
-                      d="M 4 12 H 20 M 14 6 L 20 12 L 14 18"
-                      fill="none"
-                      stroke={hovered ? sourceColor : "#64748b"}
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      style={{
-                        opacity: hovered ? 1 : 0.4,
-                        filter: hovered ? `drop-shadow(0 0 2px ${sourceColor})` : "none",
-                      }}
-                    />
-                  </svg>
-                </motion.div>
-              </div>
-
-              <NewsCardAiPanel
-                hovered={expanded}
-                color={color}
-                activeIsAnalyzed={activeIsAnalyzed}
-                activeVerdict={activeVerdict}
-                verdictBg={verdictBg}
-                confidence={confidence}
-                activeReason={activeReason}
-              />
-            </>
+            <DefaultCardContent
+              story={story}
+              timeAgo={timeAgo}
+              duplicates={duplicates}
+              dupeBadgeColor={dupeBadgeColor}
+              showDuplicates={showDuplicates}
+              setShowDuplicates={setShowDuplicates}
+              hovered={hovered}
+              sourceColor={sourceColor}
+              color={color}
+              expanded={expanded}
+              activeIsAnalyzed={activeIsAnalyzed}
+              activeVerdict={activeVerdict}
+              verdictBg={verdictBg}
+              confidence={confidence}
+              activeReason={activeReason}
+            />
           )}
 
-          <AnimatePresence initial={false}>
-            {showDuplicates && duplicates.length > 0 && (
-              <motion.div
-                key="duplicates"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.25, ease: REVEAL_EASE }}
-                className="overflow-hidden"
-              >
-                <div
-                  className={`${compact ? "mt-1.5 pt-1.5 space-y-1" : "mt-2 pt-2 space-y-1.5"} border-t`}
-                  style={{ borderColor: "rgba(255,255,255,0.06)" }}
-                >
-                  <div className={`${compact ? "text-[8.5px]" : "text-[9.5px]"} font-bold uppercase tracking-wider text-slate-500`}>
-                    Similar coverage
-                  </div>
-                  {duplicates.map((d) => {
-                    const dIsSeconds = d.datetime && d.datetime < 10000000000;
-                    const dMs = dIsSeconds ? d.datetime * 1000 : d.datetime;
-                    const dAgo = d.datetime
-                      ? formatDistanceToNow(new Date(dMs), { addSuffix: true })
-                      : "";
-                    return (
-                      <button
-                        key={`${d.source}-${d.url}-${d.datetime}`}
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.open(d.url, "_blank");
-                        }}
-                        className="w-full text-left flex items-center gap-1.5 px-1.5 py-1 rounded-md hover:bg-white/[0.04] transition-colors"
-                      >
-                        {d.source === "finnhub" ? (
-                          <FinnhubBadge />
-                        ) : d.source === "polygon" ? (
-                          <PolygonBadge />
-                        ) : (
-                          <span className="text-[10px] text-slate-400 font-bold">News</span>
-                        )}
-                        <span className={`flex-1 ${compact ? "text-[10px]" : "text-[11px]"} text-slate-300 line-clamp-1`}>
-                          {d.headline}
-                        </span>
-                        {dAgo && (
-                          <span className={`${compact ? "text-[9px]" : "text-[10px]"} text-slate-500 shrink-0 tabular-nums`}>
-                            {dAgo}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <DuplicateList duplicates={duplicates} compact={compact} />
         </div>
       </div>
     </GlassView>

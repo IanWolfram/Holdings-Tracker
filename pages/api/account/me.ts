@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { requireUser, isDevUser } from "@/lib/auth/requireUser";
-import { getServicesForUser, getServices } from "@/src/registry";
+import { requireUser } from "@/lib/auth/requireUser";
+import { getServicesForUser } from "@/src/registry";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
@@ -10,7 +10,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const user = await requireUser(req, res);
   if (!user) return;
 
-  const services = isDevUser(user) ? getServices() : await getServicesForUser(user.id);
+  const services = await getServicesForUser(user.id);
 
   const [account, preferences, etradeExpiry] = await Promise.all([
     services.accountInfo.getAccountInfo(user.id),
@@ -32,7 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       vaultEnabled: preferences.vaultEnabled,
     },
     etrade: {
-      env: process.env.ETRADE_ENV ?? "mock",
+      env: process.env.ETRADE_ENV ?? "live",
       expiresAt: etradeExpiry.expiresAt,
     },
   });

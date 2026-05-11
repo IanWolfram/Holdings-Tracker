@@ -1,4 +1,5 @@
 import type { VaultStore } from "../lib/vault/store";
+import { debug } from "../lib/debug";
 import { classifyCatalystTypes } from "./catalyst-classifier";
 import type {
   CatalystType,
@@ -107,8 +108,9 @@ export async function resolveEligiblePredictions(
         daysSince: Math.floor((nowMs - p.runAt) / 86_400_000),
         horizon: p.horizonDays,
       }));
-      console.log(
-        `[predictions] ${ticker}: ${pending.length} pending prediction(s), ages:`,
+      debug(
+        "predictions",
+        `${ticker}: ${pending.length} pending prediction(s), ages:`,
         pendingAges.map((p) => `${p.daysSince}d/${p.horizon}d`).join(", "),
         `as of ${now}`
       );
@@ -127,8 +129,9 @@ export async function resolveEligiblePredictions(
       changed = true;
       resolved++;
 
-      console.log(
-        `[predictions] Resolved ${p.id}: ${p.direction} → ${outcome} (predicted ${p.magnitudePct}%, actual ${actualPct.toFixed(2)}%)`
+      debug(
+        "predictions",
+        `Resolved ${p.id}: ${p.direction} → ${outcome} (predicted ${p.magnitudePct}%, actual ${actualPct.toFixed(2)}%)`
       );
 
       return {

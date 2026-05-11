@@ -20,8 +20,6 @@ import {
   ETRADE_AUTH_BASE_URL,
 } from "./constants";
 import type { Position } from "@/types/position.types";
-export { MOCK_POSITIONS } from "./position-list";
-import { MOCK_POSITIONS } from "./position-list";
 function buildOAuth(): OAuth {
   return new OAuth({
     consumer: {
@@ -57,12 +55,15 @@ export async function getRequestToken(callbackUrl?: string): Promise<{
   authUrl: string;
 }> {
   const oauth = buildOAuth();
-  const url = `${ETRADE_AUTH_BASE_URL}/oauth/request_token`;
+  const base = `${ETRADE_AUTH_BASE_URL}/oauth/request_token`;
   const callback = callbackUrl ?? "oob";
-  const requestData = { url, method: "GET", data: { oauth_callback: callback } };
+  // oauth_callback must be included in the URL passed to oauth.authorize so it
+  // is part of the signature base string — E*TRADE rejects unsigned parameters.
+  const urlWithCallback = `${base}?oauth_callback=${encodeURIComponent(callback)}`;
+  const requestData = { url: urlWithCallback, method: "GET" };
 
   const headers = toHeader(oauth, oauth.authorize(requestData));
-  const res = await fetch(url, {
+  const res = await fetch(urlWithCallback, {
     headers: { ...headers, Accept: "application/json" },
   });
 
@@ -86,13 +87,16 @@ export async function getAccessToken(
   verifier: string
 ): Promise<{ token: string; tokenSecret: string }> {
   const oauth = buildOAuth();
-  const url = `${ETRADE_AUTH_BASE_URL}/oauth/access_token`;
-  const requestData = { url, method: "GET" };
+  const base = `${ETRADE_AUTH_BASE_URL}/oauth/access_token`;
+  // oauth_verifier must be in the URL passed to oauth.authorize so it is part
+  // of the signature base string — E*TRADE rejects unsigned parameters.
+  const urlWithVerifier = `${base}?oauth_verifier=${encodeURIComponent(verifier)}`;
+  const requestData = { url: urlWithVerifier, method: "GET" };
   const tokenObj: OAuth.Token = { key: requestToken, secret: requestTokenSecret };
 
   const authHeader = toHeader(oauth, oauth.authorize(requestData, tokenObj));
 
-  const res = await fetch(`${url}?oauth_verifier=${verifier}`, {
+  const res = await fetch(urlWithVerifier, {
     headers: { ...authHeader, Accept: "application/json" },
   });
 
@@ -348,27 +352,15 @@ export async function getPositions(): Promise<Position[]> {
   return positions;
 }
 
-// ---------------------------------------------------------------------------
-// MOCK DATA — re-exported from lib/position-list (single source of truth)
-// ---------------------------------------------------------------------------
-
-/** Returns mock data or live data depending on ETRADE_ENV.
- *  Falls back to mock data automatically if OAuth tokens are not yet set.
- *  The `mock` flag indicates whether positions are synthetic — callers should
- *  use it to avoid writing vault artifacts (daily summaries, story notes)
- *  from fake data. */
+/** Returns live positions from E*TRADE, or an empty array if not connected.
+ *  The `mock` flag is always false — callers should use it to avoid writing
+ *  vault artifacts from fake data. */
 export async function getPositionsSafe(): Promise<{ positions: Position[]; mock: boolean }> {
-  if (process.env.ETRADE_ENV === "mock") {
-    return { positions: MOCK_POSITIONS, mock: true };
-  }
-
   const hasTokens =
     !!process.env.ETRADE_OAUTH_TOKEN && !!process.env.ETRADE_OAUTH_TOKEN_SECRET;
   if (!hasTokens) {
-    console.warn(
-      "[etrade] OAuth tokens not set — returning mock data. Run `npm run etrade:auth` to authorize."
-    );
-    return { positions: MOCK_POSITIONS, mock: true };
+    console.warn("[etrade] OAuth tokens not set — returning empty positions.");
+    return { positions: [], mock: false };
   }
 
   try {
@@ -379,10 +371,10 @@ export async function getPositionsSafe(): Promise<{ positions: Position[]; mock:
     const expired = msg.includes("401") || msg.includes("403");
     console.warn(
       expired
-        ? "[etrade] OAuth tokens expired — run `npm run etrade:auth` to refresh. Returning mock data."
-        : `[etrade] API error (${msg}) — returning mock data.`
+        ? "[etrade] OAuth tokens expired — run `npm run etrade:auth` to refresh. Returning empty positions."
+        : `[etrade] API error (${msg}) — returning empty positions.`
     );
-    return { positions: MOCK_POSITIONS, mock: true };
+    return { positions: [], mock: false };
   }
 }
 
@@ -398,8 +390,10 @@ export async function updateEtradeTokens(token: string, secret: string) {
 
   let content = fs.existsSync(envPath) ? fs.readFileSync(envPath, "utf8") : "";
 
+  const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
   const update = (key: string, value: string) => {
-    const regex = new RegExp(`^${key}=.*$`, "m");
+    const regex = new RegExp(`^${escapeRegex(key)}=.*$`, "m");
     if (regex.test(content)) {
       content = content.replace(regex, `${key}=${value}`);
     } else {
@@ -411,4 +405,5 @@ export async function updateEtradeTokens(token: string, secret: string) {
   update("ETRADE_OAUTH_TOKEN_SECRET", secret);
 
   fs.writeFileSync(envPath, content);
+  fs.chmodSync(envPath, 0o600);
 }

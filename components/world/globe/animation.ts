@@ -14,6 +14,7 @@ const _n = new THREE.Vector3();
 const _d = new THREE.Vector3();
 const _hoverBasePos = new THREE.Vector3();
 const _hoverWorldPos = new THREE.Vector3();
+const LOCAL_Y = new THREE.Vector3(0, 1, 0);
 let _labelTicker: string | null = null;
 let _svgMountRect: DOMRect | null = null;
 let _svgMountRectTs = 0;
@@ -28,6 +29,7 @@ export function animateGlobe(
   scene: THREE.Scene,
   hqMarkers: HQMarkerState[],
   markerInstances: { hitSpheres: THREE.InstancedMesh } | null,
+  selectedDiamond: THREE.Mesh | null,
   hoveredMarkerTicker: string | null,
   focusedTicker: string | null,
   isFocused: boolean,
@@ -71,21 +73,20 @@ export function animateGlobe(
     }
   }
 
+  // Spin the selected diamond plumbob around its outward axis
+  if (selectedDiamond) {
+    selectedDiamond.rotateOnAxis(LOCAL_Y, 0.018);
+  }
+
   if (markerInstances) {
     let hitDirty = false;
 
     for (const ms of hqMarkers) {
       const prevHoverT = ms.hoverT;
       const prevSepT = ms.separationT;
-      const prevFocusT = ms.focusT;
       const isHovered = ms.ticker === hoveredMarkerTicker;
-      const isFocused = ms.ticker === focusedTicker;
+      const isFocusedMarker = ms.ticker === focusedTicker;
       ms.hoverT += ((isHovered ? 1 : 0) - ms.hoverT) * 0.14;
-      ms.focusT += ((isFocused ? 1 : 0) - ms.focusT) * 0.10;
-
-      // Smooth spin interpolation
-      const spinTarget = (isHovered || isFocused) ? 2.0 : 0; // rad/s
-      ms.spinSpeed += (spinTarget - ms.spinSpeed) * Math.min(1, dt * 4);
 
       if (ms.eastDir !== null && ms.clusterPeers.length > 1) {
         const anyPeerActive = hoveredMarkerTicker !== null && ms.clusterPeers.includes(hoveredMarkerTicker);
@@ -95,7 +96,6 @@ export function animateGlobe(
       if (
         Math.abs(ms.hoverT - prevHoverT) > 1e-4 ||
         Math.abs(ms.separationT - prevSepT) > 1e-4 ||
-        Math.abs(ms.focusT - prevFocusT) > 1e-4 ||
         ms.renderedVisible !== ms.visible
       ) {
         hitDirty = true;
@@ -119,26 +119,24 @@ export function animateGlobe(
         markerInstances.hitSpheres.setMatrixAt(ms.instanceId, _mat);
       }
 
-      // Update visual sphere mesh
-      const sg = ms.sphereGroup;
-      if (sg) {
-        // Back-face culling: hide sphere when it faces away from camera
+      // Sphere→diamond crossfade animation
+      if (ms.group.visible) {
+        // Back-face culling: hide group when it faces away from camera
         _n.copy(ms.outward).applyQuaternion(globeGroup.quaternion).normalize();
         _d.copy(camera.position).normalize();
         const facing = _n.dot(_d);
-        sg.visible = ms.visible && facing > 0.05;
+        const shouldBeVisible = ms.visible && facing > 0.05;
 
-        // Spin the logo sphere (children[0]), not the group (so glow stays oriented)
-        if (Math.abs(ms.spinSpeed) > 0.001) {
-          (sg.children[0] as THREE.Mesh).rotation.y += ms.spinSpeed * dt;
-        }
+        // When a marker is focused, hide its hover group (plumbob replaces it)
+        ms.group.visible = shouldBeVisible && !isFocusedMarker;
 
-        // Focus scale
-        const focusScale = 1 + ms.focusT * 0.3;
-        sg.scale.setScalar(focusScale);
+        // Sphere: fade out and shrink as hoverT rises
+        const sphereMat = ms.sphere.material as THREE.MeshBasicMaterial;
+        sphereMat.opacity = 0.75 * (1 - ms.hoverT);
+        ms.sphere.scale.setScalar(1 - ms.hoverT * 0.5);
 
-        // Update position for cluster separation
-        sg.position.copy(_tmpPos);
+        // Diamond: scale up from 0 to 1 as hoverT rises
+        ms.hoverDiamond.scale.setScalar(ms.hoverT);
       }
     }
     if (hitDirty) {
@@ -146,12 +144,12 @@ export function animateGlobe(
     }
   }
 
-  // ── Hover/focus label positioning ──
+  // Hover/focus label positioning
   const activeTicker = hoveredMarkerTicker ?? focusedTicker;
   if (hoveredMarkerTicker) {
     _labelTicker = hoveredMarkerTicker;
   } else if (!focusedTicker) {
-    // Only clear when neither hover nor focus is active and the marker has faded
+    // only clear when neither hover nor focus is active
   }
   const labelTicker = activeTicker ?? _labelTicker;
   const labelMs = labelTicker
@@ -172,7 +170,6 @@ export function animateGlobe(
     } else {
       _hoverBasePos.copy(labelMs.basePos);
     }
-    // Position above the cube marker
     _hoverWorldPos
       .copy(_hoverBasePos)
       .addScaledVector(labelMs.outward, 0.05);
@@ -208,7 +205,7 @@ export function animateGlobe(
       return;
     }
     const sx = rect.left + (ndcPos.x + 1) / 2 * rect.width;
-    const sy = rect.top + (-ndcPos.y + 1) / 2 * rect.height;
+    const sy = rect.top + ((-ndcPos.y + 1) / 2) * rect.height;
     if (isFinite(sx) && isFinite(sy)) {
       const pathEl = document.getElementById("focus-connector-path") as SVGPathElement | null;
       const anchorEl = document.getElementById("focus-panel-anchor");

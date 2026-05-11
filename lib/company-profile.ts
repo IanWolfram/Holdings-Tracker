@@ -1,8 +1,21 @@
 import { lookupCountry, lookupCountryByCode } from "./country-coords";
-import { WORLD_PROFILES } from "@/lib/position-list";
 import { TICKER_COORDS } from "./ticker-coords";
 import { resolveCoordinates } from "./geo-lookup";
+import { FINNHUB_BASE_URL, API_TIMEOUT_MS } from "./constants";
 import type { CompanyProfile } from "@/types/geo.types";
+
+// Static company data used as fallback when no API key is configured
+const WORLD_PROFILES: Record<string, { name: string; ticker: string; countryCode: string }> = {
+  "BR":     { name: "Broadridge Financial Solutions", ticker: "BR",     countryCode: "US" },
+  "MSFT":   { name: "Microsoft Corporation",          ticker: "MSFT",   countryCode: "US" },
+  "AAPL":   { name: "Apple Inc.",                     ticker: "AAPL",   countryCode: "US" },
+  "NVDA":   { name: "NVIDIA Corporation",             ticker: "NVDA",   countryCode: "US" },
+  "JPM":    { name: "JPMorgan Chase & Co.",           ticker: "JPM",    countryCode: "US" },
+  "RBL":    { name: "Roblox Corporation",             ticker: "RBL",    countryCode: "US" },
+  "TM":     { name: "Toyota Motor Corporation",       ticker: "TM",     countryCode: "JP" },
+  "INFY":   { name: "Infosys Limited",                ticker: "INFY",   countryCode: "IN" },
+  "005930": { name: "Samsung Electronics Co. Ltd",    ticker: "005930", countryCode: "KR" },
+};
 
 // ---------------------------------------------------------------------------
 // 24-hour in-memory cache — company profiles barely change
@@ -68,12 +81,12 @@ export async function fetchCompanyProfile(
     return fallbackProfile(ticker);
   }
 
-  const url = `https://finnhub.io/api/v1/stock/profile2?symbol=${encodeURIComponent(ticker)}&token=${key}`;
+  const url = `${FINNHUB_BASE_URL}/stock/profile2?symbol=${encodeURIComponent(ticker)}&token=${key}`;
 
   let raw: FinnhubProfile;
   try {
     const res = await fetch(url, {
-      signal: AbortSignal.timeout(10_000),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
     if (!res.ok) {
       console.warn(`[company-profile] Finnhub error ${res.status} for ${ticker} — using static fallback`);
@@ -121,7 +134,7 @@ export async function fetchCompanyProfile(
     } else if (polyKey) {
       try {
         const polyUrl = `https://api.polygon.io/v3/reference/tickers/${ticker}?apiKey=${polyKey}`;
-        const polyRes = await fetch(polyUrl, { signal: AbortSignal.timeout(10_000) });
+        const polyRes = await fetch(polyUrl, { signal: AbortSignal.timeout(API_TIMEOUT_MS) });
         if (polyRes.ok) {
           const polyData = (await polyRes.json()) as PolygonTickerDetails;
           const address = polyData.results?.address;

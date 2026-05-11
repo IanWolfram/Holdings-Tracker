@@ -1,0 +1,128 @@
+[
+  {
+    "id": "MMS-30d-1778527460445",
+    "ticker": "MMS",
+    "runAt": 1778527460445,
+    "priceAtPrediction": 62.37,
+    "direction": "UP",
+    "magnitudePct": 8,
+    "horizonDays": 30,
+    "confidence": 0.82,
+    "reasoning": "Two high-confidence BUY verdicts (82%, 88%) from Q2 earnings beat with raised EBITDA guidance and $400M buyback authorization form a strong fundamental cluster. At 30-day horizon, macro regime is risk-on with falling VIX and DXY, supporting sector momentum. Ticker patterns show no historical overperformance issues. Prior predictions for this ticker are limited, so no calibration adjustment needed. The single ex-dividend HOLD is noise. FLAT not warranted given clear directional catalyst cluster.",
+    "catalysts": [
+      {
+        "headline": "Be Sure To Check Out Maximus, Inc. (NYSE:MMS) Before It Goes Ex-Dividend",
+        "verdict": "HOLD",
+        "confidence": 0.5,
+        "catalystTypes": [
+          "govt-contract",
+          "technical"
+        ]
+      },
+      {
+        "headline": "The Bull Case For Maximus (MMS) Could Change Following AI-Driven Margin Gains Amid Softer Revenue Gr",
+        "verdict": "BUY",
+        "confidence": 0.82,
+        "catalystTypes": [
+          "earnings-beat"
+        ]
+      },
+      {
+        "headline": "Earnings Beat: Maximus, Inc. Just Beat Analyst Forecasts, And Analysts Have Been Updating Their Mode",
+        "verdict": "BUY",
+        "confidence": 0.88,
+        "catalystTypes": [
+          "govt-contract",
+          "earnings-beat"
+        ]
+      },
+      {
+        "headline": "Maximus, Inc. (MMS) Q2 2026 Earnings Call Transcript",
+        "verdict": "HOLD",
+        "confidence": 0.5,
+        "catalystTypes": [
+          "earnings-beat",
+          "earnings-miss",
+          "earnings-revenue-decline"
+        ]
+      },
+      {
+        "headline": "Maximus (MMS) Q2 2026 Earnings Transcript",
+        "verdict": "BUY",
+        "confidence": 0.88,
+        "catalystTypes": [
+          "technical"
+        ]
+      }
+    ],
+    "catalystTypes": [
+      "govt-contract",
+      "technical",
+      "earnings-beat",
+      "earnings-miss",
+      "earnings-revenue-decline"
+    ],
+    "engine": "deepseek-chat",
+    "status": "pending"
+  },
+  {
+    "id": "MMS-30d-1778527419640",
+    "ticker": "MMS",
+    "runAt": 1778527419640,
+    "priceAtPrediction": 62.4,
+    "direction": "UP",
+    "magnitudePct": 6.5,
+    "horizonDays": 30,
+    "confidence": 0.72,
+    "reasoning": "Three high-confidence BUY verdicts (all 88%) from Q2 earnings beat, raised FY EBITDA margin guidance, and $400M buyback authorization form a strong fundamental cluster. The SELL signal from Q1 revenue miss is a single low-confidence counterpoint and is outweighed by the cluster. At 30-day horizon, macro regime is risk-on with constructive VIX and falling DXY, supporting sector momentum. Ticker patterns show no historical underperformance for earnings-driven upgrades. Revenue miss introduces some uncertainty, capping confidence and magnitude.",
+    "catalysts": [
+      {
+        "headline": "Maximus (MMS) Q2 2026 Earnings Transcript",
+        "verdict": "BUY",
+        "confidence": 0.88,
+        "catalystTypes": [
+          "technical"
+        ]
+      },
+      {
+        "headline": "Compared to Estimates, Maximus (MMS) Q2 Earnings: A Look at Key Metrics",
+        "verdict": "BUY",
+        "confidence": 0.88,
+        "catalystTypes": [
+          "earnings-beat"
+        ]
+      },
+      {
+        "headline": "Maximus (MMS) shares decline after revenue miss despite earnings beat",
+        "verdict": "HOLD",
+        "confidence": 0.65,
+        "catalystTypes": [
+          "earnings-beat"
+        ]
+      },
+      {
+        "headline": "Maximus (MMS) Q2 Earnings Beat Estimates",
+        "verdict": "BUY",
+        "confidence": 0.88,
+        "catalystTypes": [
+          "earnings-beat"
+        ]
+      },
+      {
+        "headline": "Maximus (NYSE:MMS) Misses Q1 CY2026 Revenue Estimates",
+        "verdict": "SELL",
+        "confidence": 0.82,
+        "catalystTypes": [
+          "govt-contract"
+        ]
+      }
+    ],
+    "catalystTypes": [
+      "technical",
+      "earnings-beat",
+      "govt-contract"
+    ],
+    "engine": "deepseek-chat",
+    "status": "pending"
+  }
+]

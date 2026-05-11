@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { authedFetch } from "@/lib/api/client-fetch";
 import type { Position } from "@/types/position.types";
 import type { WorldData } from "@/types/geo.types";
 
@@ -13,8 +14,8 @@ export function useWorldData() {
   const refreshWorldData = useCallback(async () => {
     try {
       const [worldRes, posRes] = await Promise.all([
-        fetch("/api/world"),
-        fetch("/api/positions"),
+        authedFetch("/api/world"),
+        authedFetch("/api/positions"),
       ]);
       if (!worldRes.ok) {
         console.error("[world-page] /api/world returned", worldRes.status);

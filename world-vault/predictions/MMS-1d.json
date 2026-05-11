@@ -1,0 +1,68 @@
+[
+  {
+    "id": "MMS-1d-1778527460445",
+    "ticker": "MMS",
+    "runAt": 1778527460445,
+    "priceAtPrediction": 62.37,
+    "direction": "UP",
+    "magnitudePct": 1.8,
+    "horizonDays": 1,
+    "confidence": 0.75,
+    "reasoning": "Two high-confidence BUY verdicts (82% and 88%) from Q2 earnings beat and AI-driven margin gains form a strong cluster. Ex-dividend and transcript are neutral. At 1d, technicals like oversold RSI support a modest bounce. No SELL signals. Confidence is high for direction but magnitude capped at 1.8% given large-cap nature and 1d horizon.",
+    "catalysts": [
+      {
+        "headline": "Be Sure To Check Out Maximus, Inc. (NYSE:MMS) Before It Goes Ex-Dividend",
+        "verdict": "HOLD",
+        "confidence": 0.5,
+        "catalystTypes": [
+          "govt-contract",
+          "technical"
+        ]
+      },
+      {
+        "headline": "The Bull Case For Maximus (MMS) Could Change Following AI-Driven Margin Gains Amid Softer Revenue Gr",
+        "verdict": "BUY",
+        "confidence": 0.82,
+        "catalystTypes": [
+          "earnings-beat"
+        ]
+      },
+      {
+        "headline": "Earnings Beat: Maximus, Inc. Just Beat Analyst Forecasts, And Analysts Have Been Updating Their Mode",
+        "verdict": "BUY",
+        "confidence": 0.88,
+        "catalystTypes": [
+          "govt-contract",
+          "earnings-beat"
+        ]
+      },
+      {
+        "headline": "Maximus, Inc. (MMS) Q2 2026 Earnings Call Transcript",
+        "verdict": "HOLD",
+        "confidence": 0.5,
+        "catalystTypes": [
+          "earnings-beat",
+          "earnings-miss",
+          "earnings-revenue-decline"
+        ]
+      },
+      {
+        "headline": "Maximus (MMS) Q2 2026 Earnings Transcript",
+        "verdict": "BUY",
+        "confidence": 0.88,
+        "catalystTypes": [
+          "technical"
+        ]
+      }
+    ],
+    "catalystTypes": [
+      "govt-contract",
+      "technical",
+      "earnings-beat",
+      "earnings-miss",
+      "earnings-revenue-decline"
+    ],
+    "engine": "deepseek-chat",
+    "status": "pending"
+  }
+]

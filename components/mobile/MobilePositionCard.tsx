@@ -2,6 +2,7 @@
 
 import React from "react";
 import { formatCurrency, formatGainLoss, formatPercent } from "@/lib/utils/format";
+import { FALLBACK_CONFIDENCE } from "@/lib/constants";
 import type { Position } from "@/types/position.types";
 import type { ClassifiedStory } from "@/types/news.types";
 import GlassContainer from "../ui/LiquidGlass/GlassContainer";
@@ -20,9 +21,9 @@ export default function MobilePositionCard({ position, stories }: MobilePosition
   const hold = stories.filter((s) => s.verdict === "HOLD").length;
   
   const total = buy + sell;
-  const verdictScore = total > 0 ? buy / total : (hold > 0 ? 0.5 : 0.5);
-  const isBullish = verdictScore > 0.5;
-  const isBearish = verdictScore < 0.5;
+  const verdictScore = total > 0 ? buy / total : (hold > 0 ? FALLBACK_CONFIDENCE : FALLBACK_CONFIDENCE);
+  const isBullish = verdictScore > FALLBACK_CONFIDENCE;
+  const isBearish = verdictScore < FALLBACK_CONFIDENCE;
 
   const gainPositive = gainLoss >= 0;
   const gainPct = pricePaid > 0 ? ((currentPrice - pricePaid) / pricePaid) * 100 : 0;

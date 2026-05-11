@@ -44,8 +44,10 @@ export interface HQMarkerState {
   clusterPeers: string[];
   separationT: number;
   focusT: number;
-  spinSpeed: number;
-  sphereGroup: THREE.Group | null;
+  sphere: THREE.Mesh;          // white sphere — visible at hoverT = 0
+  hitSphere: THREE.Mesh;      // invisible larger sphere for hover/click detection
+  hoverDiamond: THREE.Mesh;   // green diamond — visible at hoverT = 1
+  group: THREE.Group;
   visible: boolean;
   renderedVisible: boolean;
 }
