@@ -1,0 +1,1 @@
+{"nodes": [{"id": "iclassifier", "label": "IClassifier.ts", "file_type": "code", "source_file": "src/domain/interfaces/IClassifier.ts", "source_location": "L1"}], "edges": [{"source": "iclassifier", "target": "news_types", "relation": "imports_from", "confidence": "EXTRACTED", "source_file": "src/domain/interfaces/IClassifier.ts", "source_location": "L1", "weight": 1.0}]}

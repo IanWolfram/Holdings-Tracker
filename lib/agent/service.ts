@@ -596,14 +596,20 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
     const marketQuoteCache: Partial<Record<string, Awaited<ReturnType<typeof getMarketQuote>>>> = {};
     let resolvedCount = 0;
     const vaultStore = WORLD_VAULT_PATH ? new FsVaultStore(WORLD_VAULT_PATH) : null;
-    if (WORLD_VAULT_PATH && vaultStore) {
+    // Per-user Supabase vault for story notes and predictions.
+    // When userId is present, writes go to Supabase so getVaultStoriesForTicker
+    // (which now always reads from Supabase) can find them after cache expiry.
+    const userVaultStore: VaultStore | null = userId
+      ? await getVaultStore(userId)
+      : vaultStore;
+    if (userVaultStore) {
       currentProgress = { ...currentProgress, phase: "resolving", message: "Resolving prior predictions..." };
       for (const pos of positions) {
         try {
           const quote = await getCoreQuote(pos.ticker);
           quoteCache[pos.ticker] = quote;
           const resolved = await resolveEligiblePredictions(
-            vaultStore,
+            userVaultStore,
             pos.ticker,
             quote?.currentPrice ?? null,
             startedAt
@@ -616,7 +622,7 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
 
       if (resolvedCount > 0) {
         try {
-          await updateCalibration(vaultStore!);
+          await updateCalibration(userVaultStore);
         } catch (err) {
           console.error("[agent] Calibration update failed (non-fatal):", err);
         }
@@ -783,7 +789,9 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
             catalystTypes,
           };
           allGeoStories.push(geoStory);
-          await writeStoryNote(geoStory, vaultStore!, profile?.sector);
+          if (userVaultStore) {
+            await writeStoryNote(geoStory, userVaultStore, profile?.sector, userId ?? "system");
+          }
           // Patch the cached entry in-place so the terminal sees the new verdict
           // immediately without busting the full ticker cache (which causes slow reloads).
           services.newsService.patchCachedStory(pos.ticker, article.url, {
@@ -803,7 +811,7 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
       // Forecast: synthesize this ticker's verdicts into directional predictions
       // at multiple horizons (1d, 7d, 30d). Each horizon is gated independently
       // so a 9am 1d forecast doesn't block the same day's 7d/30d forecasts.
-      if (WORLD_VAULT_PATH && verdicts.length > 0 && !isCancelled) {
+      if (userVaultStore && verdicts.length > 0 && !isCancelled) {
         currentProgress = {
           ...currentProgress,
           phase: "forecasting",
@@ -817,7 +825,7 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
             for (const horizon of SUPPORTED_HORIZONS) {
               if (isCancelled) break;
               const horizonCutoff = startedAt - horizon * 86_400_000;
-              const existing = await loadPredictions(vaultStore!, pos.ticker, horizon);
+              const existing = await loadPredictions(userVaultStore, pos.ticker, horizon);
               const recentPrediction = existing.find((p) => p.runAt >= horizonCutoff);
               if (recentPrediction) {
                 debug(
@@ -832,7 +840,7 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
                 currentPrice,
                 verdicts,
                 tickerContext,
-                vaultStore!,
+                userVaultStore,
                 profiles[pos.ticker]?.sector,
                 startedAt,
                 macroSnapshot,
@@ -840,7 +848,7 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
                 daysUntilEarnings
               );
               if (prediction) {
-                await appendPrediction(vaultStore!, prediction);
+                await appendPrediction(userVaultStore, prediction);
                 debug(
                   "agent",
                   `${horizon}d forecast for ${pos.ticker}: ${prediction.direction} +/-${prediction.magnitudePct}% (conf ${Math.round(prediction.confidence * 100)}%)`
