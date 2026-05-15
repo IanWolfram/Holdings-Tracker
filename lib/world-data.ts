@@ -72,9 +72,10 @@ async function refreshWorldData(
   opts?: { mock?: boolean }
 ): Promise<WorldData> {
   if (positions.length === 0) {
-    const empty: WorldData = { countries: {}, profiles: {}, fetchedAt: Date.now() };
-    worldCache = { data: empty, expiresAt: Date.now() + WORLD_CACHE_TTL_MS };
-    return empty;
+    // Don't poison the cache with an empty result — positions may simply not
+    // have loaded yet (e.g. E*TRADE tokens still being fetched). Caching empty
+    // for the full TTL would leave the globe blank for 15 minutes.
+    return { countries: {}, profiles: {}, fetchedAt: Date.now() };
   }
 
   // ── 1. Fetch all company profiles in parallel (24h cached, fast) ─────────
