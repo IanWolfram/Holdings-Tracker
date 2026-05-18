@@ -1,0 +1,59 @@
+{
+  "updatedAt": "2026-05-18T18:52:02.562Z",
+  "entries": {
+    "CHKP": {
+      "ticker": "CHKP",
+      "base": 0.1667,
+      "directionConfidence": 0,
+      "historicalAccuracy": 0.5,
+      "portfolioCorrelation": 0.1482,
+      "suggestedAllocation": 0,
+      "rationale": "no directional 7d prediction available — sizing collapses to 0"
+    },
+    "PLTR": {
+      "ticker": "PLTR",
+      "base": 0.1667,
+      "directionConfidence": 0,
+      "historicalAccuracy": 0.5,
+      "portfolioCorrelation": 0.3099,
+      "suggestedAllocation": 0,
+      "rationale": "no directional 7d prediction available — sizing collapses to 0"
+    },
+    "MMS": {
+      "ticker": "MMS",
+      "base": 0.1667,
+      "directionConfidence": 0,
+      "historicalAccuracy": 0.5,
+      "portfolioCorrelation": 0.1468,
+      "suggestedAllocation": 0,
+      "rationale": "no directional 7d prediction available — sizing collapses to 0"
+    },
+    "MDB": {
+      "ticker": "MDB",
+      "base": 0.1667,
+      "directionConfidence": 0,
+      "historicalAccuracy": 0.5,
+      "portfolioCorrelation": 0.3255,
+      "suggestedAllocation": 0,
+      "rationale": "no directional 7d prediction available — sizing collapses to 0"
+    },
+    "HOOD": {
+      "ticker": "HOOD",
+      "base": 0.1667,
+      "directionConfidence": 0,
+      "historicalAccuracy": 0.5,
+      "portfolioCorrelation": 0.2439,
+      "suggestedAllocation": 0,
+      "rationale": "no directional 7d prediction available — sizing collapses to 0"
+    },
+    "VKTX": {
+      "ticker": "VKTX",
+      "base": 0.1667,
+      "directionConfidence": 0,
+      "historicalAccuracy": 0.5,
+      "portfolioCorrelation": 0.1769,
+      "suggestedAllocation": 0,
+      "rationale": "no directional 7d prediction available — sizing collapses to 0"
+    }
+  }
+}
