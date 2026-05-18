@@ -38,7 +38,8 @@ export function animateGlobe(
   localHit: THREE.Vector3 | null,
   mount: HTMLDivElement,
   state: RenderState,
-  renderer: THREE.WebGLRenderer
+  renderer: THREE.WebGLRenderer,
+  showProposed: boolean = true
 ) {
   const animNow = performance.now();
   const dt = _lastAnimTime ? Math.min((animNow - _lastAnimTime) / 1000, 0.1) : 0.016;
@@ -78,6 +79,10 @@ export function animateGlobe(
     selectedDiamond.rotateOnAxis(LOCAL_Y, 0.018);
   }
 
+  // Compensate marker world-size for camera zoom so on-screen size stays constant.
+  const REFERENCE_CAMERA_Z = 2.6;
+  const zoomScale = camera.position.z / REFERENCE_CAMERA_Z;
+
   if (markerInstances) {
     let hitDirty = false;
 
@@ -86,6 +91,7 @@ export function animateGlobe(
       const prevSepT = ms.separationT;
       const isHovered = ms.ticker === hoveredMarkerTicker;
       const isFocusedMarker = ms.ticker === focusedTicker;
+      const effectiveVisible = ms.isProposed ? showProposed && ms.visible : ms.visible;
       ms.hoverT += ((isHovered ? 1 : 0) - ms.hoverT) * 0.14;
 
       if (ms.eastDir !== null && ms.clusterPeers.length > 1) {
@@ -96,11 +102,11 @@ export function animateGlobe(
       if (
         Math.abs(ms.hoverT - prevHoverT) > 1e-4 ||
         Math.abs(ms.separationT - prevSepT) > 1e-4 ||
-        ms.renderedVisible !== ms.visible
+        ms.renderedVisible !== effectiveVisible
       ) {
         hitDirty = true;
       }
-      ms.renderedVisible = ms.visible;
+      ms.renderedVisible = effectiveVisible;
 
       const sepDist = CLUSTER_REST_SEP + (CLUSTER_HOVER_SEP - CLUSTER_REST_SEP) * ms.separationT;
       if (ms.eastDir) {
@@ -110,33 +116,39 @@ export function animateGlobe(
       }
 
       // Hit spheres for raycasting
-      if (!ms.visible) {
+      if (!effectiveVisible) {
         _mat.makeTranslation(0, 0, -9999);
         markerInstances.hitSpheres.setMatrixAt(ms.instanceId, _mat);
       } else {
-        _scale.setScalar(ms.dotRadius * 4);
+        _scale.setScalar(ms.dotRadius * 4 * zoomScale);
         _mat.compose(_tmpPos, _quat.set(0, 0, 0, 1), _scale);
         markerInstances.hitSpheres.setMatrixAt(ms.instanceId, _mat);
       }
 
-      // Sphere→diamond crossfade animation
+      // Back-face culling: hide group when it faces away from camera
+      _n.copy(ms.outward).applyQuaternion(globeGroup.quaternion).normalize();
+      _d.copy(camera.position).normalize();
+      const facing = _n.dot(_d);
+      const shouldBeVisible = effectiveVisible && facing > 0.05;
+
+      // When a marker is focused, hide its hover group (plumbob replaces it)
+      ms.group.visible = shouldBeVisible && !isFocusedMarker;
+
       if (ms.group.visible) {
-        // Back-face culling: hide group when it faces away from camera
-        _n.copy(ms.outward).applyQuaternion(globeGroup.quaternion).normalize();
-        _d.copy(camera.position).normalize();
-        const facing = _n.dot(_d);
-        const shouldBeVisible = ms.visible && facing > 0.05;
-
-        // When a marker is focused, hide its hover group (plumbob replaces it)
-        ms.group.visible = shouldBeVisible && !isFocusedMarker;
-
-        // Sphere: fade out and shrink as hoverT rises
+        // Sphere: fade out and shrink as hoverT rises, scaled by camera zoom
         const sphereMat = ms.sphere.material as THREE.MeshBasicMaterial;
-        sphereMat.opacity = 0.75 * (1 - ms.hoverT);
-        ms.sphere.scale.setScalar(1 - ms.hoverT * 0.5);
+        const sphereOpacity = 1 - ms.hoverT;
+        sphereMat.opacity = sphereOpacity;
+        for (const child of ms.sphere.children) {
+          const m = (child as THREE.Mesh).material as THREE.MeshBasicMaterial | undefined;
+          if (m && "opacity" in m) {
+            m.opacity = sphereOpacity;
+          }
+        }
+        ms.sphere.scale.setScalar((1 - ms.hoverT * 0.5) * zoomScale);
 
-        // Diamond: scale up from 0 to 1 as hoverT rises
-        ms.hoverDiamond.scale.setScalar(ms.hoverT);
+        // Diamond: scale up from 0 to 1 as hoverT rises, scaled by camera zoom
+        ms.hoverDiamond.scale.setScalar(ms.hoverT * zoomScale);
       }
     }
     if (hitDirty) {

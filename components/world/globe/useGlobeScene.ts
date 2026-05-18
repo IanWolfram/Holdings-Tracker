@@ -5,6 +5,7 @@ import type {
   CountryGeoData,
   GeoJSON,
   HQMarkerState,
+  ProposedMarkerData,
   RenderState,
 } from "@/components/world/globe/types";
 import {
@@ -30,6 +31,12 @@ interface UseGlobeSceneParams {
   focusedTicker?: string | null;
   focusedCountryCode?: string | null;
   navigateTo?: { lat: number; lon: number } | null;
+  // Optional fit-to-positions override for a country focus. When the focused
+  // country code matches `code`, the camera frames `{ centroid, angularRadius }`
+  // instead of the country's full-territory geo data.
+  countryFocusOverride?: { code: string; lat: number; lon: number; angularRadius: number } | null;
+  proposedMarkers?: ProposedMarkerData[];
+  showProposed?: boolean;
 }
 
 const _n = new THREE.Vector3();
@@ -49,6 +56,9 @@ export function useGlobeScene({
   focusedTicker,
   focusedCountryCode,
   navigateTo,
+  countryFocusOverride,
+  proposedMarkers,
+  showProposed = true,
 }: UseGlobeSceneParams) {
   const mountRef = useRef<HTMLDivElement>(null);
   const globeGroupRef = useRef<THREE.Group | null>(null);
@@ -77,13 +87,18 @@ export function useGlobeScene({
   const segmentToCountryRef = useRef<string[]>([]);
   const geoJSONCacheRef = useRef<GeoJSON | null>(null);
   const workerRef = useRef<Worker | null>(null);
+  const showProposedRef = useRef(showProposed);
   const focusedTickerRef = useRef<string | null>(null);
+  const countryFocusOverrideRef = useRef<UseGlobeSceneParams["countryFocusOverride"]>(null);
   const selectedDiamondRef = useRef<THREE.Mesh | null>(null);
   const [webglAvailable, setWebglAvailable] = useState<boolean>(true);
 
   useEffect(() => {
     onFocusClickRef.current = onFocusClick;
   }, [onFocusClick]);
+  useEffect(() => {
+    showProposedRef.current = showProposed;
+  }, [showProposed]);
   useEffect(() => {
     onStockHoverRef.current = onStockHover;
   }, [onStockHover]);
@@ -102,6 +117,10 @@ export function useGlobeScene({
   useEffect(() => {
     focusedTickerRef.current = focusedTicker ?? null;
   }, [focusedTicker]);
+
+  useEffect(() => {
+    countryFocusOverrideRef.current = countryFocusOverride ?? null;
+  }, [countryFocusOverride]);
 
   // Diamond plumbob selected-marker — appears on the focused HQ dot, spins around surface normal
   useEffect(() => {
@@ -123,10 +142,11 @@ export function useGlobeScene({
 
     if (!focusedTicker || !worldData) return;
     const profile = worldData.profiles[focusedTicker];
-    if (!profile || profile.lat === undefined || profile.lon === undefined) return;
+    const ms = hqMarkersRef.current.find((m) => m.ticker === focusedTicker);
+    // Proposed tickers may not be in worldData.profiles — use marker state for position
+    if (!profile && !ms) return;
 
     // Hide the entire group for this ticker (selected diamond replaces it)
-    const ms = hqMarkersRef.current.find((m) => m.ticker === focusedTicker);
     if (ms) ms.group.visible = false;
 
     // Build the plumbob: a vertically elongated octahedron (diamond shape)
@@ -135,7 +155,7 @@ export function useGlobeScene({
     geo.applyMatrix4(new THREE.Matrix4().makeScale(1, 2.4, 1));
 
     const mat = new THREE.MeshBasicMaterial({
-      color: 0x00ff88,
+      color: ms?.isProposed ? 0xeab308 : 0x00ff88,
       transparent: true,
       opacity: 0.88,
       side: THREE.DoubleSide,
@@ -143,8 +163,39 @@ export function useGlobeScene({
 
     const diamond = new THREE.Mesh(geo, mat);
 
+    const outlineGeo = new THREE.OctahedronGeometry(radius, 0);
+    outlineGeo.applyMatrix4(new THREE.Matrix4().makeScale(1, 2.4, 1));
+    const outlineMat = new THREE.MeshBasicMaterial({
+      color: 0x000000,
+      side: THREE.BackSide,
+    });
+    const outline = new THREE.Mesh(outlineGeo, outlineMat);
+    outline.scale.setScalar(1.18);
+    diamond.add(outline);
+
+    const edgesGeo = new THREE.EdgesGeometry(geo);
+    const edgesPos = edgesGeo.attributes.position;
+    const edgesGroup = new THREE.Group();
+    const edgeMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+    const yAxis = new THREE.Vector3(0, 1, 0);
+    for (let i = 0; i < edgesPos.count; i += 2) {
+      const a = new THREE.Vector3().fromBufferAttribute(edgesPos, i);
+      const b = new THREE.Vector3().fromBufferAttribute(edgesPos, i + 1);
+      const len = a.distanceTo(b);
+      const cylGeo = new THREE.CylinderGeometry(radius * 0.05, radius * 0.05, len, 6, 1);
+      const cyl = new THREE.Mesh(cylGeo, edgeMat);
+      cyl.position.copy(a).add(b).multiplyScalar(0.5);
+      cyl.quaternion.setFromUnitVectors(yAxis, b.clone().sub(a).normalize());
+      edgesGroup.add(cyl);
+    }
+    edgesGeo.dispose();
+    diamond.add(edgesGroup);
+
     // Surface position — 1.018 matches marker placement
-    const surfacePos = latLonToVector3(profile.lat, profile.lon, 1.018);
+    // For proposed tickers not in worldData.profiles, use marker state
+    const surfacePos = profile
+      ? latLonToVector3(profile.lat, profile.lon, 1.018)
+      : ms!.basePos.clone();
     const outward = surfacePos.clone().normalize();
 
     // Sit the bottom tip ON the surface: move center up by one half-height
@@ -269,7 +320,8 @@ export function useGlobeScene({
         localHitRef.current,
         mount,
         state,
-        renderer
+        renderer,
+        showProposedRef.current
       );
     };
     animate();
@@ -336,6 +388,25 @@ export function useGlobeScene({
 
       const focusCountry = (code: string, hitPoint: THREE.Vector3) => {
         const geoData = countryGeoDataRef.current[code];
+        // Fit-to-positions override: when the user has positions inside this
+        // country, frame their bounding circle instead of the country's full
+        // territory — avoids being pinned to a country centroid that's far
+        // from any actual holding (e.g. US centroid leaves the camera too
+        // zoomed out when all positions cluster in a few cities).
+        const override = countryFocusOverrideRef.current;
+        if (override && override.code === code) {
+          localHitRef.current = latLonToVector3(override.lat, override.lon, 1);
+          targetQuatRef.current = new THREE.Quaternion().setFromUnitVectors(
+            localHitRef.current.clone().normalize(),
+            new THREE.Vector3(0, 0, 1)
+          );
+          // Tight padding (1.1× vs the default 1.45×) — the override already
+          // bounds exactly the user's positions, so only a small margin is
+          // needed to keep marker dots off the screen edge.
+          focusZoomRef.current = zoomForAngularRadius(override.angularRadius, 1.1);
+          onFocusClickRef.current({ type: "country", code });
+          return;
+        }
         localHitRef.current = geoData ? geoData.centroid.clone() : globeGroup.worldToLocal(hitPoint.clone());
         targetQuatRef.current = new THREE.Quaternion().setFromUnitVectors(
           localHitRef.current.clone().normalize(),
@@ -353,12 +424,15 @@ export function useGlobeScene({
         if (markerHits.length > 0 && markerHits[0].instanceId !== undefined) {
           const ms = hqMarkersRef.current[markerHits[0].instanceId];
           if (ms?.visible) {
-            localHitRef.current = globeGroup.worldToLocal(markerHits[0].point.clone());
+            // Anchor to the plumbob center (matches useEffect that builds the selected diamond:
+            // surfacePos + outward * radius * 2.4 with radius = 0.016) so the dashed connector
+            // attaches to the octahedron itself rather than wherever the cursor happened to hit.
+            localHitRef.current = ms.basePos.clone().addScaledVector(ms.outward, 0.016 * 2.4);
             targetQuatRef.current = new THREE.Quaternion().setFromUnitVectors(
               localHitRef.current.clone().normalize(),
               new THREE.Vector3(0, 0, 1)
             );
-            focusZoomRef.current = 1.15;
+            focusZoomRef.current = 1.45;
             onFocusClickRef.current({ type: "stock", ticker: ms.ticker });
             markerHandled = true;
           }
@@ -366,32 +440,25 @@ export function useGlobeScene({
       }
 
       if (!markerHandled) {
-        const borderTargets = countryLinesRef.current.filter((obj) => !obj.userData.isMergedDots);
-        const borderHits = raycasterRef.current.intersectObjects(borderTargets).filter(facingFilter);
-        if (borderHits.length > 0) {
-          const hit = borderHits[0];
-          if ((hit.object.userData as { isMergedBorder?: boolean }).isMergedBorder && hit.index !== undefined) {
-            const code = segmentToCountryRef.current[Math.floor(hit.index / 2)];
-            if (code) {
-              focusCountry(code, hit.point);
-            }
-          }
-        } else {
-          _invMat.copy(globeGroup.matrixWorld).invert();
-          _localRay.origin.copy(raycasterRef.current.ray.origin).applyMatrix4(_invMat);
-          _localRay.direction.copy(raycasterRef.current.ray.direction).transformDirection(_invMat);
-          if (_localRay.intersectSphere(_globeSphere, _sphereHit)) {
-            const { lat, lon } = vector3ToLatLon(_sphereHit);
-            const geoJSON = geoJSONCacheRef.current;
-            const code = geoJSON ? findCountryAtLatLon(lat, lon, geoJSON.features, countryGeoDataRef.current) : null;
-            if (code) {
-              focusCountry(code, globeGroup.localToWorld(_sphereHit.clone()));
-            } else {
-              onFocusClickRef.current(null);
-            }
+        // Resolve the clicked country via sphere intersection + point-in-polygon —
+        // identical to the hover path so click and hover always agree. (Raycasting
+        // against the merged border LineSegments is unreliable: Raycaster's default
+        // Line threshold of 1 unit on a unit-radius globe matches near-arbitrary
+        // segments, sending focus to the wrong country.)
+        _invMat.copy(globeGroup.matrixWorld).invert();
+        _localRay.origin.copy(raycasterRef.current.ray.origin).applyMatrix4(_invMat);
+        _localRay.direction.copy(raycasterRef.current.ray.direction).transformDirection(_invMat);
+        if (_localRay.intersectSphere(_globeSphere, _sphereHit)) {
+          const { lat, lon } = vector3ToLatLon(_sphereHit);
+          const geoJSON = geoJSONCacheRef.current;
+          const code = geoJSON ? findCountryAtLatLon(lat, lon, geoJSON.features, countryGeoDataRef.current) : null;
+          if (code) {
+            focusCountry(code, globeGroup.localToWorld(_sphereHit.clone()));
           } else {
             onFocusClickRef.current(null);
           }
+        } else {
+          onFocusClickRef.current(null);
         }
       }
     };
@@ -570,8 +637,8 @@ export function useGlobeScene({
     if (!globeGroup || !worldData) {
       return;
     }
-    rebuildHQMarkers(globeGroup, worldData, hqMarkersRef, markerInstancesRef);
-  }, [worldData]);
+    rebuildHQMarkers(globeGroup, worldData, hqMarkersRef, markerInstancesRef, proposedMarkers);
+  }, [worldData, proposedMarkers]);
 
   return { mountRef, webglAvailable };
 }

@@ -1,8 +1,7 @@
-import CountryFocusPanel from "@/components/world/countrypanel";
 import CountryTooltip from "@/components/world/countrytooltip";
 import type { GlobeFocusTarget } from "@/components/world/GlobeCanvas";
 import CubeHoverLabel from "@/components/world/CubeHoverLabel";
-import StockDetailPanel from "@/components/world/StockDetailPanel";
+import FocusPanel from "@/components/world/FocusPanel";
 import type { CountryState, WorldData } from "@/types/geo.types";
 import type { Position } from "@/types/position.types";
 import { AnimatePresence } from "framer-motion";
@@ -63,6 +62,7 @@ interface WorldOverlaysProps {
   positions: Position[];
   focusTarget: GlobeFocusTarget;
   handleDismissFocus: () => void;
+  onStockSelect: (ticker: string) => void;
   setHoveredTicker: (ticker: string | null) => void;
   stockNavIndex: number;
   countryStocks: Array<{ ticker: string }>;
@@ -78,6 +78,7 @@ export default function WorldOverlays({
   positions,
   focusTarget,
   handleDismissFocus,
+  onStockSelect,
   setHoveredTicker,
   stockNavIndex,
   countryStocks,
@@ -141,24 +142,20 @@ export default function WorldOverlays({
       )}
 
       <AnimatePresence>
-        {focusTarget?.type === "country" && worldData?.countries[focusTarget.code] && (
-          <CountryFocusPanel
-            state={worldData.countries[focusTarget.code]}
-            onClose={handleDismissFocus}
-          />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {focusTarget?.type === "stock" && worldData?.profiles[focusTarget.ticker] && (
-          <StockDetailPanel
-            profile={worldData.profiles[focusTarget.ticker]}
-            position={positions.find((position) => position.ticker === focusTarget.ticker)}
-            onClose={handleDismissFocus}
-            stockIndex={stockNavIndex >= 0 ? stockNavIndex + 1 : undefined}
-            stockCount={countryStocks.length > 1 ? countryStocks.length : undefined}
-          />
-        )}
+        {focusTarget && worldData &&
+          ((focusTarget.type === "country" && worldData.countries[focusTarget.code]) ||
+            (focusTarget.type === "stock" && worldData.profiles[focusTarget.ticker])) && (
+            <FocusPanel
+              key="focus-panel"
+              focusTarget={focusTarget}
+              worldData={worldData}
+              positions={positions}
+              onClose={handleDismissFocus}
+              onStockClick={onStockSelect}
+              stockIndex={stockNavIndex >= 0 ? stockNavIndex + 1 : undefined}
+              stockCount={countryStocks.length > 1 ? countryStocks.length : undefined}
+            />
+          )}
       </AnimatePresence>
     </>
   );

@@ -1,11 +1,11 @@
 "use client";
 
-import { motion } from "framer-motion";
 import VerdictBadge from "@/components/bars/VerdictBadge";
 import NewsCard from "@/components/cards/NewsCard";
 import StockLogo from "@/components/ui/StockLogo";
 import type { CountryState, GeoStory } from "@/types/geo.types";
 import type { ClassifiedStory } from "@/types/news.types";
+import { motion } from "framer-motion";
 
 // ---------------------------------------------------------------------------
 // Country name + emoji flag helpers

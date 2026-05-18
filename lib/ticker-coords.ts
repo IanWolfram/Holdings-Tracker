@@ -29,6 +29,7 @@ export const TICKER_COORDS: Record<string, { lat: number; lon: number }> = {
   EBAY:   { lat: 37.37,  lon: -121.97 }, // San Jose
   V:      { lat: 37.56,  lon: -122.27 }, // Foster City
   QCOM:   { lat: 32.90,  lon: -117.19 }, // San Diego
+  VKTX:   { lat: 32.90,  lon: -117.19 }, // San Diego (Viking Therapeutics)
   AVGO:   { lat: 37.39,  lon: -122.09 }, // Palo Alto
   ANET:   { lat: 37.45,  lon: -122.18 }, // Santa Clara
   ORCL:   { lat: 37.53,  lon: -122.25 }, // Redwood City
@@ -86,6 +87,7 @@ export const TICKER_COORDS: Record<string, { lat: number; lon: number }> = {
   MET:    { lat: 40.75,  lon: -73.99  }, // Manhattan
   PARA:   { lat: 40.75,  lon: -73.98  }, // Manhattan
   WBD:    { lat: 40.75,  lon: -73.98  }, // Manhattan
+  MDB:    { lat: 40.76,  lon: -73.98  }, // Midtown Manhattan (MongoDB)
   PRU:    { lat: 40.74,  lon: -74.17  }, // Newark, NJ
   JNJ:    { lat: 40.49,  lon: -74.45  }, // New Brunswick, NJ
   PFE:    { lat: 40.76,  lon: -73.98  }, // Manhattan

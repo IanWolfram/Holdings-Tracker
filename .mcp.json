@@ -10,6 +10,14 @@
     "supabase": {
       "type": "http",
       "url": "https://mcp.supabase.com/mcp?project_ref=immhabwlbptxqehxiwqc&features=storage%2Cdocs%2Cdatabase%2Caccount"
+    },
+    "graphify": {
+      "command": "/Users/ianwolf/.local/share/uv/tools/graphifyy/bin/python",
+      "args": ["-m", "graphify.serve", "/Users/ianwolf/Holdings-Tracker/graphify-out/graph.json"]
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest", "--viewport=1280x720", "--no-usage-statistics"]
     }
   }
 }

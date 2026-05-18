@@ -1,6 +1,5 @@
 "use client";
 
-import StockLogo from "@/components/ui/StockLogo";
 import type { CountryState } from "@/types/geo.types";
 
 // ---------------------------------------------------------------------------
@@ -45,7 +44,6 @@ interface CountryTooltipProps {
 export default function CountryTooltip({ state, mouseX, mouseY }: CountryTooltipProps) {
   const countryName = COUNTRY_NAMES[state.countryCode] ?? state.countryCode;
   const flag = flagEmoji(state.countryCode);
-  const tickers = state.hqTickers;
 
   return (
     <div
@@ -66,67 +64,29 @@ export default function CountryTooltip({ state, mouseX, mouseY }: CountryTooltip
         {/* Country header */}
         <div className="flex items-center gap-2">
           <span style={{ fontSize: 22, lineHeight: 1 }}>{flag}</span>
-          <div className="min-w-0">
-            <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 14, color: "#e2e8f0", margin: 0 }}>
-              {countryName}
-            </p>
-            <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "#475569", margin: 0 }}>
-              {state.countryCode} · {state.stories.length} signal{state.stories.length !== 1 ? "s" : ""}
-            </p>
-          </div>
+          <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 14, color: "#e2e8f0", margin: 0 }}>
+            {countryName}
+          </p>
         </div>
 
-        {/* Position grid: logos above tickers, max 3 per row */}
-        {state.isHQCountry && tickers.length > 0 && (
-          <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 8, marginTop: 8 }}>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: 6,
-              }}
-            >
-              {tickers.slice(0, 9).map((ticker) => (
-                <div
-                  key={ticker}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: 3,
-                    padding: "4px 0 2px",
-                    borderRadius: 6,
-                    background: "rgba(255,255,255,0.02)",
-                  }}
-                >
-                  <StockLogo ticker={ticker} size={28} />
-                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, fontWeight: 600, color: "#94a3b8", letterSpacing: "0.03em" }}>
-                    {ticker}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            {/* Total position value */}
-            {state.totalPositionValue > 0 && (
-              <div
-                style={{
-                  marginTop: 6,
-                  padding: "5px 8px",
-                  borderRadius: 6,
-                  background: "rgba(0,255,136,0.04)",
-                  border: "1px solid rgba(0,255,136,0.09)",
-                  textAlign: "center",
-                }}
-              >
-                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 700, color: "#00FF88" }}>
-                  ${state.totalPositionValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "#475569", marginLeft: 4 }}>
-                  total
-                </span>
-              </div>
-            )}
+        {/* Total amount invested */}
+        {state.totalPositionValue > 0 && (
+          <div
+            style={{
+              marginTop: 8,
+              padding: "5px 8px",
+              borderRadius: 6,
+              background: "rgba(0,255,136,0.04)",
+              border: "1px solid rgba(0,255,136,0.09)",
+              textAlign: "center",
+            }}
+          >
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 700, color: "#00FF88" }}>
+              ${state.totalPositionValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "#475569", marginLeft: 4 }}>
+              total
+            </span>
           </div>
         )}
       </div>

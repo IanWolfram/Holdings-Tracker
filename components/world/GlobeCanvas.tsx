@@ -4,6 +4,7 @@ import type { WorldData } from "@/types/geo.types";
 import GlobeCanvasFallback from "./GlobeCanvasFallback";
 import { useGlobeScene } from "@/components/world/globe/useGlobeScene";
 import type { GlobeFocusTarget } from "@/components/world/globe/focus";
+import type { ProposedMarkerData } from "@/components/world/globe/types";
 
 export type { GlobeFocusTarget };
 
@@ -18,6 +19,10 @@ interface GlobeCanvasProps {
   focusedCountryCode?: string | null;
   navigateTo?: { lat: number; lon: number } | null;
   onRelevanceChange?: (value: number) => void;
+  countryFocusOverride?: { code: string; lat: number; lon: number; angularRadius: number } | null;
+  proposedMarkers?: ProposedMarkerData[];
+  showProposed?: boolean;
+  onShowProposedChange?: (value: boolean) => void;
 }
 
 export default function GlobeCanvas({
@@ -31,6 +36,10 @@ export default function GlobeCanvas({
   focusedCountryCode,
   navigateTo,
   onRelevanceChange,
+  countryFocusOverride,
+  proposedMarkers,
+  showProposed = true,
+  onShowProposedChange,
 }: GlobeCanvasProps) {
   const { mountRef, webglAvailable } = useGlobeScene({
     worldData,
@@ -42,6 +51,9 @@ export default function GlobeCanvas({
     focusedTicker,
     focusedCountryCode,
     navigateTo,
+    countryFocusOverride,
+    proposedMarkers,
+    showProposed,
   });
 
   if (!webglAvailable) {
@@ -107,6 +119,21 @@ export default function GlobeCanvas({
               className="w-full h-1 appearance-none bg-slate-800 rounded-full outline-none hover:bg-slate-700 transition cursor-pointer"
               style={{ accentColor: "#00FF88" }}
             />
+          </div>
+        )}
+        {onShowProposedChange && (
+          <div className="flex flex-col gap-1.5 w-full">
+            <div className="flex justify-between items-center px-0.5">
+              <span className="text-[10px] font-mono text-slate-400 tracking-widest uppercase">Proposed</span>
+              <input
+                id="globe-proposed-toggle"
+                type="checkbox"
+                checked={showProposed}
+                onChange={(e) => onShowProposedChange(e.target.checked)}
+                className="w-3.5 h-3.5 rounded-sm cursor-pointer"
+                style={{ accentColor: "#EAB308" }}
+              />
+            </div>
           </div>
         )}
       </div>

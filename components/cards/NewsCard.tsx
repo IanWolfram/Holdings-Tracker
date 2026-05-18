@@ -399,6 +399,7 @@ export default function NewsCard({
       <div
         className={compact ? "px-[7px] py-[5px] relative" : "p-2 relative"}
         data-hovered={hovered ? "true" : undefined}
+        data-expanded={expanded ? "true" : undefined}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >

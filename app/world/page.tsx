@@ -6,8 +6,11 @@ import TopBar from "@/components/layout/TopBar";
 import WorldSidebar from "@/components/world/WorldSidebar";
 import WorldOverlays from "@/components/world/WorldOverlays";
 import { useWorldData } from "@/hooks/useWorldData";
+import { useProposedPositions } from "@/hooks/useProposedPositions";
+import { TICKER_COORDS } from "@/lib/ticker-coords";
 import type { WorldData, CountryState, GeoStory } from "@/types/geo.types";
 import type { GlobeFocusTarget } from "@/components/world/GlobeCanvas";
+import type { ProposedMarkerData } from "@/components/world/globe/types";
 
 // Three.js must NOT be imported during SSR — dynamic + ssr:false is mandatory
 const GlobeCanvas = dynamic(
@@ -18,6 +21,11 @@ const GlobeCanvas = dynamic(
 export default function WorldPage() {
   const { worldData, positions, loading, refreshWorldData } = useWorldData();
   const [relevanceThreshold, setRelevanceThreshold] = useState(0.4);
+  const [showProposed, setShowProposed] = useState<boolean>(
+    () => typeof window !== "undefined" && localStorage.getItem("globe-show-proposed") !== "false"
+  );
+  const heldTickers = useMemo(() => positions.map((p) => p.ticker), [positions]);
+  const { proposedEntries } = useProposedPositions(heldTickers);
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
   const [hoveredTicker, setHoveredTicker] = useState<string | null>(null);
   const [focusTarget, setFocusTarget] = useState<GlobeFocusTarget>(null);
@@ -44,6 +52,19 @@ export default function WorldPage() {
     setNavigatePos(null);
   }, []);
 
+  // Selecting a stock from the country panel behaves exactly like clicking its
+  // HQ marker dot on the globe — focuses the ticker (spawns the octahedron) and
+  // navigates the camera in close to its location.
+  const handleStockSelect = useCallback((ticker: string) => {
+    const profile = worldDataRef.current?.profiles[ticker];
+    setFocusTarget({ type: "stock", ticker });
+    setHoveredCountry(null);
+    setHoveredTicker(null);
+    if (profile) {
+      setNavigatePos({ lat: profile.lat, lon: profile.lon });
+    }
+  }, []);
+
   // Keyboard navigation: Escape dismisses, ArrowLeft/Right cycles stocks in the focused country.
   // Uses refs (not closure values) so the handler never goes stale between renders.
   useEffect(() => {
@@ -53,33 +74,55 @@ export default function WorldPage() {
         return;
       }
 
-      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      if (
+        e.key !== "ArrowLeft" &&
+        e.key !== "ArrowRight" &&
+        e.key !== "ArrowUp" &&
+        e.key !== "ArrowDown"
+      )
+        return;
 
       const ft = focusTargetRef.current;
       const wd = worldDataRef.current;
       if (!ft || ft.type !== "stock" || !wd) return;
 
-      // Prevent browser scroll / any other default arrow-key behavior
       e.preventDefault();
 
       const profile = wd.profiles[ft.ticker];
       if (!profile) return;
 
-      const siblings = Object.values(wd.profiles)
-        .filter((p) => p.countryCode === profile.countryCode)
-        .sort((a, b) => a.ticker.localeCompare(b.ticker));
+      // Pick the nearest stock in the pressed compass direction. Buckets are
+      // 90° wedges around east/north/west/south (45° from each axis).
+      const candidates = Object.values(wd.profiles).filter((p) => p.ticker !== ft.ticker);
+      if (candidates.length === 0) return;
 
-      if (siblings.length < 2) return; // nothing to cycle
+      let best: { ticker: string; lat: number; lon: number; dist: number } | null = null;
+      for (const p of candidates) {
+        const dLat = p.lat - profile.lat;
+        let dLon = p.lon - profile.lon;
+        if (dLon > 180) dLon -= 360;
+        if (dLon < -180) dLon += 360;
 
-      const currentIdx = siblings.findIndex((s) => s.ticker === ft.ticker);
-      if (currentIdx === -1) return;
+        const angle = Math.atan2(dLat, dLon); // east = 0, north = +π/2
 
-      const delta = e.key === "ArrowRight" ? 1 : -1;
-      const nextIdx = (currentIdx + delta + siblings.length) % siblings.length;
-      const next = siblings[nextIdx];
+        let inBucket = false;
+        if (e.key === "ArrowRight") inBucket = Math.abs(angle) <= Math.PI / 4;
+        else if (e.key === "ArrowLeft") inBucket = Math.abs(angle) >= (3 * Math.PI) / 4;
+        else if (e.key === "ArrowUp") inBucket = angle > Math.PI / 4 && angle < (3 * Math.PI) / 4;
+        else if (e.key === "ArrowDown") inBucket = angle < -Math.PI / 4 && angle > -(3 * Math.PI) / 4;
 
-      setFocusTarget({ type: "stock", ticker: next.ticker });
-      setNavigatePos({ lat: next.lat, lon: next.lon });
+        if (!inBucket) continue;
+
+        const dist = Math.sqrt(dLat * dLat + dLon * dLon);
+        if (!best || dist < best.dist) {
+          best = { ticker: p.ticker, lat: p.lat, lon: p.lon, dist };
+        }
+      }
+
+      if (!best) return;
+
+      setFocusTarget({ type: "stock", ticker: best.ticker });
+      setNavigatePos({ lat: best.lat, lon: best.lon });
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -210,6 +253,85 @@ export default function WorldPage() {
     return Object.values(worldData.profiles).sort((a, b) => a.ticker.localeCompare(b.ticker));
   }, [worldData]);
 
+  // Fit-to-positions camera override for the focused country: instead of
+  // framing the whole country (centroid skews far from where the user
+  // actually holds positions — e.g. US centroid is in Kansas, leaving the
+  // camera too zoomed out), build the smallest circle around the user's
+  // in-country positions and frame that. Falls back to default country
+  // framing if the user has no positions in the focused country.
+  const countryFocusOverride = useMemo(() => {
+    if (!worldData || focusTarget?.type !== "country") return null;
+    const code = focusTarget.code;
+    const pts: { lat: number; lon: number }[] = [];
+    for (const p of positions) {
+      if (p.isProposed) continue;
+      const profile = worldData.profiles[p.ticker];
+      if (!profile || profile.countryCode !== code) continue;
+      if (!Number.isFinite(profile.lat) || !Number.isFinite(profile.lon)) continue;
+      pts.push({ lat: profile.lat, lon: profile.lon });
+    }
+    if (pts.length === 0) return null;
+
+    // Great-circle centroid via averaged unit vectors (handles antimeridian
+    // and high-latitude wrap correctly, unlike a naive lat/lon mean).
+    let cx = 0, cy = 0, cz = 0;
+    for (const { lat, lon } of pts) {
+      const phi = (lat * Math.PI) / 180;
+      const lam = (lon * Math.PI) / 180;
+      cx += Math.cos(phi) * Math.cos(lam);
+      cy += Math.cos(phi) * Math.sin(lam);
+      cz += Math.sin(phi);
+    }
+    const norm = Math.hypot(cx, cy, cz);
+    cx /= norm; cy /= norm; cz /= norm;
+    const centerLat = (Math.asin(cz) * 180) / Math.PI;
+    const centerLon = (Math.atan2(cy, cx) * 180) / Math.PI;
+
+    // Max angular distance from centroid to any position (radians).
+    let maxAngle = 0;
+    for (const { lat, lon } of pts) {
+      const phi = (lat * Math.PI) / 180;
+      const lam = (lon * Math.PI) / 180;
+      const x = Math.cos(phi) * Math.cos(lam);
+      const y = Math.cos(phi) * Math.sin(lam);
+      const z = Math.sin(phi);
+      const dot = Math.max(-1, Math.min(1, x * cx + y * cy + z * cz));
+      const a = Math.acos(dot);
+      if (a > maxAngle) maxAngle = a;
+    }
+    // Floor so the camera doesn't pinhole onto a single city; ceiling so
+    // even a globe-spanning portfolio doesn't blow past the country view.
+    // No extra margin — `zoomForAngularRadius` in `useGlobeScene` already
+    // applies a small padding factor on top of this for the override path.
+    const angularRadius = Math.min(0.6, Math.max(0.08, maxAngle));
+    return { code, lat: centerLat, lon: centerLon, angularRadius };
+  }, [worldData, focusTarget, positions]);
+
+  // Derive proposed marker data for the globe (resolve coordinates)
+  const proposedMarkers: ProposedMarkerData[] = useMemo(() => {
+    if (!proposedEntries.length) return [];
+    const heldSet = new Set(Object.keys(worldData?.profiles ?? {}));
+    return proposedEntries
+      .filter((e) => !heldSet.has(e.ticker))
+      .map((e) => {
+        const existing = worldData?.profiles[e.ticker];
+        if (existing && Number.isFinite(existing.lat) && Number.isFinite(existing.lon)) {
+          return { ticker: e.ticker, lat: existing.lat, lon: existing.lon, countryCode: existing.countryCode };
+        }
+        const coords = TICKER_COORDS[e.ticker];
+        if (coords) {
+          return { ticker: e.ticker, lat: coords.lat, lon: coords.lon, countryCode: "US" };
+        }
+        return null;
+      })
+      .filter((m): m is ProposedMarkerData => m !== null);
+  }, [proposedEntries, worldData]);
+
+  // Persist toggle state
+  useEffect(() => {
+    localStorage.setItem("globe-show-proposed", String(showProposed));
+  }, [showProposed]);
+
   return (
     <div
       className="min-h-screen flex flex-col overflow-hidden"
@@ -243,6 +365,10 @@ export default function WorldPage() {
             }
             navigateTo={navigatePos}
             onRelevanceChange={setRelevanceThreshold}
+            countryFocusOverride={countryFocusOverride}
+            proposedMarkers={proposedMarkers}
+            showProposed={showProposed}
+            onShowProposedChange={setShowProposed}
           />
         </div>
 
@@ -265,6 +391,7 @@ export default function WorldPage() {
           positions={positions}
           focusTarget={focusTarget}
           handleDismissFocus={handleDismissFocus}
+          onStockSelect={handleStockSelect}
           setHoveredTicker={setHoveredTicker}
           stockNavIndex={stockNavIndex}
           countryStocks={countryStocks}

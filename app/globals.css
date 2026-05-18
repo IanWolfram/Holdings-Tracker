@@ -435,10 +435,15 @@ body {
 .news-edge-top    { top: 0; }
 .news-edge-bottom { bottom: 0; }
 
-[data-hovered="true"] > .news-cap,
-[data-hovered="true"] > .news-edge {
+[data-expanded="true"] > .news-cap,
+[data-expanded="true"] > .news-edge {
   filter: drop-shadow(0 0 4px currentColor) drop-shadow(0 0 8px currentColor);
   transition: filter 0.4s ease;
+}
+
+.news-cap,
+.news-edge {
+  transition: filter 0.3s ease;
 }
 
 .scanline {

@@ -44,12 +44,20 @@ export interface HQMarkerState {
   clusterPeers: string[];
   separationT: number;
   focusT: number;
-  sphere: THREE.Mesh;          // white sphere — visible at hoverT = 0
+  isProposed: boolean;        // true = orange proposed-position marker
+  sphere: THREE.Mesh;          // white/orange sphere — visible at hoverT = 0
   hitSphere: THREE.Mesh;      // invisible larger sphere for hover/click detection
-  hoverDiamond: THREE.Mesh;   // green diamond — visible at hoverT = 1
+  hoverDiamond: THREE.Mesh;   // green/orange diamond — visible at hoverT = 1
   group: THREE.Group;
   visible: boolean;
   renderedVisible: boolean;
+}
+
+export interface ProposedMarkerData {
+  ticker: string;
+  lat: number;
+  lon: number;
+  countryCode: string;
 }
 
 export interface RenderState {

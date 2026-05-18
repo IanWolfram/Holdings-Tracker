@@ -38,15 +38,53 @@ function writeStorage(entries: ProposedPositionEntry[]) {
   }
 }
 
+/** Fetch proposed positions from server for the current user. */
+async function fetchFromServer(): Promise<ProposedPositionEntry[]> {
+  try {
+    const res = await fetch("/api/account/proposed-positions");
+    if (!res.ok) return [];
+    const { positions } = (await res.json()) as {
+      positions: { ticker: string; target_shares: number | null; target_price: number | null; added_at: string }[];
+    };
+    return positions.map((p) => ({
+      ticker: p.ticker,
+      targetShares: p.target_shares ?? undefined,
+      targetPrice: p.target_price ?? undefined,
+      addedAt: new Date(p.added_at).getTime(),
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export function useProposedPositions(heldTickers: string[] = []) {
   const [entries, setEntries] = useState<ProposedPositionEntry[]>(readStorage);
+  const [loaded, setLoaded] = useState(false);
 
+  // On mount, load from server and merge with localStorage
   useEffect(() => {
-    const stored = readStorage();
-    if (JSON.stringify(stored) !== JSON.stringify(entries)) {
-      setEntries(stored);
-    }
-  }, [entries]);
+    if (loaded) return;
+    fetchFromServer().then((serverEntries) => {
+      const localEntries = readStorage();
+      const localMap = new Map(localEntries.map((e) => [e.ticker, e]));
+      // Server is authoritative; add any local-only entries
+      const merged = serverEntries.map((se) => {
+        const local = localMap.get(se.ticker);
+        // Prefer the one with more detail or newer timestamp
+        if (local && local.addedAt > se.addedAt) return local;
+        return se;
+      });
+      // Add local entries not on server yet (will be pushed on add)
+      for (const le of localEntries) {
+        if (!merged.some((e) => e.ticker === le.ticker)) {
+          merged.push(le);
+        }
+      }
+      writeStorage(merged);
+      setEntries(merged);
+      setLoaded(true);
+    });
+  }, [loaded]);
 
   const heldSet = useMemo(
     () => new Set(heldTickers.map((t) => t.toUpperCase())),
@@ -69,6 +107,14 @@ export function useProposedPositions(heldTickers: string[] = []) {
         writeStorage(next);
         return next;
       });
+
+      // Persist to server (fire-and-forget)
+      fetch("/api/account/proposed-positions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ticker: upper, targetShares, targetPrice }),
+      }).catch(() => {});
+
       return true;
     },
     [heldSet, entries]
@@ -81,6 +127,11 @@ export function useProposedPositions(heldTickers: string[] = []) {
       writeStorage(next);
       return next;
     });
+
+    // Persist to server (fire-and-forget)
+    fetch(`/api/account/proposed-positions?ticker=${encodeURIComponent(upper)}`, {
+      method: "DELETE",
+    }).catch(() => {});
   }, []);
 
   // Auto-remove proposed positions that are now held
@@ -90,6 +141,12 @@ export function useProposedPositions(heldTickers: string[] = []) {
       const next = entries.filter((e) => !heldSet.has(e.ticker.toUpperCase()));
       writeStorage(next);
       setEntries(next);
+      // Remove from server too
+      for (const s of stale) {
+        fetch(`/api/account/proposed-positions?ticker=${encodeURIComponent(s.ticker)}`, {
+          method: "DELETE",
+        }).catch(() => {});
+      }
     }
   }, [entries, heldSet]);
 
