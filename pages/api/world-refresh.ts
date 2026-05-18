@@ -27,7 +27,7 @@ export default async function handler(
   try {
     const { portfolioService } = await getServicesForUser(user.id);
     const { positions } = await portfolioService.getPositionsSafe();
-    await forceRefreshWorldData(positions);
+    await forceRefreshWorldData(positions, { userId: user.id });
     return res.status(200).json({
       success: true,
       positions: positions.length,

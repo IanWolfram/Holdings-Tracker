@@ -26,3 +26,6 @@ dist/
 .mlx_venv/
 __pycache__/
 *.pyc
+
+# World vault — now stored in Supabase vault_notes, not filesystem
+world-vault/

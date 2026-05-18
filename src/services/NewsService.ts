@@ -3,7 +3,7 @@ import type { IClassifier } from "@/src/domain/interfaces/IClassifier";
 import type { ICache } from "@/src/domain/interfaces/ICache";
 import type { ClassifiedStory } from "@/types/news.types";
 import { getCompanyName } from "@/lib/company-names";
-import { NEWS_CACHE_TTL_MS } from "@/lib/constants";
+import { NEWS_CACHE_TTL_MS, SYSTEM_USER_ID } from "@/lib/constants";
 import { dedupeStories } from "@/lib/utils/dedupeStories";
 import { getVaultStoriesForTicker } from "@/lib/vault-stories";
 
@@ -25,7 +25,7 @@ export class NewsService {
     },
     private readonly classifier: IClassifier,
     private readonly cache: ICache,
-    private readonly userId: string = "system",
+    private readonly userId: string = SYSTEM_USER_ID,
   ) {}
 
   invalidateTicker(ticker: string): void {

@@ -1,7 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { callLlm, getSystemPrompt } from "@/world-brain/brain";
-import { WORLD_VAULT_PATH } from "@/lib/constants";
-import { FsVaultStore, type VaultStore } from "@/lib/vault/store";
+import { callLlm, getSystemPrompt, preloadSystemPromptInsights } from "@/world-brain/brain";
+import { getVaultStore, type VaultStore } from "@/lib/vault/store";
 import { requireUser } from "@/lib/auth/requireUser";
 import { getServicesForUser } from "@/src/registry";
 
@@ -210,9 +209,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // ---- 2. Vault context ---------------------------------------------------
   let vaultContext = "";
-  const store = WORLD_VAULT_PATH ? new FsVaultStore(WORLD_VAULT_PATH) : null;
+  const store = await getVaultStore(user.id);
+  await preloadSystemPromptInsights(store);
 
-  if (store) {
+  {
     const mentionedTickers = detectTickers(message, holdingTickers);
 
     // Per-ticker learned patterns

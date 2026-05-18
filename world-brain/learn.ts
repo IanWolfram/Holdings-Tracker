@@ -13,7 +13,7 @@ import {
   findTopRecentStories,
 } from "./vault-meta";
 import type { AgentRunResult } from "../lib/agent/service";
-import { FsVaultStore } from "@/lib/vault/store";
+import type { VaultStore } from "@/lib/vault/store";
 
 export interface VaultStory {
   headline: string;
@@ -31,11 +31,6 @@ function getSubagentPrompt(filename: string): string {
     console.error(`[learn] Failed to read subagent prompt ${filename}:`, err);
     return "";
   }
-}
-
-import { resolveVaultPath as _resolveVaultPath } from "../lib/constants";
-function resolveVaultPath(vaultPath: string): string {
-  return _resolveVaultPath(vaultPath) ?? vaultPath;
 }
 
 function parseFrontmatter(content: string): Record<string, string> {
@@ -57,14 +52,13 @@ function parseFrontmatter(content: string): Record<string, string> {
 // equivalent to "older than ~3 weeks": exp(-21/7) ≈ 0.05.
 const STALE_DECAY_THRESHOLD = 0.05;
 
-export function getRecentVaultStories(
+export async function getRecentVaultStories(
   ticker: string,
-  vaultPath: string,
+  store: VaultStore,
   limit: number = 3
-): VaultStory[] {
-  const newsDir = path.join(resolveVaultPath(vaultPath), "news");
+): Promise<VaultStory[]> {
   try {
-    const files = fs.readdirSync(newsDir)
+    const files = (await store.list("news"))
       .filter((f) => f.endsWith(".md"))
       .sort()
       .reverse();
@@ -74,14 +68,13 @@ export function getRecentVaultStories(
     for (const file of files) {
       if (results.length >= limit) break;
       try {
-        const content = fs.readFileSync(path.join(newsDir, file), "utf-8");
+        const content = await store.read(`news/${file}`);
+        if (content === null) continue;
         const fm = parseFrontmatter(content);
         if (fm.ticker?.toUpperCase() !== ticker.toUpperCase()) continue;
         if (!fm.verdict || !["BUY", "SELL", "HOLD"].includes(fm.verdict)) continue;
         if (fm.analysisFailed === "true") continue;
 
-        // Prefer the stored decayScore (written by obsidian.ts); fall back to
-        // computing from the date so notes written before Phase 4 still filter.
         let decayScore = parseFloat(fm.decayScore ?? "");
         if (!Number.isFinite(decayScore)) {
           const dateStr = fm.date ?? file.slice(0, 10);
@@ -117,11 +110,11 @@ export function getRecentVaultStories(
 
 export async function buildTickerKnowledge(
   ticker: string,
-  vaultPath: string,
+  store: VaultStore,
   sector?: string,
   limit: number = 30
 ): Promise<string> {
-  const stories = getRecentVaultStories(ticker, vaultPath, limit);
+  const stories = await getRecentVaultStories(ticker, store, limit);
   if (stories.length === 0) return "";
 
   const storyList = stories
@@ -132,9 +125,8 @@ export async function buildTickerKnowledge(
 
   // Include resolved prediction history for self-calibration
   let calibrationBlock = "";
-  if (vaultPath) {
-    const resolvedStore = new FsVaultStore(vaultPath);
-    const resolved = await getRecentResolvedPredictions(resolvedStore, ticker, 5);
+  try {
+    const resolved = await getRecentResolvedPredictions(store, ticker, 5);
     if (resolved.length > 0) {
       calibrationBlock =
         `\n\nRecent prediction outcomes for ${ticker} (use for self-calibration):\n` +
@@ -144,7 +136,7 @@ export async function buildTickerKnowledge(
         }).join("\n") +
         `\n\nIf accuracy reveals systematic over/under-confidence in a catalyst type, add a one-sentence calibration rule (e.g. "Analyst upgrade signals for this ticker historically under-perform predicted magnitude by ~40%").`;
     }
-  }
+  } catch { /* calibration data is optional */ }
 
   const userMessage =
     `You are synthesizing observed trading signal patterns for a financial AI system.\n\n` +
@@ -166,12 +158,10 @@ export async function buildTickerKnowledge(
 
 export async function updateTickerKnowledgeFile(
   ticker: string,
-  vaultPath: string,
+  store: VaultStore,
   sector?: string
 ): Promise<void> {
-  if (!vaultPath) return;
-
-  const synthesis = await buildTickerKnowledge(ticker, vaultPath, sector);
+  const synthesis = await buildTickerKnowledge(ticker, store, sector);
   if (!synthesis) {
     debug("learn", `No vault stories for ${ticker}, skipping knowledge update.`);
     return;
@@ -179,9 +169,9 @@ export async function updateTickerKnowledgeFile(
 
   const today = new Date().toISOString().split("T")[0];
 
-  const trend = await buildVerdictTrend(vaultPath, ticker, 7);
-  const contradictions = await findRecentContradictions(vaultPath, ticker, 5);
-  const topStories = await findTopRecentStories(vaultPath, ticker, 8);
+  const trend = await buildVerdictTrend(store, ticker, 7);
+  const contradictions = await findRecentContradictions(store, ticker, 5);
+  const topStories = await findTopRecentStories(store, ticker, 8);
 
   const trendBlock =
     trend.length > 0
@@ -254,17 +244,16 @@ export async function updateTickerKnowledgeFile(
     "",
   ].join("\n");
 
-  const filePath = path.join(resolveVaultPath(vaultPath), `${ticker}.md`);
-  fs.writeFileSync(filePath, content, "utf-8");
+  await store.write(`${ticker}.md`, content);
   debug("learn", `Updated knowledge file for ${ticker}`);
 }
 
 export async function runMetaReflection(
   sessionResult: AgentRunResult,
-  vaultPath: string,
+  store: VaultStore,
   profiles: Record<string, { sector?: string }>
 ): Promise<void> {
-  if (!vaultPath || sessionResult.tickerResults.length === 0) return;
+  if (sessionResult.tickerResults.length === 0) return;
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -291,16 +280,13 @@ export async function runMetaReflection(
   // Inject the most recent prior session's insights so META-ANALYST can compare
   let priorInsightsBlock = "";
   try {
-    const insightsDir = path.join(resolveVaultPath(vaultPath), "_insights");
-    if (fs.existsSync(insightsDir)) {
-      const priorFiles = fs
-        .readdirSync(insightsDir)
-        .filter((f) => f.endsWith(".md") && !f.startsWith(today))
-        .sort()
-        .reverse();
-      if (priorFiles.length > 0) {
-        const raw = fs.readFileSync(path.join(insightsDir, priorFiles[0]), "utf-8");
-        // Strip frontmatter for the prompt
+    const priorFiles = (await store.list("_insights"))
+      .filter((f) => f.endsWith(".md") && !f.startsWith(today))
+      .sort()
+      .reverse();
+    if (priorFiles.length > 0) {
+      const raw = await store.read(`_insights/${priorFiles[0]}`);
+      if (raw) {
         const body = raw.replace(/^---[\s\S]*?---\n/, "").trim();
         if (body) {
           priorInsightsBlock = `\n\nPrevious session insights (for comparison — do not repeat, only reference if relevant):\n${body.slice(0, 600)}`;
@@ -334,11 +320,7 @@ export async function runMetaReflection(
     return;
   }
 
-  // Write to world-vault/_insights/YYYY-MM-DD.md — one file per session
-  const insightsDir = path.join(resolveVaultPath(vaultPath), "_insights");
-  fs.mkdirSync(insightsDir, { recursive: true });
-  const insightPath = path.join(insightsDir, `${today}.md`);
-
+  // Write to _insights/YYYY-MM-DD.md — one file per session
   const tickers = sessionResult.tickerResults.map((t) => t.ticker).join(", ");
   const content = [
     "---",
@@ -359,10 +341,10 @@ export async function runMetaReflection(
     "",
   ].join("\n");
 
-  fs.writeFileSync(insightPath, content, "utf-8");
+  await store.write(`_insights/${today}.md`, content);
   debug("learn", `Session insight written to _insights/${today}.md`);
 
-  await appendVaultLog(vaultPath, {
+  await appendVaultLog(store, {
     type: "insight",
     title: `Session insights synthesized for ${today}`,
     details: `Tickers: ${tickers}. Totals: ${sessionResult.totalBuys} BUY / ${sessionResult.totalSells} SELL / ${sessionResult.totalHolds} HOLD.`,
@@ -373,22 +355,22 @@ export async function runMetaReflection(
 
 export async function runLearningPass(
   sessionResult: AgentRunResult,
-  vaultPath: string,
+  store: VaultStore,
   profiles: Record<string, { sector?: string }>
 ): Promise<void> {
-  if (!vaultPath || sessionResult.tickerResults.length === 0) return;
+  if (sessionResult.tickerResults.length === 0) return;
 
   debug("learn", `Starting learning pass for ${sessionResult.tickerResults.length} tickers...`);
 
   for (const tr of sessionResult.tickerResults) {
     const sector = profiles[tr.ticker]?.sector;
-    await updateTickerKnowledgeFile(tr.ticker, vaultPath, sector);
+    await updateTickerKnowledgeFile(tr.ticker, store, sector);
   }
 
-  await runMetaReflection(sessionResult, vaultPath, profiles);
+  await runMetaReflection(sessionResult, store, profiles);
 
   const tickers = sessionResult.tickerResults.map((tr) => tr.ticker);
-  await runGraphPass(vaultPath, profiles, tickers);
+  await runGraphPass(store, profiles, tickers);
 
   debug("learn", "Learning pass complete.");
 }

@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { WORLD_VAULT_PATH } from "@/lib/constants";
-import { FsVaultStore } from "@/lib/vault/store";
+import { getVaultStore } from "@/lib/vault/store";
 import { loadCalibrationReport } from "../../world-brain/calibration";
 import { requireUser } from "@/lib/auth/requireUser";
 
@@ -20,11 +19,7 @@ export default async function handler(
   const user = await requireUser(req, res);
   if (!user) return;
 
-  if (!WORLD_VAULT_PATH) {
-    return res.status(200).json({ updatedAt: null, totalResolved: 0 });
-  }
-
-  const store = new FsVaultStore(WORLD_VAULT_PATH);
+  const store = await getVaultStore(user.id);
 
   try {
     const data = await loadCalibrationReport(store);

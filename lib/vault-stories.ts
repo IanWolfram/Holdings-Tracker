@@ -1,6 +1,7 @@
 import { getVaultIndex, type VaultEntry } from "./vault-index";
 import type { ClassifiedStory } from "@/types/news.types";
 import { getVaultStore } from "./vault/store";
+import { SYSTEM_USER_ID } from "./constants";
 
 const DEFAULT_WINDOW_DAYS = 7;
 
@@ -40,7 +41,7 @@ function vaultEntryToStory(entry: VaultEntry, originalUrl: string): ClassifiedSt
 export async function getVaultStoriesForTicker(
   ticker: string,
   windowDays: number = DEFAULT_WINDOW_DAYS,
-  userId: string = "system",
+  userId: string = SYSTEM_USER_ID,
 ): Promise<ClassifiedStory[]> {
   const store = await getVaultStore(userId);
   const index = await getVaultIndex(store, userId);

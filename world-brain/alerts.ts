@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { resolveVaultPath, FALLBACK_CONFIDENCE } from "../lib/constants";
+import { FALLBACK_CONFIDENCE } from "../lib/constants";
 import { debug } from "../lib/debug";
 import { loadCalibrationReport } from "./calibration";
 import { loadPredictions } from "./predictions";
@@ -42,20 +42,11 @@ interface AlertsSummary {
   sizingTickers: number;
 }
 
-function ensureDir(p: string): void {
-  fs.mkdirSync(p, { recursive: true });
-}
-
-function writeFileAtomic(filePath: string, content: string): void {
-  ensureDir(path.dirname(filePath));
-  const tmp = `${filePath}.tmp`;
-  fs.writeFileSync(tmp, content, "utf-8");
-  fs.renameSync(tmp, filePath);
-}
-
-function loadJson<T>(filePath: string): T | null {
+async function loadJsonFromStore<T>(store: VaultStore, vaultPath: string): Promise<T | null> {
   try {
-    return JSON.parse(fs.readFileSync(filePath, "utf-8")) as T;
+    const content = await store.read(vaultPath);
+    if (content === null) return null;
+    return JSON.parse(content) as T;
   } catch {
     return null;
   }
@@ -141,7 +132,7 @@ async function resolveContradictionWithMetaAnalyst(
 }
 
 async function detectContradictions(
-  vaultPath: string,
+  store: VaultStore,
   tickerResults: TickerResult[],
   date: string
 ): Promise<number> {
@@ -157,9 +148,8 @@ async function detectContradictions(
         buys,
         sells
       );
-      const notePath = path.join(vaultPath, "_alerts", `${date}-contradiction-${tr.ticker}.md`);
-      ensureDir(path.dirname(notePath));
-      writeFileAtomic(
+      const notePath = `_alerts/${date}-contradiction-${tr.ticker}.md`;
+      await store.write(
         notePath,
         buildContradictionAlertContent(date, tr.ticker, buys, sells, resolution)
       );
@@ -173,17 +163,15 @@ async function detectContradictions(
 // 4b. Sector breadth flip + ticker BUY cluster anomalies
 // ---------------------------------------------------------------------------
 
-function writeBreadthFlipAlert(
-  vaultPath: string,
+async function writeBreadthFlipAlert(
+  store: VaultStore,
   date: string,
   sector: string,
   entry: SectorBreadthEntry,
   delta: number
-): void {
-  const alertsDir = path.join(vaultPath, "_alerts");
-  ensureDir(alertsDir);
+): Promise<void> {
   const slug = sector.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-  const notePath = path.join(alertsDir, `${date}-breadth-flip-${slug || "sector"}.md`);
+  const notePath = `_alerts/${date}-breadth-flip-${slug || "sector"}.md`;
 
   const tickerLinks = entry.tickers.map((t) => `[[${t}]]`).join(", ") || "_none_";
   const direction = delta > 0 ? "↑ bullish" : "↓ bearish";
@@ -210,19 +198,17 @@ function writeBreadthFlipAlert(
     "",
   ].join("\n");
 
-  writeFileAtomic(notePath, content);
+  await store.write(notePath, content);
 }
 
-function writeTickerClusterAlert(
-  vaultPath: string,
+async function writeTickerClusterAlert(
+  store: VaultStore,
   date: string,
   ticker: string,
   todayBuys: number,
   averageDaily: number
-): void {
-  const alertsDir = path.join(vaultPath, "_alerts");
-  ensureDir(alertsDir);
-  const notePath = path.join(alertsDir, `${date}-cluster-${ticker}.md`);
+): Promise<void> {
+  const notePath = `_alerts/${date}-cluster-${ticker}.md`;
 
   const content = [
     "---",
@@ -245,42 +231,35 @@ function writeTickerClusterAlert(
     "",
   ].join("\n");
 
-  writeFileAtomic(notePath, content);
+  await store.write(notePath, content);
 }
 
-function detectClusteringAnomalies(
-  vaultPath: string,
+async function detectClusteringAnomalies(
+  store: VaultStore,
   tickerResults: TickerResult[],
   date: string
-): { breadthFlips: number; tickerClusters: number } {
+): Promise<{ breadthFlips: number; tickerClusters: number }> {
   let breadthFlips = 0;
   let tickerClusters = 0;
 
   // Sector breadth flips: read today's _graph/sectors.json (written by Phase 2),
   // flag sectors whose todayBuyPct - rolling30dBuyPct > 50pts in either direction.
-  const sectors = loadJson<SectorBreadthReport>(
-    path.join(vaultPath, "_graph", "sectors.json")
-  );
+  const sectors = await loadJsonFromStore<SectorBreadthReport>(store, "_graph/sectors.json");
   if (sectors?.bySector) {
     for (const [sector, entry] of Object.entries(sectors.bySector)) {
-      if (entry.todayCount < 3) continue; // need a real sample today
-      if (entry.rolling30dCount < 5) continue; // need a real baseline
+      if (entry.todayCount < 3) continue;
+      if (entry.rolling30dCount < 5) continue;
       const delta = entry.todayBuyPct - entry.rolling30dBuyPct;
       if (Math.abs(delta) >= 0.3) {
-        writeBreadthFlipAlert(vaultPath, date, sector, entry, delta);
+        await writeBreadthFlipAlert(store, date, sector, entry, delta);
         breadthFlips += 1;
       }
     }
   }
 
   // Ticker BUY clusters: for each ticker, compare today's BUY count against the
-  // 30-day daily average. We approximate the average by reading the news dir
-  // and counting BUY-tagged frontmatter for this ticker over the last 30 days.
-  const newsDir = path.join(vaultPath, "news");
-  let perTickerHistory = new Map<string, number[]>();
-  if (fs.existsSync(newsDir)) {
-    perTickerHistory = aggregateTickerBuyCountsLast30Days(newsDir);
-  }
+  // 30-day daily average by reading news notes from the store.
+  const perTickerHistory = await aggregateTickerBuyCountsLast30Days(store);
 
   for (const tr of tickerResults) {
     const todayBuys = tr.verdicts.filter((v) => v.verdict === "BUY").length;
@@ -290,7 +269,7 @@ function detectClusteringAnomalies(
     const total = history.reduce((sum, n) => sum + n, 0);
     const avg = total / history.length;
     if (todayBuys >= Math.max(3, avg * 3)) {
-      writeTickerClusterAlert(vaultPath, date, tr.ticker, todayBuys, avg);
+      await writeTickerClusterAlert(store, date, tr.ticker, todayBuys, avg);
       tickerClusters += 1;
     }
   }
@@ -298,19 +277,20 @@ function detectClusteringAnomalies(
   return { breadthFlips, tickerClusters };
 }
 
-function aggregateTickerBuyCountsLast30Days(newsDir: string): Map<string, number[]> {
+async function aggregateTickerBuyCountsLast30Days(store: VaultStore): Promise<Map<string, number[]>> {
   const cutoff = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10);
   const tickerBuckets = new Map<string, Map<string, number>>();
 
-  for (const file of fs.readdirSync(newsDir)) {
-    if (!file.endsWith(".md")) continue;
+  const files = (await store.list("news")).filter((f) => f.endsWith(".md"));
+  for (const file of files) {
     if (file.slice(0, 10) < cutoff) continue;
-    let content: string;
+    let content: string | null;
     try {
-      content = fs.readFileSync(path.join(newsDir, file), "utf-8");
+      content = await store.read(`news/${file}`);
     } catch {
       continue;
     }
+    if (content === null) continue;
     const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
     if (!fmMatch) continue;
     const fm: Record<string, string> = {};
@@ -373,13 +353,10 @@ function meanAbsCorrelationToPortfolio(
 
 async function updateSizingReport(
   store: VaultStore,
-  vaultPath: string,
   tickerResults: TickerResult[]
 ): Promise<number> {
   const calibration = await loadCalibrationReport(store);
-  const correlations = loadJson<CorrelationReport>(
-    path.join(vaultPath, "_graph", "correlations.json")
-  );
+  const correlations = await loadJsonFromStore<CorrelationReport>(store, "_graph/correlations.json");
   const matrix = correlations?.matrix ?? {};
 
   const entries: Record<string, SizingEntry> = {};
@@ -399,7 +376,6 @@ async function updateSizingReport(
       tickerStats && tickerStats.n >= 3 ? tickerStats.winRate : FALLBACK_CONFIDENCE;
 
     const meanCorr = meanAbsCorrelationToPortfolio(ticker, matrix);
-    // Diversification factor: penalize tickers that move with the rest of the book.
     const diversification = Math.max(0, 1 - meanCorr);
 
     const suggestedAllocation = Number(
@@ -425,12 +401,7 @@ async function updateSizingReport(
     entries,
   };
 
-  const metricsDir = path.join(vaultPath, "_metrics");
-  ensureDir(metricsDir);
-  writeFileAtomic(
-    path.join(metricsDir, "sizing.json"),
-    JSON.stringify(report, null, 2)
-  );
+  await store.write("_metrics/sizing.json", JSON.stringify(report, null, 2));
 
   return Object.keys(entries).length;
 }
@@ -440,27 +411,19 @@ async function updateSizingReport(
 // ---------------------------------------------------------------------------
 
 export interface AlertsPassInput {
-  vaultPath: string;
+  store: VaultStore;
   date: string;
   tickerResults: TickerResult[];
 }
 
 export async function runAlertsPass(input: AlertsPassInput): Promise<AlertsSummary> {
-  const resolved = resolveVaultPath(input.vaultPath) ?? input.vaultPath;
-  if (!resolved) {
-    return { contradictions: 0, breadthFlips: 0, tickerClusters: 0, sizingTickers: 0 };
-  }
-
-  const { getVaultStore } = await import("@/lib/vault/store");
-  const store = await getVaultStore("system");
-
-  const contradictions = await detectContradictions(resolved, input.tickerResults, input.date);
-  const { breadthFlips, tickerClusters } = detectClusteringAnomalies(
-    resolved,
+  const contradictions = await detectContradictions(input.store, input.tickerResults, input.date);
+  const { breadthFlips, tickerClusters } = await detectClusteringAnomalies(
+    input.store,
     input.tickerResults,
     input.date
   );
-  const sizingTickers = await updateSizingReport(store, resolved, input.tickerResults);
+  const sizingTickers = await updateSizingReport(input.store, input.tickerResults);
 
   debug(
     "alerts",

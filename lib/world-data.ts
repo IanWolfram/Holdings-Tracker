@@ -1,8 +1,8 @@
 import { getServices } from "@/src/registry";
 import { fetchCompanyProfile } from "./company-profile";
 import { writeStoryNote, writeDailySummary } from "../world-brain/obsidian";
-import { WORLD_CACHE_TTL_MS, WORLD_VAULT_PATH, VERDICT_THRESHOLD } from "./constants";
-import { FsVaultStore } from "@/lib/vault/store";
+import { WORLD_CACHE_TTL_MS, SYSTEM_USER_ID, VERDICT_THRESHOLD } from "./constants";
+import { getVaultStore } from "@/lib/vault/store";
 import type { WorldData, GeoStory, CountryState, CompanyProfile } from "@/types/geo.types";
 import type { Position } from "@/types/position.types";
 import type { ClassifiedStory } from "@/types/news.types";
@@ -24,7 +24,7 @@ let revalidationLock: Promise<void> | null = null;
  */
 export async function getWorldData(
   positions: Position[],
-  opts?: { mock?: boolean }
+  opts?: { mock?: boolean; userId?: string }
 ): Promise<WorldData> {
   // Return fresh cache immediately
   if (worldCache && Date.now() < worldCache.expiresAt) return worldCache.data;
@@ -57,7 +57,7 @@ export function invalidateWorldCache(): void {
  */
 export async function forceRefreshWorldData(
   positions: Position[],
-  opts?: { mock?: boolean }
+  opts?: { mock?: boolean; userId?: string }
 ): Promise<WorldData> {
   worldCache = null;
   return refreshWorldData(positions, opts);
@@ -69,7 +69,7 @@ export async function forceRefreshWorldData(
 
 async function refreshWorldData(
   positions: Position[],
-  opts?: { mock?: boolean }
+  opts?: { mock?: boolean; userId?: string }
 ): Promise<WorldData> {
   if (positions.length === 0) {
     // Don't poison the cache with an empty result — positions may simply not
@@ -129,8 +129,8 @@ async function refreshWorldData(
   }
 
   // ── 3. Write individual story notes to Obsidian vault ────────────────────
-  if (WORLD_VAULT_PATH && allGeoStories.length > 0 && !opts?.mock) {
-    const store = new FsVaultStore(WORLD_VAULT_PATH);
+  if (allGeoStories.length > 0 && !opts?.mock) {
+    const store = await getVaultStore(opts?.userId ?? SYSTEM_USER_ID);
     await Promise.all(
       allGeoStories.map((story) => {
         const sector = profiles[story.ticker]?.sector;
@@ -185,9 +185,9 @@ async function refreshWorldData(
   worldCache = { data, expiresAt: Date.now() + WORLD_CACHE_TTL_MS };
 
   // Write daily summary
-  if (WORLD_VAULT_PATH && allGeoStories.length > 0 && !opts?.mock) {
+  if (allGeoStories.length > 0 && !opts?.mock) {
     const today = new Date().toISOString().split("T")[0];
-    const store = new FsVaultStore(WORLD_VAULT_PATH);
+    const store = await getVaultStore(opts?.userId ?? SYSTEM_USER_ID);
     await writeDailySummary(today, allGeoStories, store, data);
   }
 
@@ -214,7 +214,7 @@ async function runBackgroundEnrichment(
 
   try {
     const { analyzeStory } = await import("../world-brain/brain");
-    const store = WORLD_VAULT_PATH ? new FsVaultStore(WORLD_VAULT_PATH) : null;
+    const store = await getVaultStore(SYSTEM_USER_ID);
 
     const holdingTickers = positions.map((p) => p.ticker);
     const holdingSectors = [

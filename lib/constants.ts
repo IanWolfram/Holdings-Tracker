@@ -12,6 +12,9 @@ export const ACCOUNT_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 export const WORLD_CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
 export const WORLD_VAULT_PATH = process.env.WORLD_VAULT_PATH ?? null;
 
+/** System user ID for vault writes when no user session exists (CLI/cron). */
+export const SYSTEM_USER_ID = process.env.SYSTEM_USER_ID ?? "00000000-0000-0000-0000-000000000000";
+
 export function resolveVaultPath(vaultPath: string | null | undefined): string | null {
   if (!vaultPath) return null;
   const basePath = process.env.PULSE_USER_DATA_PATH ?? process.cwd();

@@ -15,7 +15,7 @@ async function fetchUserPositions(userId?: string) {
   return positions;
 }
 import { debug } from "../debug";
-import { analyzeStory, callLlm, UnifiedAnalysis, analysisStats } from "../../world-brain/brain";
+import { analyzeStory, callLlm, UnifiedAnalysis, analysisStats, preloadSystemPromptInsights } from "../../world-brain/brain";
 import { getRecentVaultStories, runLearningPass } from "../../world-brain/learn";
 import {
   resolveEligiblePredictions,
@@ -34,8 +34,8 @@ import {
   writeMacroSnapshot,
   writeEventsSnapshot,
 } from "../../world-brain/obsidian";
-import { WORLD_VAULT_PATH, resolveVaultPath, FALLBACK_CONFIDENCE, MAX_ARTICLE_CONTENT_CHARS } from "../constants";
-import { FsVaultStore, getVaultStore, type VaultStore } from "@/lib/vault/store";
+import { FALLBACK_CONFIDENCE, MAX_ARTICLE_CONTENT_CHARS, SYSTEM_USER_ID } from "../constants";
+import { getVaultStore, type VaultStore } from "@/lib/vault/store";
 import { getQuote as getCoreQuote } from "../market-data";
 import { getQuote as getMarketQuote } from "../marketdata/prices";
 import { getMacroSnapshot, type MacroSnapshot } from "../marketdata/macro";
@@ -147,7 +147,7 @@ export function cancelStockAgent(): void {
   }
 }
 
-export async function runTickerAnalysis(ticker: string, userId?: string): Promise<TickerResult> {
+export async function runTickerAnalysis(ticker: string, userId?: string, store?: VaultStore): Promise<TickerResult> {
   const upperTicker = ticker.toUpperCase();
 
   // Reject if same ticker is already being analyzed
@@ -206,16 +206,17 @@ export async function runTickerAnalysis(ticker: string, userId?: string): Promis
     // Load per-ticker vault context
     let tickerContext: string | undefined;
     let recentVerdicts: Array<{ headline: string; verdict: string; confidence: number; reason: string }> | undefined;
-    if (WORLD_VAULT_PATH) {
-      const resolvedVault = resolveVaultPath(WORLD_VAULT_PATH)!;
+    if (store) {
       try {
-        const raw = fs.readFileSync(path.join(resolvedVault, `${upperTicker}.md`), "utf-8");
-        const body = raw.match(/^---[\s\S]*?---\s*([\s\S]*)$/)?.[1]?.trim() ?? "";
-        const prose = body.replace(/^#.*\n/, "").trim();
-        if (prose) tickerContext = prose.slice(0, 600);
+        const raw = await store.read(`${upperTicker}.md`);
+        if (raw) {
+          const body = raw.match(/^---[\s\S]*?---\s*([\s\S]*)$/)?.[1]?.trim() ?? "";
+          const prose = body.replace(/^#.*\n/, "").trim();
+          if (prose) tickerContext = prose.slice(0, 600);
+        }
       } catch { /* vault stub missing */ }
 
-      const stories = getRecentVaultStories(upperTicker, WORLD_VAULT_PATH, 3);
+      const stories = await getRecentVaultStories(upperTicker, store, 3);
       if (stories.length > 0) recentVerdicts = stories;
     }
 
@@ -281,7 +282,8 @@ export async function runTickerAnalysis(ticker: string, userId?: string): Promis
                   atr14: tickerQuote.atr14,
                 }
               : undefined,
-          }
+          },
+          store
         ),
         new Promise<UnifiedAnalysis>((_, reject) =>
           setTimeout(() => reject(new Error("[agent] Per-ticker analysis timed out after 120s")), 120_000)
@@ -334,8 +336,8 @@ export async function runTickerAnalysis(ticker: string, userId?: string): Promis
       };
       const vaultStore: VaultStore = userId
         ? await getVaultStore(userId)
-        : new FsVaultStore(WORLD_VAULT_PATH!);
-      await writeStoryNote(geoStory, vaultStore, profile?.sector, userId ?? "system");
+        : store ?? await getVaultStore(SYSTEM_USER_ID);
+      await writeStoryNote(geoStory, vaultStore, profile?.sector, userId ?? SYSTEM_USER_ID);
 
       services.newsService.patchCachedStory(upperTicker, article.url, {
         verdict: analysis.verdict as ClassifiedStory["verdict"],
@@ -561,13 +563,15 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
       eventsSnapshot = null;
     }
 
-    if (WORLD_VAULT_PATH) {
-      if (macroSnapshot) {
-        await writeMacroSnapshot(runDate, macroSnapshot, new FsVaultStore(WORLD_VAULT_PATH));
-      }
-      if (eventsSnapshot) {
-        await writeEventsSnapshot(runDate, eventsSnapshot, new FsVaultStore(WORLD_VAULT_PATH));
-      }
+    // Single vault store for the entire sweep
+    const vaultStore = await getVaultStore(userId ?? SYSTEM_USER_ID);
+    // Pre-load insights into the system prompt cache
+    await preloadSystemPromptInsights(vaultStore);
+    if (macroSnapshot) {
+      await writeMacroSnapshot(runDate, macroSnapshot, vaultStore);
+    }
+    if (eventsSnapshot) {
+      await writeEventsSnapshot(runDate, eventsSnapshot, vaultStore);
     }
 
     // Pre-earnings boost: fetch a single 14-day earnings window so each ticker
@@ -595,13 +599,7 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
     const quoteCache: Partial<Record<string, Awaited<ReturnType<typeof getCoreQuote>>>> = {};
     const marketQuoteCache: Partial<Record<string, Awaited<ReturnType<typeof getMarketQuote>>>> = {};
     let resolvedCount = 0;
-    const vaultStore = WORLD_VAULT_PATH ? new FsVaultStore(WORLD_VAULT_PATH) : null;
-    // Per-user Supabase vault for story notes and predictions.
-    // When userId is present, writes go to Supabase so getVaultStoriesForTicker
-    // (which now always reads from Supabase) can find them after cache expiry.
-    const userVaultStore: VaultStore | null = userId
-      ? await getVaultStore(userId)
-      : vaultStore;
+    const userVaultStore: VaultStore = vaultStore;
     if (userVaultStore) {
       currentProgress = { ...currentProgress, phase: "resolving", message: "Resolving prior predictions..." };
       for (const pos of positions) {
@@ -650,18 +648,17 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
       // Load per-ticker learned context and few-shot examples from vault
       let tickerContext: string | undefined;
       let recentVerdicts: Array<{ headline: string; verdict: string; confidence: number; reason: string }> | undefined;
-      if (WORLD_VAULT_PATH) {
-        const resolvedVault = resolveVaultPath(WORLD_VAULT_PATH)!;
-        try {
-          const raw = fs.readFileSync(path.join(resolvedVault, `${pos.ticker}.md`), "utf-8");
+      try {
+        const raw = await vaultStore.read(`${pos.ticker}.md`);
+        if (raw) {
           const body = raw.match(/^---[\s\S]*?---\s*([\s\S]*)$/)?.[1]?.trim() ?? "";
           const prose = body.replace(/^#.*\n/, "").trim();
           if (prose) tickerContext = prose.slice(0, 600);
-        } catch { /* stub is empty or missing */ }
+        }
+      } catch { /* stub is empty or missing */ }
 
-        const stories = getRecentVaultStories(pos.ticker, WORLD_VAULT_PATH, 3);
-        if (stories.length > 0) recentVerdicts = stories;
-      }
+      const stories = await getRecentVaultStories(pos.ticker, vaultStore, 3);
+      if (stories.length > 0) recentVerdicts = stories;
 
       if (marketQuoteCache[pos.ticker] === undefined) {
         try {
@@ -733,7 +730,8 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
                     atr14: tickerMarketQuote.atr14,
                   }
                 : undefined,
-            }
+            },
+            vaultStore
           ),
           new Promise<UnifiedAnalysis>((_, reject) =>
             setTimeout(() => reject(new Error("[agent] Story analysis timed out after 120s")), 120_000)
@@ -768,7 +766,7 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
         else if (analysis.verdict === "SELL") totalSells++;
         else totalHolds++;
         
-        if (WORLD_VAULT_PATH) {
+        {
           const profile = profiles[pos.ticker];
           const geoStory: GeoStory = {
             ticker: pos.ticker,
@@ -789,9 +787,7 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
             catalystTypes,
           };
           allGeoStories.push(geoStory);
-          if (userVaultStore) {
-            await writeStoryNote(geoStory, userVaultStore, profile?.sector, userId ?? "system");
-          }
+          await writeStoryNote(geoStory, userVaultStore, profile?.sector, userId ?? SYSTEM_USER_ID);
           // Patch the cached entry in-place so the terminal sees the new verdict
           // immediately without busting the full ticker cache (which causes slow reloads).
           services.newsService.patchCachedStory(pos.ticker, article.url, {
@@ -868,7 +864,7 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
     const { total, succeeded, failed, retried } = analysisStats;
     debug("agent", `Analysis: ${succeeded}/${total} succeeded, ${failed} failed, ${retried} retried`);
 
-    if (WORLD_VAULT_PATH && allGeoStories.length > 0 && vaultStore) {
+    if (allGeoStories.length > 0 && vaultStore) {
       const today = new Date().toISOString().split("T")[0];
       const dummyWorldData = { profiles, countries: {}, fetchedAt: Date.now() } as unknown as WorldData;
       await writeDailySummary(today, allGeoStories, vaultStore, dummyWorldData);
@@ -882,7 +878,7 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
       startedAt,
       finishedAt: Date.now()
     };
-    
+
     if (isCancelled) {
       debug("agent", "Sweep cancelled.");
       return result;
@@ -891,37 +887,35 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
     debug("agent", `Sweep complete. ${totalBuys} BUYS, ${totalSells} SELLS, ${totalHolds} HOLDS.`);
 
     // Learning pass: synthesize session verdicts into per-ticker knowledge files and market-insights.md
-    if (WORLD_VAULT_PATH) {
-      currentProgress = { ...currentProgress, phase: "learning", message: "Synthesizing session insights into knowledge base..." };
-      try {
-        await runLearningPass(result, WORLD_VAULT_PATH, profiles);
-      } catch (err) {
-        console.error("[agent] Learning pass failed (non-fatal):", err);
-      }
+    currentProgress = { ...currentProgress, phase: "learning", message: "Synthesizing session insights into knowledge base..." };
+    try {
+      await runLearningPass(result, vaultStore, profiles);
+    } catch (err) {
+      console.error("[agent] Learning pass failed (non-fatal):", err);
+    }
 
-      // Alerts pass runs AFTER the learning pass so sector breadth / correlation
-      // artifacts are fresh when we compute contradictions, anomalies, and sizing.
-      try {
-        await runAlertsPass({
-          vaultPath: WORLD_VAULT_PATH,
-          date: runDate,
-          tickerResults: result.tickerResults,
-        });
-      } catch (err) {
-        console.error("[agent] Alerts pass failed (non-fatal):", err);
-      }
+    // Alerts pass runs AFTER the learning pass so sector breadth / correlation
+    // artifacts are fresh when we compute contradictions, anomalies, and sizing.
+    try {
+      await runAlertsPass({
+        store: vaultStore,
+        date: runDate,
+        tickerResults: result.tickerResults,
+      });
+    } catch (err) {
+      console.error("[agent] Alerts pass failed (non-fatal):", err);
+    }
 
-      try {
-        const tickers = result.tickerResults.map((t) => t.ticker).join(", ");
-        await appendVaultLog(WORLD_VAULT_PATH, {
-          type: "lint",
-          title: `Agent run complete for ${runDate}`,
-          details: `Tickers: ${tickers}. ${result.totalBuys} BUY / ${result.totalSells} SELL / ${result.totalHolds} HOLD.`,
-        });
-        regenerateVaultIndex(WORLD_VAULT_PATH);
-      } catch (err) {
-        console.error("[agent] Index regen failed (non-fatal):", err);
-      }
+    try {
+      const tickers = result.tickerResults.map((t) => t.ticker).join(", ");
+      await appendVaultLog(vaultStore, {
+        type: "lint",
+        title: `Agent run complete for ${runDate}`,
+        details: `Tickers: ${tickers}. ${result.totalBuys} BUY / ${result.totalSells} SELL / ${result.totalHolds} HOLD.`,
+      });
+      await regenerateVaultIndex(vaultStore);
+    } catch (err) {
+      console.error("[agent] Index regen failed (non-fatal):", err);
     }
 
     currentProgress = { status: "complete", results: result };

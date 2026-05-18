@@ -1,4 +1,4 @@
-import { FALLBACK_CONFIDENCE } from "./constants";
+import { FALLBACK_CONFIDENCE, SYSTEM_USER_ID } from "./constants";
 import { getVaultIndex } from "./vault-index";
 import { getVaultStore } from "./vault/store";
 import type { Verdict, Classification } from "@/types/news.types";
@@ -7,7 +7,7 @@ import type { Verdict, Classification } from "@/types/news.types";
 // Vault Lookup — checks for manually verified stories in the World Vault
 // ---------------------------------------------------------------------------
 
-async function findInVault(url: string, userId: string = "system"): Promise<Classification | null> {
+async function findInVault(url: string, userId: string = SYSTEM_USER_ID): Promise<Classification | null> {
   const store = await getVaultStore(userId);
   const index = await getVaultIndex(store, userId);
   return index.get(url) || null;
@@ -93,7 +93,7 @@ export async function classifyNews(
   headline: string,
   summary: string,
   url?: string,
-  userId: string = "system",
+  userId: string = SYSTEM_USER_ID,
 ): Promise<Classification> {
   // 1. Check verified vault first
   if (url) {

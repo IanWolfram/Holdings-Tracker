@@ -1,7 +1,8 @@
 import { readFileSync, existsSync } from "fs";
 import { resolve } from "path";
 import { runGraphPass } from "../world-brain/graph";
-import { FsVaultStore } from "../lib/vault/store";
+import { SYSTEM_USER_ID } from "../lib/constants";
+import { getVaultStore, type VaultStore } from "../lib/vault/store";
 
 function loadLocalEnv(): void {
   const envPath = resolve(process.cwd(), ".env.local");
@@ -16,14 +17,23 @@ function loadLocalEnv(): void {
 }
 
 async function loadProfiles(
-  store: FsVaultStore
+  store: VaultStore
 ): Promise<Record<string, { sector?: string }>> {
   const profiles: Record<string, { sector?: string }> = {};
-  const notes = await store.listNotes("news/");
-  for (const note of notes) {
-    const fm = note.frontmatter;
-    const ticker = typeof fm.ticker === "string" ? fm.ticker.toUpperCase() : null;
-    const sector = typeof fm.sector === "string" ? fm.sector : undefined;
+  const files = (await store.list("news")).filter((f) => f.endsWith(".md"));
+  for (const file of files) {
+    const raw = await store.read(`news/${file}`);
+    if (!raw) continue;
+    const fmMatch = raw.match(/^---\n([\s\S]*?)\n---/);
+    if (!fmMatch) continue;
+    const fm: Record<string, string> = {};
+    for (const line of fmMatch[1].split("\n")) {
+      const idx = line.indexOf(":");
+      if (idx === -1) continue;
+      fm[line.slice(0, idx).trim()] = line.slice(idx + 1).trim().replace(/^["']|["']$/g, "");
+    }
+    const ticker = fm.ticker?.toUpperCase();
+    const sector = fm.sector;
     if (!ticker) continue;
     if (!profiles[ticker] || (!profiles[ticker].sector && sector)) {
       profiles[ticker] = { sector };
@@ -34,14 +44,13 @@ async function loadProfiles(
 
 async function main(): Promise<void> {
   loadLocalEnv();
-  const vaultPathRaw = process.env.WORLD_VAULT_PATH ?? "./world-vault";
-  const store = new FsVaultStore(vaultPathRaw);
+  const store = await getVaultStore(SYSTEM_USER_ID);
 
   const profiles = await loadProfiles(store);
   const tickers = Object.keys(profiles);
   console.log(`[world-graph] Tickers: ${tickers.join(", ") || "(none)"}`);
 
-  await runGraphPass(vaultPathRaw, profiles, tickers, store);
+  await runGraphPass(store, profiles, tickers);
   console.log("[world-graph] Done.");
 }
 

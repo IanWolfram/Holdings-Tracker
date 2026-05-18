@@ -113,6 +113,7 @@ import fs from "fs";
 import { resolveVaultPath } from "@/lib/constants";
 import nodePath from "path";
 
+/** @deprecated Use SupabaseVaultStore via getVaultStore(userId) instead. FsVaultStore is only for local CLI scripts. */
 export class FsVaultStore implements VaultStore {
   private root: string;
 

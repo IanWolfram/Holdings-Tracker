@@ -4,8 +4,7 @@ import {
   getAllPredictions,
   SUPPORTED_HORIZONS,
 } from "../../world-brain/predictions";
-import { WORLD_VAULT_PATH } from "../../lib/constants";
-import { FsVaultStore } from "@/lib/vault/store";
+import { getVaultStore } from "@/lib/vault/store";
 import { requireUser } from "@/lib/auth/requireUser";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -16,17 +15,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const user = await requireUser(req, res);
   if (!user) return;
 
-  if (!WORLD_VAULT_PATH) {
-    return res.status(200).json({ predictions: {} });
-  }
-
-  const store = new FsVaultStore(WORLD_VAULT_PATH);
+  const store = await getVaultStore(user.id);
   const { ticker } = req.query;
 
   if (typeof ticker === "string") {
     const upper = ticker.toUpperCase();
-    // Merge across all horizons so a per-ticker query mirrors the multi-horizon
-    // shape that getAllPredictions returns; otherwise the API only surfaces 7d.
     const merged = (
       await Promise.all(
         SUPPORTED_HORIZONS.map((horizon) => loadPredictions(store, upper, horizon))

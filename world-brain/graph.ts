@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { resolveVaultPath, FALLBACK_CONFIDENCE } from "../lib/constants";
+import { FALLBACK_CONFIDENCE } from "../lib/constants";
 import { debug } from "../lib/debug";
 import { getDailyBars } from "../lib/marketdata/prices";
 import { CATALYST_TYPES, type CatalystType } from "../types/predictions";
@@ -56,65 +56,45 @@ function readHeadline(content: string, fallback: string): string {
   return content.match(/^#\s+(.+)$/m)?.[1]?.trim() ?? fallback;
 }
 
-function readNewsRecord(filePath: string): NewsRecord | null {
-  let content: string;
-  try {
-    content = fs.readFileSync(filePath, "utf-8");
-  } catch {
-    return null;
-  }
-
-  const fm = parseFrontmatter(content);
-  const ticker = typeof fm.ticker === "string" ? fm.ticker.toUpperCase() : null;
-  const date = typeof fm.date === "string" ? fm.date : null;
-  const verdict = typeof fm.verdict === "string" ? fm.verdict.toUpperCase() : null;
-  if (!ticker || !date || !verdict) return null;
-
-  const sector = typeof fm.sector === "string" ? fm.sector : undefined;
-  const url = typeof fm.url === "string" ? fm.url : undefined;
-  const confidenceRaw = typeof fm.confidence === "string" ? parseFloat(fm.confidence) : FALLBACK_CONFIDENCE;
-  const confidence = Number.isFinite(confidenceRaw) ? confidenceRaw : FALLBACK_CONFIDENCE;
-
-  const rawTypes = Array.isArray(fm.catalystTypes) ? fm.catalystTypes : [];
-  const catalystTypes = rawTypes.filter((t): t is CatalystType =>
-    (CATALYST_TYPES as readonly string[]).includes(t)
-  );
-
-  return {
-    file: filePath,
-    date,
-    ticker,
-    sector,
-    verdict,
-    confidence,
-    catalystTypes,
-    headline: readHeadline(content, path.basename(filePath, ".md")),
-    url,
-  };
-}
-
-function loadAllNews(vaultPath: string): NewsRecord[] {
-  const newsDir = path.join(vaultPath, "news");
-  if (!fs.existsSync(newsDir)) return [];
-
+async function loadAllNews(store: VaultStore): Promise<NewsRecord[]> {
   const records: NewsRecord[] = [];
-  for (const file of fs.readdirSync(newsDir)) {
-    if (!file.endsWith(".md")) continue;
-    const record = readNewsRecord(path.join(newsDir, file));
-    if (record) records.push(record);
+  const files = (await store.list("news")).filter((f) => f.endsWith(".md"));
+
+  for (const file of files) {
+    try {
+      const content = await store.read(`news/${file}`);
+      if (content === null) continue;
+
+      const fm = parseFrontmatter(content);
+      const ticker = typeof fm.ticker === "string" ? fm.ticker.toUpperCase() : null;
+      const date = typeof fm.date === "string" ? fm.date : null;
+      const verdict = typeof fm.verdict === "string" ? fm.verdict.toUpperCase() : null;
+      if (!ticker || !date || !verdict) continue;
+
+      const sector = typeof fm.sector === "string" ? fm.sector : undefined;
+      const url = typeof fm.url === "string" ? fm.url : undefined;
+      const confidenceRaw = typeof fm.confidence === "string" ? parseFloat(fm.confidence) : FALLBACK_CONFIDENCE;
+      const confidence = Number.isFinite(confidenceRaw) ? confidenceRaw : FALLBACK_CONFIDENCE;
+
+      const rawTypes = Array.isArray(fm.catalystTypes) ? fm.catalystTypes : [];
+      const catalystTypes = rawTypes.filter((t): t is CatalystType =>
+        (CATALYST_TYPES as readonly string[]).includes(t)
+      );
+
+      records.push({
+        file,
+        date,
+        ticker,
+        sector,
+        verdict,
+        confidence,
+        catalystTypes,
+        headline: readHeadline(content, file.replace(/\.md$/, "")),
+        url,
+      });
+    } catch { /* skip unreadable */ }
   }
   return records;
-}
-
-function ensureDir(p: string): void {
-  fs.mkdirSync(p, { recursive: true });
-}
-
-function writeFileAtomic(filePath: string, content: string): void {
-  ensureDir(path.dirname(filePath));
-  const tmp = `${filePath}.tmp`;
-  fs.writeFileSync(tmp, content, "utf-8");
-  fs.renameSync(tmp, filePath);
 }
 
 function pct(value: number): string {
@@ -134,12 +114,9 @@ const EMPTY_STATS: CalibrationStats = {
   avgConfidence: 0,
 };
 
-export async function updateCatalystPages(vaultPath: string, store?: VaultStore): Promise<{ written: number }> {
-  const resolved = resolveVaultPath(vaultPath) ?? vaultPath;
-  const news = loadAllNews(resolved);
-  const report = store ? await loadCalibrationReport(store) : null;
-  const catalystsDir = path.join(resolved, "catalysts");
-  ensureDir(catalystsDir);
+export async function updateCatalystPages(store: VaultStore): Promise<{ written: number }> {
+  const news = await loadAllNews(store);
+  const report = await loadCalibrationReport(store);
 
   let written = 0;
   for (const type of CATALYST_TYPES) {
@@ -198,7 +175,7 @@ export async function updateCatalystPages(vaultPath: string, store?: VaultStore)
       "",
     ].join("\n");
 
-    writeFileAtomic(path.join(catalystsDir, `${type}.md`), body);
+    await store.write(`catalysts/${type}.md`, body);
     written += 1;
   }
 
@@ -238,12 +215,11 @@ function buyRatio(records: NewsRecord[]): number {
   return buys / records.length;
 }
 
-export function updateSectorGraph(
-  vaultPath: string,
+export async function updateSectorGraph(
+  store: VaultStore,
   profiles: Record<string, { sector?: string }>
-): { written: number } {
-  const resolved = resolveVaultPath(vaultPath) ?? vaultPath;
-  const news = loadAllNews(resolved);
+): Promise<{ written: number }> {
+  const news = await loadAllNews(store);
 
   const today = new Date().toISOString().slice(0, 10);
   const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10);
@@ -289,11 +265,8 @@ export function updateSectorGraph(
     bySector,
   };
 
-  const graphDir = path.join(resolved, "_graph");
-  writeFileAtomic(path.join(graphDir, "sectors.json"), JSON.stringify(report, null, 2));
+  await store.write("_graph/sectors.json", JSON.stringify(report, null, 2));
 
-  const sectorPagesDir = path.join(resolved, "sectors");
-  ensureDir(sectorPagesDir);
   let written = 0;
   for (const [sector, entry] of Object.entries(bySector)) {
     const slug = sector.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
@@ -322,7 +295,7 @@ export function updateSectorGraph(
       `- Momentum: **${entry.momentum}**`,
       "",
     ].join("\n");
-    writeFileAtomic(path.join(sectorPagesDir, `${slug || "sector"}.md`), body);
+    await store.write(`sectors/${slug || "sector"}.md`, body);
     written += 1;
   }
 
@@ -377,11 +350,10 @@ function pearson(a: number[], b: number[]): number | null {
 }
 
 export async function updateCorrelationGraph(
-  vaultPath: string,
+  store: VaultStore,
   tickers: string[],
   windowDays: number = 30
 ): Promise<{ tickers: string[]; pairs: number }> {
-  const resolved = resolveVaultPath(vaultPath) ?? vaultPath;
   const uniqueTickers = [...new Set(tickers.map((t) => t.toUpperCase()))].sort();
   if (uniqueTickers.length < 2) {
     return { tickers: uniqueTickers, pairs: 0 };
@@ -423,8 +395,7 @@ export async function updateCorrelationGraph(
     matrix,
   };
 
-  const graphDir = path.join(resolved, "_graph");
-  writeFileAtomic(path.join(graphDir, "correlations.json"), JSON.stringify(report, null, 2));
+  await store.write("_graph/correlations.json", JSON.stringify(report, null, 2));
 
   const headerRow = ["|        |", ...usableTickers.map((t) => ` ${t} |`)].join("");
   const dividerRow = ["|--------|", ...usableTickers.map(() => "-------|")].join("");
@@ -467,7 +438,7 @@ export async function updateCorrelationGraph(
     "",
   ].join("\n");
 
-  writeFileAtomic(path.join(graphDir, "correlations.md"), md);
+  await store.write("_graph/correlations.md", md);
 
   return { tickers: usableTickers, pairs };
 }
@@ -524,10 +495,8 @@ function loadSupplyChainSource(): SupplyChainSource | null {
   return { edges };
 }
 
-export function updateSupplyChainGraph(vaultPath: string): { edges: number } {
-  const resolved = resolveVaultPath(vaultPath) ?? vaultPath;
+export async function updateSupplyChainGraph(store: VaultStore): Promise<{ edges: number }> {
   const source = loadSupplyChainSource();
-  const graphDir = path.join(resolved, "_graph");
 
   if (!source || source.edges.length === 0) {
     return { edges: 0 };
@@ -556,7 +525,7 @@ export function updateSupplyChainGraph(vaultPath: string): { edges: number } {
     "",
   ].join("\n");
 
-  writeFileAtomic(path.join(graphDir, "supply-chain.md"), md);
+  await store.write("_graph/supply-chain.md", md);
   return { edges: source.edges.length };
 }
 
@@ -565,27 +534,25 @@ export function updateSupplyChainGraph(vaultPath: string): { edges: number } {
 // ---------------------------------------------------------------------------
 
 export async function runGraphPass(
-  vaultPath: string,
+  store: VaultStore,
   profiles: Record<string, { sector?: string }>,
-  tickers: string[],
-  store?: VaultStore
+  tickers: string[]
 ): Promise<void> {
-  if (!vaultPath) return;
   debug("graph", "Running graph pass...");
 
-  const catalystResult = await updateCatalystPages(vaultPath, store);
+  const catalystResult = await updateCatalystPages(store);
   debug("graph", `Catalyst pages: ${catalystResult.written}`);
 
-  const sectorResult = updateSectorGraph(vaultPath, profiles);
+  const sectorResult = await updateSectorGraph(store, profiles);
   debug("graph", `Sector pages: ${sectorResult.written}`);
 
   try {
-    const corrResult = await updateCorrelationGraph(vaultPath, tickers);
+    const corrResult = await updateCorrelationGraph(store, tickers);
     debug("graph", `Correlation pairs: ${corrResult.pairs} across ${corrResult.tickers.length} tickers`);
   } catch (err) {
     console.warn("[graph] Correlation pass failed:", (err as Error).message);
   }
 
-  const supplyResult = updateSupplyChainGraph(vaultPath);
+  const supplyResult = await updateSupplyChainGraph(store);
   debug("graph", `Supply chain edges: ${supplyResult.edges}`);
 }

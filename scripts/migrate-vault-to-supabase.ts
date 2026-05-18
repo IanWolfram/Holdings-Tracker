@@ -8,6 +8,12 @@
  *
  * Usage:
  *   npx tsx scripts/migrate-vault-to-supabase.ts <user-id> [vault-dir]
+ *   npx tsx scripts/migrate-vault-to-supabase.ts --system [vault-dir]
+ *   npx tsx scripts/migrate-vault-to-supabase.ts --dry-run <user-id> [vault-dir]
+ *
+ * Flags:
+ *   --system   Use the SYSTEM_USER_ID service account instead of a real user
+ *   --dry-run  Scan and report but do not insert into the database
  *
  * Requires either:
  *   DATABASE_URL (direct Postgres — preferred when SUPABASE_SERVICE_ROLE_KEY unavailable)
@@ -23,12 +29,24 @@ import { Client } from "pg";
 
 config({ path: resolve(process.cwd(), ".env.local") });
 
-const USER_ID = process.argv[2];
-const VAULT_DIR = process.argv[3] || "./world-vault";
+const SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000000";
+const args = process.argv.slice(2);
+const dryRun = args.includes("--dry-run");
+const useSystem = args.includes("--system");
+const positional = args.filter((a) => !a.startsWith("--"));
+
+const USER_ID = useSystem ? SYSTEM_USER_ID : positional[0];
+const VAULT_DIR = positional[useSystem ? 0 : 1] || "./world-vault";
 
 if (!USER_ID) {
   console.error("Usage: npx tsx scripts/migrate-vault-to-supabase.ts <user-id> [vault-dir]");
+  console.error("       npx tsx scripts/migrate-vault-to-supabase.ts --system [vault-dir]");
+  console.error("       npx tsx scripts/migrate-vault-to-supabase.ts --dry-run <user-id> [vault-dir]");
   process.exit(1);
+}
+
+if (dryRun) {
+  console.log("[dry-run] No rows will be inserted.");
 }
 
 interface ParseResult {
@@ -189,6 +207,15 @@ async function main() {
       updated_at: statSync(fullPath).mtime.toISOString(),
     };
   });
+
+  if (dryRun) {
+    console.log(`\n[dry-run] Would migrate ${rows.length} rows for user ${USER_ID}:`);
+    for (const row of rows.slice(0, 10)) {
+      console.log(`  ${row.path} (${(row.body.length / 1024).toFixed(1)} KB)`);
+    }
+    if (rows.length > 10) console.log(`  ... and ${rows.length - 10} more`);
+    return;
+  }
 
   const usePg = !!process.env.DATABASE_URL;
   console.log(`Using ${usePg ? "DATABASE_URL (direct Postgres)" : "Supabase JS client"}...`);

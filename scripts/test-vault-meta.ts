@@ -38,7 +38,7 @@ async function main() {
   });
 
   console.log("\n=== regenerateVaultIndex ===");
-  regenerateVaultIndex(vaultPath);
+  await regenerateVaultIndex(store);
 
   // Preview the new ticker hub format using the existing learned-patterns body
   const existingHood = await store.read(`${TICKER}.md`);

@@ -18,7 +18,7 @@ export default async function handler(
   try {
     const { portfolioService } = await getServicesForUser(user.id);
     const { positions, mock } = await portfolioService.getPositionsSafe();
-    const data = await getWorldData(positions, { mock });
+    const data = await getWorldData(positions, { mock, userId: user.id });
     return res.status(200).json(data);
   } catch (err) {
     console.error("[/api/world]", err);

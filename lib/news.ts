@@ -3,11 +3,11 @@ import { fetchPolygonNews } from "./polygon";
 import { fetchNewsAPIArticles } from "./newsapi";
 import { getCompanyName } from "./company-names";
 import { classifyNews } from "./classifier";
-import { NEWS_CACHE_TTL_MS, WORLD_VAULT_PATH } from "./constants";
+import { NEWS_CACHE_TTL_MS, SYSTEM_USER_ID } from "./constants";
 import { dedupeStories } from "./utils/dedupeStories";
 import { getVaultStoriesForTicker } from "./vault-stories";
 import { writeStoryNote } from "../world-brain/obsidian";
-import { FsVaultStore } from "@/lib/vault/store";
+import { getVaultStore } from "@/lib/vault/store";
 import { buildRelevanceProfile, isRelevantToTicker } from "./relevance";
 import type { ClassifiedStory } from "@/types/news.types";
 import type { GeoStory } from "@/types/geo.types";
@@ -34,7 +34,7 @@ const revalidationLocks = new Map<string, Promise<void>>();
 export async function getNewsForTicker(
   ticker: string,
   sector?: string,
-  options?: { mock?: boolean }
+  options?: { mock?: boolean; userId?: string }
 ): Promise<ClassifiedStory[]> {
   const cached = cache.get(ticker);
 
@@ -61,7 +61,7 @@ export async function getNewsForTicker(
 async function fetchNewsForTicker(
   ticker: string,
   sector?: string,
-  options?: { mock?: boolean }
+  options?: { mock?: boolean; userId?: string }
 ): Promise<ClassifiedStory[]> {
   const companyName = await getCompanyName(ticker);
 
@@ -136,8 +136,8 @@ async function fetchNewsForTicker(
       
       // PERSISTENCE: If newly analyzed by the brain, remember it in the vault
       // Skip vault writes for mock data to avoid polluting the knowledge base
-      if (result.isAnalyzed && !result.fromVault && WORLD_VAULT_PATH && !options?.mock) {
-        const store = new FsVaultStore(WORLD_VAULT_PATH);
+      if (result.isAnalyzed && !result.fromVault && !options?.mock) {
+        const store = await getVaultStore(options?.userId ?? SYSTEM_USER_ID);
         await writeStoryNote(result as unknown as GeoStory, store, sector);
       }
       return result;
@@ -145,7 +145,7 @@ async function fetchNewsForTicker(
   );
 
   // Sort newest first, drop anything older than 30 days
-  const vaultStories = await getVaultStoriesForTicker(ticker, 7);
+  const vaultStories = await getVaultStoriesForTicker(ticker, 7, options?.userId ?? SYSTEM_USER_ID);
   const allClassified = [...classified, ...vaultStories];
   const deduped = dedupeStories(allClassified, await getCompanyName(ticker));
   const recent = withinNewsWindow(deduped).sort((a, b) => b.datetime - a.datetime);
