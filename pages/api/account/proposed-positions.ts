@@ -1,8 +1,9 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiResponse } from "next";
 import { requireUser } from "@/lib/auth/requireUser";
 import { createServiceClient } from "@/lib/supabase/server";
+import { apiHandler } from "@/lib/api-handler";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default apiHandler(["GET", "POST", "DELETE"], async (req, res: NextApiResponse) => {
   const user = await requireUser(req, res);
   if (!user) return;
 
@@ -59,6 +60,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (error) return res.status(500).json({ error: error.message });
     return res.status(200).json({ ok: true });
   }
-
-  return res.status(405).json({ error: "Method not allowed" });
-}
+}, "api/account/proposed-positions");

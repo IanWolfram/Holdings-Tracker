@@ -1,15 +1,9 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiResponse } from "next";
 import { requireUser } from "@/lib/auth/requireUser";
 import { getServicesForUser } from "@/src/registry";
+import { apiHandler } from "@/lib/api-handler";
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<{ cashBalance: number } | { error: string }>
-) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
+export default apiHandler(["GET"], async (req, res: NextApiResponse<{ cashBalance: number } | { error: string }>) => {
   const user = await requireUser(req, res);
   if (!user) return;
 
@@ -21,4 +15,4 @@ export default async function handler(
     console.error("[/api/balance]", err);
     res.status(502).json({ error: "Failed to fetch balance" });
   }
-}
+}, "api/balance");

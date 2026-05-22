@@ -1,8 +1,9 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiResponse } from "next";
 import { callLlm, getSystemPrompt, preloadSystemPromptInsights } from "@/world-brain/brain";
 import { getVaultStore, type VaultStore } from "@/lib/vault/store";
 import { requireUser } from "@/lib/auth/requireUser";
 import { getServicesForUser } from "@/src/registry";
+import { apiHandler } from "@/lib/api-handler";
 
 // ---------------------------------------------------------------------------
 // Vault context helpers (async, VaultStore-based)
@@ -168,11 +169,7 @@ You are now in interactive chat mode with the portfolio owner. Unlike story anal
 // Handler
 // ---------------------------------------------------------------------------
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed." });
-  }
-
+export default apiHandler(["POST"], async (req, res: NextApiResponse) => {
   const user = await requireUser(req, res);
   if (!user) return;
 
@@ -273,4 +270,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error("[api/agent/chat] Error:", err);
     return res.status(500).json({ error: "Inference failed." });
   }
-}
+}, "api/agent/chat");

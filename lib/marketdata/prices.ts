@@ -1,4 +1,4 @@
-import { getQuote as getCoreQuote } from "../market-data";
+import { getBasicQuote } from "../market-data";
 import { fetchOHLCPolygon } from "../polygon";
 import {
   YAHOO_HEADERS,
@@ -339,7 +339,7 @@ export async function getDailyBars(ticker: string, days = 390): Promise<DailyBar
   return sliceRecent(bars, days);
 }
 
-export async function getQuote(ticker: string): Promise<MarketQuote | null> {
+export async function getDetailedQuote(ticker: string): Promise<MarketQuote | null> {
   const normalized = normalizeTicker(ticker);
   const now = Date.now();
   const cached = quoteCache.get(normalized);
@@ -347,13 +347,13 @@ export async function getQuote(ticker: string): Promise<MarketQuote | null> {
     return cached.data;
   }
 
-  const [coreQuote, bars] = await Promise.all([
-    getCoreQuote(normalized).catch(() => null),
+  const [basicQuote, bars] = await Promise.all([
+    getBasicQuote(normalized).catch(() => null),
     getDailyBars(normalized, 390).catch(() => []),
   ]);
 
   const fallbackPrice = bars.length > 0 ? bars[bars.length - 1].close : null;
-  const price = coreQuote?.currentPrice ?? fallbackPrice;
+  const price = basicQuote?.currentPrice ?? fallbackPrice;
   if (price === null || !Number.isFinite(price)) {
     return null;
   }

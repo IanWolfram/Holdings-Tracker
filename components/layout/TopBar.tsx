@@ -14,7 +14,7 @@ import {
 } from "@/lib/marketHours";
 import { AnimatePresence, motion } from "framer-motion";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { authedFetch } from "@/lib/api/client-fetch";
 
 function SearchParamsWatcher({
@@ -76,6 +76,8 @@ export default function TopBar({
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [accountPanelOpen, setAccountPanelOpen] = useState(false);
+
+  const closeAccountPanel = useCallback(() => setAccountPanelOpen(false), []);
 
   const isTerminal = pathname === "/terminal" || pathname === "/";
   const isWorld = pathname === "/world";
@@ -204,12 +206,12 @@ export default function TopBar({
               backdropFilter: "blur(4px)",
               WebkitBackdropFilter: "blur(4px)",
             }}
-            onClick={() => setAccountPanelOpen(false)}
+            onClick={closeAccountPanel}
           />
           <AccountPanel
             key="account-panel"
             isOpen={accountPanelOpen}
-            onClose={() => setAccountPanelOpen(false)}
+            onClose={closeAccountPanel}
             isConnected={isConnected}
             isConnecting={isConnecting}
           />

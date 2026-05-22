@@ -1,16 +1,10 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiResponse } from "next";
 import type { ClassifiedStory } from "@/types/news.types";
 import { getServicesForUser } from "@/src/registry";
 import { requireUser } from "@/lib/auth/requireUser";
+import { apiHandler } from "@/lib/api-handler";
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<ClassifiedStory[] | { error: string }>
-) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
+export default apiHandler(["GET"], async (req, res: NextApiResponse<ClassifiedStory[] | { error: string }>) => {
   const user = await requireUser(req, res);
   if (!user) return;
 
@@ -37,4 +31,4 @@ export default async function handler(
     }
     res.status(504).json({ error: "Failed to fetch news" });
   }
-}
+}, "api/news");

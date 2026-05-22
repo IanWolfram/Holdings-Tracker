@@ -1,12 +1,9 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiResponse } from "next";
 import { requireUser } from "@/lib/auth/requireUser";
 import { getServicesForUser } from "@/src/registry";
+import { apiHandler } from "@/lib/api-handler";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "PATCH") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
+export default apiHandler(["PATCH"], async (req, res: NextApiResponse) => {
   const user = await requireUser(req, res);
   if (!user) return;
 
@@ -29,4 +26,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     aiModel: updated.aiModel,
     vaultEnabled: updated.vaultEnabled,
   });
-}
+}, "api/account/preferences");

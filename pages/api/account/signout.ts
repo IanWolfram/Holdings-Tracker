@@ -1,11 +1,8 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiRequest, NextApiResponse } from "next";
 import { createServerClient } from "@supabase/ssr";
+import { apiHandler } from "@/lib/api-handler";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
+export default apiHandler(["POST"], async (req: NextApiRequest, res: NextApiResponse) => {
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -37,4 +34,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   await supabase.auth.signOut();
 
   return res.status(200).json({ ok: true });
-}
+}, "api/account/signout");

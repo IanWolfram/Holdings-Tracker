@@ -1,22 +1,16 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiResponse } from "next";
 import { getHotTrades } from "@/lib/insiders";
 import { requireUser } from "@/lib/auth/requireUser";
 import { getServicesForUser } from "@/src/registry";
 import type { CongressTrade } from "@/types/news.types";
+import { apiHandler } from "@/lib/api-handler";
 
 interface CongressResponse {
   trades: CongressTrade[];
   fetchedAt: number;
 }
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<CongressResponse | { error: string }>
-) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
+export default apiHandler(["GET"], async (req, res: NextApiResponse<CongressResponse | { error: string }>) => {
   const user = await requireUser(req, res);
   if (!user) return;
 
@@ -33,4 +27,4 @@ export default async function handler(
     console.error("[api/congress]", err);
     res.status(500).json({ error: "Failed to fetch hot trades data" });
   }
-}
+}, "api/congress");

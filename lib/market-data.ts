@@ -17,7 +17,7 @@ let yahooRateLimitLoggedUntil = 0;
 // the next 5-min SWR poll will pick up the warmed cache.
 const POLYGON_REQUEST_BUDGET_MS = 2_500;
 
-export async function getQuote(ticker: string): Promise<QuoteData | null> {
+export async function getBasicQuote(ticker: string): Promise<QuoteData | null> {
   const cached = quoteCache.get(ticker);
   if (cached && cached.expiresAt > Date.now()) {
     return cached.data;
@@ -215,10 +215,10 @@ function startPolygonFetch(ticker: string): Promise<HistoryData | null> {
   return promise;
 }
 
-export async function getQuotes(
+export async function getBasicQuotes(
   tickers: string[]
 ): Promise<Record<string, QuoteData>> {
-  const results = await Promise.allSettled(tickers.map((t) => getQuote(t)));
+  const results = await Promise.allSettled(tickers.map((t) => getBasicQuote(t)));
   const out: Record<string, QuoteData> = {};
   tickers.forEach((ticker, i) => {
     const r = results[i];

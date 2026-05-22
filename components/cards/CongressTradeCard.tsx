@@ -46,6 +46,9 @@ export default function CongressTradeCard({
   const id = rawId.replace(/:/g, "");
   const [hovered, setHovered] = useState(false);
 
+  const handleMouseEnter = () => setHovered(true);
+  const handleMouseLeave = () => setHovered(false);
+
   const timeAgo = formatDistanceToNow(new Date(trade.tradeDate * 1000), { addSuffix: true });
   const tradeLabel = TRADE_LABEL[trade.tradeType] ?? "TRADE";
   const tradeColor = TRADE_COLOR[trade.tradeType] ?? "#64748b";
@@ -63,8 +66,8 @@ export default function CongressTradeCard({
     >
       <div
         className={compact ? "px-[7px] py-[5px] relative" : "p-2 relative"}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         {/* Corner brackets — brown tinted */}
         <span className="news-cap news-cap-top-left" />

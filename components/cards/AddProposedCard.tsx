@@ -81,6 +81,19 @@ export default function AddProposedCard({
     setShowSuggestions(true);
   };
 
+  const handleFocus = () => setShowSuggestions(true);
+
+  const handleBlur = () => {
+    // Delay to allow click on suggestion
+    setTimeout(() => setShowSuggestions(false), 150);
+  };
+
+  const handleSuggestionSelect = (suggestion: string) => {
+    setTicker(suggestion);
+    setShowSuggestions(false);
+    inputRef.current?.focus();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown" && showSuggestions && suggestions.length > 0) {
       e.preventDefault();
@@ -157,11 +170,8 @@ export default function AddProposedCard({
                 type="text"
                 value={ticker}
                 onChange={(e) => handleInputChange(e.target.value)}
-                onFocus={() => setShowSuggestions(true)}
-                onBlur={() => {
-                  // Delay to allow click on suggestion
-                  setTimeout(() => setShowSuggestions(false), 150);
-                }}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
                 onKeyDown={handleKeyDown}
                 placeholder="TICKER"
                 autoFocus
@@ -182,9 +192,7 @@ export default function AddProposedCard({
                         key={s}
                         onMouseDown={(e) => {
                           e.preventDefault();
-                          setTicker(s);
-                          setShowSuggestions(false);
-                          inputRef.current?.focus();
+                          handleSuggestionSelect(s);
                         }}
                         onMouseEnter={() => setSelectedIdx(i)}
                         className={`w-full text-left px-2.5 py-1.5 font-mono text-[11px] tracking-wider transition-colors ${

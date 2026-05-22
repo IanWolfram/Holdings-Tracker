@@ -61,6 +61,9 @@ function OrbitIcon({
 export default function AccountIconDiv({ onClick, isOpen }: AccountIconDivProps) {
   const [hovered, setHovered] = useState(false);
 
+  const handleMouseEnter = () => setHovered(true);
+  const handleMouseLeave = () => setHovered(false);
+
   return (
     <div
       className={`flex items-center justify-center rounded-md h-14 w-14 cursor-pointer relative bg-white/[0.05] border transition-colors ${
@@ -69,8 +72,8 @@ export default function AccountIconDiv({ onClick, isOpen }: AccountIconDivProps)
           : "border-white/[0.08] hover:bg-white/[0.07] hover:border-white/15"
       }`}
       onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <div className="absolute w-8 h-8 rounded-full border border-white/[0.12]" />
 

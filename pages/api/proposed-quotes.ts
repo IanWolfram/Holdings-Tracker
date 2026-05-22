@@ -1,7 +1,8 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import { getQuote, getHistory } from "@/lib/market-data";
+import type { NextApiResponse } from "next";
+import { getBasicQuote, getHistory } from "@/lib/market-data";
 import { getCompanyName } from "@/lib/company-names";
 import { requireUser } from "@/lib/auth/requireUser";
+import { apiHandler } from "@/lib/api-handler";
 import type { Position } from "@/types/position.types";
 
 interface ProposedTarget {
@@ -10,15 +11,7 @@ interface ProposedTarget {
   targetPrice?: number;
 }
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  if (req.method !== "POST") {
-    res.setHeader("Allow", "POST");
-    return res.status(405).end("Method Not Allowed");
-  }
-
+export default apiHandler(["POST"], async (req, res: NextApiResponse) => {
   const user = await requireUser(req, res);
   if (!user) return;
 
@@ -36,7 +29,7 @@ export default async function handler(
       const ticker = target.ticker.toUpperCase().trim();
 
       const [quote, history, companyName] = await Promise.all([
-        getQuote(ticker).catch(() => null),
+        getBasicQuote(ticker).catch(() => null),
         getHistory(ticker).catch(() => null),
         getCompanyName(ticker).catch(() => ticker),
       ]);
@@ -86,4 +79,4 @@ export default async function handler(
     .map((r) => r.value);
 
   return res.status(200).json(positions);
-}
+}, "api/proposed-quotes");

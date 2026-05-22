@@ -1,4 +1,4 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiResponse } from "next";
 import { fetchFullArticleContent } from "@/lib/jina";
 import { analyzeStory } from "../../world-brain/brain";
 import { getServicesForUser } from "@/src/registry";
@@ -7,14 +7,11 @@ import { MAX_ARTICLE_CONTENT_CHARS } from "@/lib/constants";
 import { requireUser } from "@/lib/auth/requireUser";
 import { getVaultStore } from "@/lib/vault/store";
 import type { ClassifiedStory } from "@/types/news.types";
+import { apiHandler } from "@/lib/api-handler";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default apiHandler(["POST"], async (req, res: NextApiResponse) => {
   const user = await requireUser(req, res);
   if (!user) return;
-
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed." });
-  }
 
   const { ticker, url, headline, summary } = req.body as {
     ticker?: string;
@@ -76,4 +73,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   );
 
   return res.status(200).json(analysis);
-}
+}, "api/analyze-story");

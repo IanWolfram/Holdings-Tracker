@@ -57,6 +57,9 @@ export default function PositionCard({
   const articleRef = useRef<HTMLDivElement>(null);
   const [_hovered, setHovered] = useState(false);
 
+  const handleMouseEnter = () => setHovered(true);
+  const handleMouseLeave = () => setHovered(false);
+
   const isProposed = position.isProposed === true;
 
   const {
@@ -144,8 +147,8 @@ export default function PositionCard({
       <div
         ref={articleRef}
         className="relative"
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         <motion.div
           className="absolute inset-x-0 h-[2px] z-50 pointer-events-none"

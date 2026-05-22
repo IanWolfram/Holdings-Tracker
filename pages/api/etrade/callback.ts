@@ -1,16 +1,13 @@
-import { NextApiRequest, NextApiResponse } from "next";
-import { getAccessToken } from "@/lib/etrade";
+import type { NextApiResponse } from "next";
+import { getAccessToken } from "@/lib/etrade/oauth";
 import { requireUser } from "@/lib/auth/requireUser";
 import { consumeRequestToken, saveUserTokens } from "@/lib/etrade/tokens";
 import { invalidateUserServices } from "@/src/registry";
+import { apiHandler } from "@/lib/api-handler";
 
 const OAUTH_PARAM = /^[A-Za-z0-9._~-]{1,256}$/;
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
+export default apiHandler(["POST"], async (req, res: NextApiResponse) => {
   const user = await requireUser(req, res);
   if (!user) return;
 
@@ -56,4 +53,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error("[etrade-callback] Error exchanging token:", msg);
     return res.status(500).json({ error: msg });
   }
-}
+}, "etrade-callback");

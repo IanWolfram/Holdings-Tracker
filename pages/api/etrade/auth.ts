@@ -1,13 +1,10 @@
-import { NextApiRequest, NextApiResponse } from "next";
-import { getRequestToken } from "@/lib/etrade";
+import type { NextApiResponse } from "next";
+import { getRequestToken } from "@/lib/etrade/oauth";
 import { requireUser } from "@/lib/auth/requireUser";
 import { saveRequestToken } from "@/lib/etrade/tokens";
+import { apiHandler } from "@/lib/api-handler";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
+export default apiHandler(["GET"], async (req, res: NextApiResponse) => {
   const user = await requireUser(req, res);
   if (!user) return;
 
@@ -24,4 +21,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error("[etrade-auth] Error starting auth:", msg);
     return res.status(500).json({ error: msg });
   }
-}
+}, "etrade-auth");

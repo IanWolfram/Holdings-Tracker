@@ -360,13 +360,13 @@ export default function AgentDashboard() {
         {/* Clickable row */}
         <div
           className="flex items-center justify-between px-6 py-2 cursor-pointer hover:bg-white/[0.02] transition-colors select-none"
-          onClick={() => setAgentExpanded((o) => !o)}
+          onClick={() => setAgentExpanded((v) => !v)}
         >
           <div className="flex items-center gap-3 min-w-0">
             {/* Hamburger + popup */}
             <div className="relative" ref={popupRef}>
               <button
-                onClick={() => setPopupOpen((o) => !o)}
+                onClick={() => setPopupOpen((v) => !v)}
                 className="w-7 h-7 flex items-center justify-center rounded hover:bg-white/10 transition-colors flex-shrink-0"
               >
                 <span className="material-symbols-outlined text-[18px] text-slate-400">

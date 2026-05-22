@@ -57,6 +57,9 @@ export default function NewsCollapsible({
   // collapse the moment the user moves down toward the stack hit zone.
   const [wrapperHovered, setWrapperHovered] = useState(false);
 
+  const handleWrapperMouseEnter = () => setWrapperHovered(true);
+  const handleWrapperMouseLeave = () => setWrapperHovered(false);
+
   const stackRef = useRef<HTMLDivElement>(null);
   const hoverProgress = useMotionValue(0);
   const springProgress = useSpring(hoverProgress, {
@@ -141,8 +144,8 @@ export default function NewsCollapsible({
       <div
         className="relative"
         style={{ paddingBottom: expanded ? 0 : baseStackPad }}
-        onMouseEnter={() => setWrapperHovered(true)}
-        onMouseLeave={() => setWrapperHovered(false)}
+        onMouseEnter={handleWrapperMouseEnter}
+        onMouseLeave={handleWrapperMouseLeave}
       >
         {/* Top card only shown when collapsed — expands into the scrollbox.
             Cloned with `pinned` so its AI panel stays expanded while the cursor

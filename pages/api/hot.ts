@@ -1,7 +1,8 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import { getQuotes } from "@/lib/market-data";
+import type { NextApiResponse } from "next";
+import { getBasicQuotes } from "@/lib/market-data";
 import { requireUser } from "@/lib/auth/requireUser";
 import type { QuoteData, HotTicker } from "@/types/market-data.types";
+import { apiHandler } from "@/lib/api-handler";
 
 export type { HotTicker };
 
@@ -43,20 +44,13 @@ async function fetchTrendingTickers(): Promise<string[]> {
   }
 }
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<HotResponse | { error: string }>
-) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
+export default apiHandler(["GET"], async (req, res: NextApiResponse<HotResponse | { error: string }>) => {
   const user = await requireUser(req, res);
   if (!user) return;
 
   try {
     const tickers = await fetchTrendingTickers();
-    const quotes: Record<string, QuoteData> = await getQuotes(tickers);
+    const quotes: Record<string, QuoteData> = await getBasicQuotes(tickers);
 
     const hotTickers: HotTicker[] = tickers
       .filter((t) => quotes[t])
@@ -85,4 +79,4 @@ export default async function handler(
     console.error("[api/hot]", err);
     res.status(500).json({ error: "Failed to fetch hot tickers" });
   }
-}
+}, "api/hot");

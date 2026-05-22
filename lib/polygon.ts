@@ -107,7 +107,7 @@ export async function fetchPolygonNews(ticker: string, companyName?: string): Pr
       // only tangentially tagged with the ticker.  Pre-filter at the source
       // level so we don't waste time classifying irrelevant stories.
       // (A thorough relevance check using the full company name happens in
-      // lib/news.ts after all sources are merged.)
+      // NewsService after all sources are merged.)
       const tickerLc = ticker.toLowerCase();
       const nameTerms = companyName
         ? companyName.toLowerCase().split(/\s+/).filter(w => w.length >= 3)

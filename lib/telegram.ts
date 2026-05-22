@@ -1,4 +1,4 @@
-import type { ClassifiedStory } from "./news";
+import type { ClassifiedStory } from "@/types/news.types";
 
 export interface TickerDigest {
   ticker: string;

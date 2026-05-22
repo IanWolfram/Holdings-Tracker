@@ -34,7 +34,7 @@ export default function HotPage() {
         {/* Trending Stocks */}
         <section>
           <button 
-            onClick={() => setTrendingCollapsed(!trendingCollapsed)}
+            onClick={() => setTrendingCollapsed((v) => !v)}
             className="flex items-center gap-3 mb-4 w-full group"
           >
             <span className="material-symbols-outlined text-[20px] text-orange-400 group-hover:scale-110 transition-transform">local_fire_department</span>
@@ -84,7 +84,7 @@ export default function HotPage() {
         {/* Insider & Political Intelligence */}
         <section>
           <button 
-            onClick={() => setInsidersCollapsed(!insidersCollapsed)}
+            onClick={() => setInsidersCollapsed((v) => !v)}
             className="flex items-center gap-3 mb-4 w-full group text-left"
           >
             <span className="material-symbols-outlined text-[20px] group-hover:scale-110 transition-transform" style={{ color: "#b45309" }}>gavel</span>

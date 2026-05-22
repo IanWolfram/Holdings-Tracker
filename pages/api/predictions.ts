@@ -1,4 +1,4 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiResponse } from "next";
 import {
   loadPredictions,
   getAllPredictions,
@@ -6,12 +6,9 @@ import {
 } from "../../world-brain/predictions";
 import { getVaultStore } from "@/lib/vault/store";
 import { requireUser } from "@/lib/auth/requireUser";
+import { apiHandler } from "@/lib/api-handler";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed." });
-  }
-
+export default apiHandler(["GET"], async (req, res) => {
   const user = await requireUser(req, res);
   if (!user) return;
 
@@ -30,4 +27,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const predictions = await getAllPredictions(store);
   return res.status(200).json({ predictions });
-}
+}, "api/predictions");

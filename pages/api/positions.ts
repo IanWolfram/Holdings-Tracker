@@ -1,10 +1,11 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiResponse } from "next";
 import type { Position } from "@/types/position.types";
 import { getHistory } from "@/lib/market-data";
 import { getServicesForUser } from "@/src/registry";
 import { requireUser } from "@/lib/auth/requireUser";
 import { fetchCompanyProfile } from "@/lib/company-profile";
 import { withSyntheticHistory } from "@/src/mappers/positionMapper";
+import { apiHandler } from "@/lib/api-handler";
 
 async function enrichWithHistory(positions: Position[]): Promise<Position[]> {
   const results = await Promise.allSettled(
@@ -39,14 +40,7 @@ async function enrichWithCompanyNames(positions: Position[]): Promise<Position[]
   );
 }
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<Position[] | { error: string }>
-) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
+export default apiHandler(["GET"], async (req, res: NextApiResponse<Position[] | { error: string }>) => {
   const user = await requireUser(req, res);
   if (!user) return;
 
@@ -83,4 +77,4 @@ export default async function handler(
     console.error("[/api/positions]", err);
     res.status(500).json({ error: "Failed to fetch positions" });
   }
-}
+}, "api/positions");

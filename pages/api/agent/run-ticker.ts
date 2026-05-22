@@ -1,9 +1,10 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiResponse } from "next";
 import { runTickerAnalysis, getTickerAnalysisProgress } from "../../../lib/agent/service";
 import { requirePremiumAccess } from "@/lib/license";
 import { requireUser } from "@/lib/auth/requireUser";
+import { apiHandler } from "@/lib/api-handler";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default apiHandler(["GET", "POST"], async (req, res: NextApiResponse) => {
   const user = await requireUser(req, res);
   if (!user) return;
 
@@ -41,6 +42,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(202).json({ message: `Analysis started for ${upperTicker}` });
   }
-
-  return res.status(405).json({ error: "Method not allowed." });
-}
+}, "api/agent/run-ticker");

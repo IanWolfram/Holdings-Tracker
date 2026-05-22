@@ -63,6 +63,15 @@ const SHELL_STYLE = {
 } as const;
 
 function CloseButton({ onClose }: { onClose: () => void }) {
+  const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.currentTarget.style.background = "rgba(255,255,255,0.09)";
+    e.currentTarget.style.color = "#e2e8f0";
+  };
+  const handleMouseLeave = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+    e.currentTarget.style.color = "#475569";
+  };
+
   return (
     <button
       onClick={onClose}
@@ -76,14 +85,8 @@ function CloseButton({ onClose }: { onClose: () => void }) {
         transition: "background 0.15s, color 0.15s",
         flexShrink: 0,
       }}
-      onMouseEnter={(e) => {
-        (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.09)";
-        (e.currentTarget as HTMLButtonElement).style.color = "#e2e8f0";
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.03)";
-        (e.currentTarget as HTMLButtonElement).style.color = "#475569";
-      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       ×
     </button>
@@ -210,11 +213,13 @@ function CountryView({
     state.isHQCountry && tickers.length > 0 ? (
       <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", marginTop: 8, paddingTop: 8 }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
-          {tickers.slice(0, 9).map((ticker) => (
+          {tickers.slice(0, 9).map((ticker) => {
+              const handleClick = () => onStockClick(ticker);
+              return (
             <motion.button
               key={ticker}
               type="button"
-              onClick={() => onStockClick(ticker)}
+              onClick={handleClick}
               whileHover={{
                 scale: 1.07,
                 backgroundColor: "rgba(0,255,136,0.07)",
@@ -238,7 +243,8 @@ function CountryView({
                 {ticker}
               </span>
             </motion.button>
-          ))}
+              );
+            })}
         </div>
         {state.totalPositionValue > 0 && (
           <AccentBox>

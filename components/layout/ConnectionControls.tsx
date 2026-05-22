@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { authedFetch } from "@/lib/api/client-fetch";
 import AccountIconDiv from "@/components/layout/AccountIconDiv";
 import TopBarDivider from "@/components/layout/TopBarDivider";
@@ -28,6 +28,8 @@ export default function ConnectionControls({
   setAccountPanelOpen,
 }: ConnectionControlsProps) {
   const [error, setError] = useState<string | null>(null);
+
+  const openAccountPanel = useCallback(() => setAccountPanelOpen(true), [setAccountPanelOpen]);
 
   async function startAuth() {
     setError(null);
@@ -99,7 +101,7 @@ export default function ConnectionControls({
             {error}
           </span>
         )}
-        <AccountIconDiv onClick={() => setAccountPanelOpen(true)} isOpen={accountPanelOpen} />
+        <AccountIconDiv onClick={openAccountPanel} isOpen={accountPanelOpen} />
       </div>
     </div>
   );

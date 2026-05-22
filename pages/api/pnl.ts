@@ -1,17 +1,11 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiResponse } from "next";
 import { computeUnrealizedPnL } from "@/lib/pnl";
 import type { PnLResult } from "@/lib/pnl";
 import { getServicesForUser } from "@/src/registry";
 import { requireUser } from "@/lib/auth/requireUser";
+import { apiHandler } from "@/lib/api-handler";
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<PnLResult | { error: string }>
-) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
+export default apiHandler(["GET"], async (req, res: NextApiResponse<PnLResult | { error: string }>) => {
   const user = await requireUser(req, res);
   if (!user) return;
 
@@ -24,4 +18,4 @@ export default async function handler(
     console.error("[pnl] Error computing P&L:", err);
     return res.status(500).json({ error: "Failed to compute P&L" });
   }
-}
+}, "api/pnl");

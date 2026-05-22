@@ -1,18 +1,12 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiResponse } from "next";
 import { getServicesForUser } from "@/src/registry";
 import { requireUser } from "@/lib/auth/requireUser";
-import type { ClassifiedStory } from "@/lib/news";
+import type { ClassifiedStory } from "@/types/news.types";
 import type { TickerDigest } from "@/lib/telegram";
 import { sendTelegramMessage, buildDigestMessage } from "@/lib/telegram";
+import { apiHandler } from "@/lib/api-handler";
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<{ success: boolean; sentAt?: string; error?: string }>
-) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ success: false, error: "Method not allowed" });
-  }
-
+export default apiHandler(["POST"], async (req, res: NextApiResponse<{ success: boolean; sentAt?: string; error?: string }>) => {
   const user = await requireUser(req, res);
   if (!user) return;
 
@@ -51,4 +45,4 @@ export default async function handler(
     console.error("[/api/digest]", err);
     res.status(500).json({ success: false, error: "Failed to send digest" });
   }
-}
+}, "api/digest");
