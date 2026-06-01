@@ -70,7 +70,11 @@ function buildNoteContent(story: GeoStory, dateStr: string, sector?: string): st
     "## AI Analysis",
     isFailed
       ? "> **Analysis failed.** Default HOLD at 50%. Do not use for pattern learning."
-      : (story.reason ?? "_No analysis available._"),
+      : (story.reason
+          ? story.reason
+          : story.classificationSource === "ai"
+            ? "_No analysis available._"
+            : "> **Keyword-screened verdict** — full AI analysis pending. Treat this verdict as a low-confidence keyword signal, not a reasoned call."),
     "",
     "## Links",
     `- [Source Article](${story.url})`,

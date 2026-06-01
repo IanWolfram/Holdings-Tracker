@@ -6,12 +6,17 @@ import { FALLBACK_CONFIDENCE } from "../lib/constants";
 // Agent context — split into system prompt and rules for /api/chat
 // ---------------------------------------------------------------------------
 
-let systemPrompt: string | null = null;
-let cachedInsightsBlock = "";
+// Memoizes ONLY the portfolio-agnostic static base (files + runtime guide). Per-user
+// content (session insights) is NEVER cached here — it is passed in per call. Caching
+// any per-user data in a process-wide var leaks one user's data to every other user.
+let staticSystemBase: string | null = null;
 
-/** Pre-load recent session insights from the vault store into cache.
- *  Call this before getSystemPrompt() in async contexts. */
-export async function preloadSystemPromptInsights(store: VaultStore): Promise<void> {
+/**
+ * Load the recent session-insights block for a specific user's vault. Returns a
+ * string to be passed into getSystemPrompt() per call (NOT cached globally), so a
+ * concurrent multi-tenant process never serves one user's insights to another.
+ */
+export async function loadSessionInsights(store: VaultStore): Promise<string> {
   try {
     const files = (await store.list("_insights"))
       .filter((f) => f.endsWith(".md"))
@@ -26,47 +31,62 @@ export async function preloadSystemPromptInsights(store: VaultStore): Promise<vo
       }
     }
     if (snippets.length > 0) {
-      cachedInsightsBlock =
+      return (
         `\n\n---\n\n## Recent Session Insights (last ${snippets.length} sessions)\n\n` +
-        snippets.join("\n\n---\n\n");
+        snippets.join("\n\n---\n\n")
+      );
     }
   } catch { /* insights are optional */ }
+  return "";
 }
 
 export function invalidateSystemPromptCache(): void {
-  systemPrompt = null;
+  staticSystemBase = null;
 }
 
-export function getSystemPrompt(): string {
-  if (!systemPrompt) {
+function getStaticSystemBase(): string {
+  if (staticSystemBase === null) {
     const dir = path.join(process.cwd(), "world-brain");
     const agentsDir = path.join(dir, "agents");
 
+    // Portfolio-agnostic only — never embed a specific user's tickers here, or the
+    // memo would leak one user's portfolio to every other user. Per-user personalization
+    // lives in the user message (Holdings context block) and the market digest.
+    // (world-brain/supply-chain.md is portfolio-specific and deliberately NOT loaded —
+    //  it is consumed only by the graph renderer in graph.ts.)
     const baseParts = [
       { name: "AGENT.md", path: path.join(agentsDir, "AGENT.md") },
-      { name: "sector-rules.md", path: path.join(dir, "sector-rules.md") }
+      { name: "verdict-policy.md", path: path.join(dir, "verdict-policy.md") },
+      { name: "sector-playbook.md", path: path.join(dir, "sector-playbook.md") },
     ].map((f) => {
         try { return fs.readFileSync(f.path, "utf-8"); } catch { return ""; }
       })
       .filter(Boolean);
-
-    // Use pre-loaded insights from vault store (via preloadSystemPromptInsights).
-    // Callers must call preloadSystemPromptInsights(store) before getSystemPrompt().
-    const insightsBlock = cachedInsightsBlock;
 
     const runtimeContextGuide =
       "\n\n---\n\n## Runtime Context Usage\n" +
       "When the user message includes Market State or Focal Ticker State blocks, incorporate those signals into confidence calibration and reasoning.\n" +
       "Treat macro context as a modifier, not an automatic override.";
 
-    systemPrompt = baseParts.join("\n\n---\n\n") + insightsBlock + runtimeContextGuide;
+    staticSystemBase = baseParts.join("\n\n---\n\n") + runtimeContextGuide;
   }
-  return systemPrompt;
+  return staticSystemBase;
+}
+
+/**
+ * Build the system prompt. The static base is portfolio-agnostic and memoized;
+ * per-user session insights (if any) must be passed in by the caller — they are
+ * appended per call and never cached, keeping the prompt safe for multi-tenant use.
+ */
+export function getSystemPrompt(sessionInsights = ""): string {
+  return getStaticSystemBase() + sessionInsights;
 }
 
 export interface UnifiedAnalysis {
   verdict: Verdict;
   confidence: number;
+  /** Neutral 1–2 sentence factual recap of the article, generated from supplied text. Empty when the source text is too thin to summarize. */
+  summary: string;
   reason: string;
   sectorTags: string[];
   affectedTickers: string[];
@@ -156,7 +176,7 @@ import type { VaultStore } from "@/lib/vault/store";
 import { getVaultStore } from "@/lib/vault/store";
 import { withCloudSemaphore } from "../lib/classifier";
 import { SYSTEM_USER_ID } from "../lib/constants";
-import { buildCalibrationBlock } from "./calibration";
+import { buildCalibrationBlock, loadCalibrationReport, getConfidenceReliabilityFactor } from "./calibration";
 
 // ---------------------------------------------------------------------------
 // Analysis failure counters (exported for observability)
@@ -178,22 +198,27 @@ interface CorrelationReportShape {
   tickers?: string[];
 }
 
-let correlationCache: { data: CorrelationReportShape | null; expiresAt: number } | null = null;
+// Keyed by the vault store instance (WeakMap) so each user's correlations are
+// cached independently — a process-wide single-slot cache would serve the first
+// user's correlations to every other user. WeakMap auto-evicts when the per-sweep
+// store is GC'd.
+let correlationCache = new WeakMap<VaultStore, { data: CorrelationReportShape | null; expiresAt: number }>();
 const CORRELATION_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 async function loadCorrelationReport(store?: VaultStore): Promise<CorrelationReportShape | null> {
-  if (correlationCache && Date.now() < correlationCache.expiresAt) {
-    return correlationCache.data;
-  }
   if (!store) return null;
+  const cached = correlationCache.get(store);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.data;
+  }
   try {
     const content = await store.read("_graph/correlations.json");
     if (content === null) return null;
     const parsed = JSON.parse(content) as CorrelationReportShape;
-    correlationCache = { data: parsed, expiresAt: Date.now() + CORRELATION_CACHE_TTL_MS };
+    correlationCache.set(store, { data: parsed, expiresAt: Date.now() + CORRELATION_CACHE_TTL_MS });
     return parsed;
   } catch {
-    correlationCache = { data: null, expiresAt: Date.now() + CORRELATION_CACHE_TTL_MS };
+    correlationCache.set(store, { data: null, expiresAt: Date.now() + CORRELATION_CACHE_TTL_MS });
     return null;
   }
 }
@@ -287,7 +312,7 @@ async function buildCorrelatedHoldingsBlock(focalTicker: string, holdingTickers:
 }
 
 export function invalidateCorrelationCache(): void {
-  correlationCache = null;
+  correlationCache = new WeakMap();
 }
 
 // ---------------------------------------------------------------------------
@@ -426,7 +451,10 @@ export async function analyzeStory(
   tickerContext?: string,
   recentVerdicts?: Array<{ headline: string; verdict: string; confidence: number; reason: string }>,
   marketContext?: StoryMarketContext,
-  store?: VaultStore
+  store?: VaultStore,
+  holdingSectorMap?: Record<string, string>,
+  marketDigest?: string,
+  sessionInsights?: string
 ): Promise<UnifiedAnalysis> {
   analysisStats.total++;
   const active = getActiveModel();
@@ -439,7 +467,14 @@ export async function analyzeStory(
   }
 
   const holdingsBlock = holdingTickers.length > 0
-    ? `Holdings context:\nTickers: ${holdingTickers.join(", ")}\nSectors: ${[...new Set(holdingSectors)].join(", ")}`
+    ? "Holdings context (this user's actual portfolio):\n" +
+      (holdingSectorMap && Object.keys(holdingSectorMap).length > 0
+        ? holdingTickers
+            .map((t) => `- ${t}${holdingSectorMap[t.toUpperCase()] ? ` (${holdingSectorMap[t.toUpperCase()]})` : ""}`)
+            .join("\n")
+        : `Tickers: ${holdingTickers.join(", ")}\nSectors: ${[...new Set(holdingSectors)].join(", ")}`) +
+      "\nApply the matching sector-playbook entry for the focal ticker's business model. " +
+      "Only include tickers from this list in affected_tickers."
     : `Focal ticker: ${ticker}`;
 
   const tickerContextBlock = tickerContext
@@ -454,6 +489,9 @@ export async function analyzeStory(
     : "";
 
   const marketContextBlock = buildMarketContextBlock(marketContext);
+  const marketDigestBlock = marketDigest
+    ? `\n\n## Market & Sector Context (portfolio-wide, context only)\n${marketDigest}`
+    : "";
   const calibrationBlock = store
     ? await buildCalibrationBlock(ticker, store)
     : "";
@@ -465,6 +503,7 @@ export async function analyzeStory(
     tickerContextBlock +
     fewShotBlock +
     marketContextBlock +
+    marketDigestBlock +
     calibrationBlock +
     correlatedBlock +
     `\n\nHeadline: ${headline}\n` +
@@ -487,7 +526,7 @@ export async function analyzeStory(
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
       raw = await withCloudSemaphore(() =>
-        callDeepSeekRawInternal(getSystemPrompt(), userMessage, onStream, active.model, activeApiKey, baseUrl),
+        callDeepSeekRawInternal(getSystemPrompt(sessionInsights), userMessage, onStream, active.model, activeApiKey, baseUrl),
       );
       if (raw) break;
       console.warn(`[brain] Empty response for ${ticker} (attempt ${attempt + 1}/${MAX_RETRIES})`);
@@ -527,6 +566,7 @@ export async function analyzeStory(
     const parsed = JSON.parse(jsonStr) as {
       verdict?: string;
       confidence?: number;
+      summary?: string;
       reason?: string;
       sector_tags?: string[];
       affected_tickers?: string[];
@@ -539,11 +579,27 @@ export async function analyzeStory(
       ? parsed.verdict
       : "HOLD") as Verdict;
 
+    const rawConfidence = typeof parsed.confidence === "number"
+      ? Math.max(0, Math.min(1, parsed.confidence)) : FALLBACK_CONFIDENCE;
+    // Deterministically shrink overconfident buckets toward observed directional
+    // reliability. The advisory calibration text alone is unreliable with a cheap
+    // model, so we apply the correction to the output rather than trusting the LLM.
+    const reliabilityFactor = store
+      ? getConfidenceReliabilityFactor(await loadCalibrationReport(store), rawConfidence)
+      : 1;
+    const calibratedConfidence = Math.max(0, Math.min(1, rawConfidence * reliabilityFactor));
+
+    // Neutral article recap. Trim defensively and cap length so a misbehaving
+    // model can never dump the full article back into the Summary block.
+    const aiSummary = typeof parsed.summary === "string"
+      ? parsed.summary.trim().slice(0, 600)
+      : "";
+
     analysisStats.succeeded++;
     return {
       verdict,
-      confidence: typeof parsed.confidence === "number"
-        ? Math.max(0, Math.min(1, parsed.confidence)) : FALLBACK_CONFIDENCE,
+      confidence: calibratedConfidence,
+      summary: aiSummary,
       reason: parsed.reason ?? headline,
       sectorTags: Array.isArray(parsed.sector_tags) ? parsed.sector_tags : [],
       affectedTickers: (Array.isArray(parsed.affected_tickers) ? parsed.affected_tickers : [])
@@ -576,6 +632,7 @@ function fallbackAnalysis(reason?: string, ticker?: string, headline?: string, s
   return {
     verdict: "HOLD",
     confidence: FALLBACK_CONFIDENCE,
+    summary: "",
     reason: `FALLBACK: ${baseReason}`,
     sectorTags: [],
     affectedTickers: [],

@@ -16,6 +16,8 @@ import type { GeoStory } from "@/types/geo.types";
 import type { ClassifiedStory } from "@/types/news.types";
 import type { TickerResult } from "./types";
 import { fetchUserPositions } from "./utils";
+import { buildMarketContextDigest } from "./market-context";
+import { loadSessionInsights } from "../../world-brain/brain";
 import {
   getTickerAnalysisProgress,
   getOrInitTickerAnalysis,
@@ -25,20 +27,21 @@ import {
 
 export async function runTickerAnalysis(ticker: string, userId?: string, store?: VaultStore): Promise<TickerResult> {
   const upperTicker = ticker.toUpperCase();
+  const uid = userId ?? "__system";
 
-  // Reject if same ticker is already being analyzed
-  const existing = getTickerAnalysisProgress(upperTicker);
+  // Reject if same ticker is already being analyzed for this user
+  const existing = getTickerAnalysisProgress(uid, upperTicker);
   if (existing && existing.status === "running") {
     throw new Error(`Already analyzing ${upperTicker}`);
   }
 
-  // Reject if the full sweep is currently on this ticker
-  const currentProgress = getCurrentProgress();
+  // Reject if the full sweep is currently on this ticker for this user
+  const currentProgress = getCurrentProgress(uid);
   if (currentProgress.status === "running" && currentProgress.ticker === upperTicker) {
     throw new Error(`Full agent sweep is currently analyzing ${upperTicker}`);
   }
 
-  setTickerAnalysis(upperTicker, {
+  setTickerAnalysis(uid, upperTicker, {
     ticker: upperTicker,
     status: "running",
     articleIndex: 0,
@@ -58,8 +61,8 @@ export async function runTickerAnalysis(ticker: string, userId?: string, store?:
     const articles = await services.newsService.getNewsForTicker(upperTicker);
     const top = articles.filter((a) => a.isAnalyzed !== true);
 
-    setTickerAnalysis(upperTicker, {
-      ...getOrInitTickerAnalysis(upperTicker),
+    setTickerAnalysis(uid, upperTicker, {
+      ...getOrInitTickerAnalysis(uid, upperTicker),
       totalArticles: top.length,
       message: top.length === 0 ? "No unanalyzed stories found." : `Analyzing ${top.length} stories...`,
     });
@@ -67,18 +70,14 @@ export async function runTickerAnalysis(ticker: string, userId?: string, store?:
     // Get holding context for cross-portfolio reasoning
     const positions = await fetchUserPositions(userId).catch(() => []);
     const holdingTickers = positions.map((p) => p.ticker);
-    const holdingSectors = [
-      ...new Set(
-        (
-          await Promise.all(
-            holdingTickers.slice(0, 10).map(async (t) => {
-              const prof = await fetchCompanyProfile(t).catch(() => null);
-              return prof?.sector;
-            })
-          )
-        ).filter((s): s is string => Boolean(s))
-      ),
-    ];
+    const holdingSectorMap: Record<string, string> = {};
+    await Promise.all(
+      holdingTickers.slice(0, 10).map(async (t) => {
+        const prof = await fetchCompanyProfile(t).catch(() => null);
+        if (prof?.sector) holdingSectorMap[t.toUpperCase()] = prof.sector;
+      })
+    );
+    const holdingSectors = [...new Set(Object.values(holdingSectorMap))];
 
     // Load per-ticker vault context
     let tickerContext: string | undefined;
@@ -101,6 +100,18 @@ export async function runTickerAnalysis(ticker: string, userId?: string, store?:
     let macroSnapshot: MacroSnapshot | null = null;
     try { macroSnapshot = await getMacroSnapshot(); } catch { macroSnapshot = null; }
 
+    // Portfolio-wide market & sector context digest (peers, sector ETFs, broad market).
+    let marketDigest: string | undefined;
+    try {
+      const digest = await buildMarketContextDigest(holdingTickers, holdingSectorMap, macroSnapshot);
+      marketDigest = digest?.text;
+    } catch (err) {
+      console.error("[agent] Market context digest failed (non-fatal):", err);
+    }
+
+    // This user's recent session insights (threaded per call, never cached globally).
+    const sessionInsights = store ? await loadSessionInsights(store) : "";
+
     // Fetch ticker market quote for tickerState context
     let tickerQuote: Awaited<ReturnType<typeof getDetailedQuote>> | null = null;
     try { tickerQuote = await getDetailedQuote(upperTicker); } catch { tickerQuote = null; }
@@ -115,8 +126,8 @@ export async function runTickerAnalysis(ticker: string, userId?: string, store?:
         continue;
       }
 
-      setTickerAnalysis(upperTicker, {
-        ...getOrInitTickerAnalysis(upperTicker),
+      setTickerAnalysis(uid, upperTicker, {
+        ...getOrInitTickerAnalysis(uid, upperTicker),
         articleIndex: i + 1,
         currentHeadline: article.headline,
         message: `Analyzing: ${article.headline.slice(0, 40)}...`,
@@ -160,7 +171,10 @@ export async function runTickerAnalysis(ticker: string, userId?: string, store?:
                 }
               : undefined,
           },
-          store
+          store,
+          holdingSectorMap,
+          marketDigest,
+          sessionInsights
         ),
         new Promise<UnifiedAnalysis>((_, reject) =>
           setTimeout(() => reject(new Error("[agent] Per-ticker analysis timed out after 120s")), 120_000)
@@ -168,6 +182,7 @@ export async function runTickerAnalysis(ticker: string, userId?: string, store?:
       ]).catch(() => ({
         verdict: "HOLD" as const,
         confidence: FALLBACK_CONFIDENCE,
+        summary: "",
         reason: "FALLBACK: Analysis timed out after 120s.",
         sectorTags: [],
         affectedTickers: [],
@@ -230,8 +245,8 @@ export async function runTickerAnalysis(ticker: string, userId?: string, store?:
     }
 
     const result: TickerResult = { ticker: upperTicker, verdicts };
-    setTickerAnalysis(upperTicker, {
-      ...getOrInitTickerAnalysis(upperTicker),
+    setTickerAnalysis(uid, upperTicker, {
+      ...getOrInitTickerAnalysis(uid, upperTicker),
       status: "complete",
       results: result,
       message: "Analysis complete.",
@@ -241,8 +256,8 @@ export async function runTickerAnalysis(ticker: string, userId?: string, store?:
     return result;
   } catch (err) {
     console.error(`\x1b[31m[agent] Per-ticker analysis failed for ${upperTicker}:\x1b[0m`, err);
-    setTickerAnalysis(upperTicker, {
-      ...getOrInitTickerAnalysis(upperTicker),
+    setTickerAnalysis(uid, upperTicker, {
+      ...getOrInitTickerAnalysis(uid, upperTicker),
       status: "error",
       message: (err as Error).message,
     });

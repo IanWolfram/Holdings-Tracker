@@ -31,10 +31,65 @@ body {
   font-family: var(--font-inter), "Inter", sans-serif;
   background-color: #080808;
   color: #e2e2e6;
-  background-image: 
+  background-image:
     radial-gradient(circle at 50% 0%, rgba(0, 255, 136, 0.05) 0%, transparent 50%),
     radial-gradient(circle at 0% 100%, rgba(255, 68, 68, 0.03) 0%, transparent 40%);
   background-attachment: fixed;
+}
+
+/* ── Agent tab design tokens (semantic vars used by components/agent/*) ── */
+:root {
+  --positive: #00FF88;
+  --negative: #FF4444;
+  --warn: #fbbf24;
+  --congress: #b45309;
+  --hold: #64748b;
+
+  --on-surface: #e2e2e6;
+  --on-surface-variant: #b8c0c2;
+  --surface-container-low: #1f2123;
+
+  --ink: #e8e8ea;
+  --ink-dim: #8a8f96;
+  --ink-dimmer: #555a62;
+  --ink-faint: #353940;
+
+  --positive-dim: #00cc6e;
+  --hold: #64748b;
+
+  --rule: rgba(255, 255, 255, 0.06);
+  --rule-strong: rgba(255, 255, 255, 0.12);
+
+  --header-h: 56px;
+}
+
+@keyframes etrade-gradient-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.text-etrade-gradient {
+  background: linear-gradient(90deg, #8b3fc4, #2196f3, #8b3fc4, #2196f3);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: etrade-gradient-shift 6s ease infinite;
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes agent-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes scan-progress {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.45; transform: scale(0.75); }
 }
 
 /* ── Top border on card header ── */
