@@ -122,6 +122,7 @@ async function refreshWorldData(
         originCountryCode: story.originCountryCode ?? defaultCountryCode,
         relevanceScore: story.relevanceScore ?? story.confidence,
         isAnalyzed: story.isAnalyzed,
+        classificationSource: story.classificationSource,
       };
 
       allGeoStories.push(geoStory);
@@ -259,7 +260,8 @@ async function runBackgroundEnrichment(
         }
 
         allEnriched.push({
-          ticker: story.ticker, headline: story.headline, summary: story.summary ?? "",
+          ticker: story.ticker, headline: story.headline,
+          summary: analysis?.summary || story.summary || "",
           url: story.url, datetime: story.datetime,
           verdict: analysis?.verdict ?? story.verdict,
           confidence: analysis?.confidence ?? story.confidence,
