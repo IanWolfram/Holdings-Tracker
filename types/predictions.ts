@@ -45,6 +45,13 @@ export interface TickerPrediction {
   catalysts: PredictionCatalyst[];
   catalystTypes?: CatalystType[];
   engine: string;
+  /** Forecaster version label ("v1", "v2", …). Lets calibration and
+   *  scripts/compare-forecaster-versions.ts separate predictions that share an
+   *  engine model but come from different forecaster logic. */
+  version?: string;
+  /** Shadow predictions are evaluated against the same resolution price but kept
+   *  out of the UI and live calibration — used to trial a new forecaster version. */
+  shadow?: boolean;
   status: PredictionStatus;
   sourceUrl?: string;
   synthetic?: boolean;

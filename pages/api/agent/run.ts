@@ -14,7 +14,7 @@ export default apiHandler(["GET", "DELETE", "POST"], async (req, res: NextApiRes
   }
 
   if (req.method === "GET") {
-    const progress = getAgentProgress();
+    const progress = getAgentProgress(user.id);
     return res.status(200).json({
       ...progress,
       isMock: false
@@ -22,12 +22,12 @@ export default apiHandler(["GET", "DELETE", "POST"], async (req, res: NextApiRes
   }
 
   if (req.method === "DELETE") {
-    cancelStockAgent();
+    cancelStockAgent(user.id);
     return res.status(200).json({ message: "Agent run cancelled." });
   }
 
   if (req.method === "POST") {
-    const progress = getAgentProgress();
+    const progress = getAgentProgress(user.id);
     if (progress.status === "running") {
       return res.status(409).json({ error: "An agent run is already in progress." });
     }

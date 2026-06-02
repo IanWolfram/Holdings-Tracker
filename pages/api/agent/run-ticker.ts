@@ -18,7 +18,7 @@ export default apiHandler(["GET", "POST"], async (req, res: NextApiResponse) => 
     if (!ticker) {
       return res.status(400).json({ error: "ticker query param required" });
     }
-    const progress = getTickerAnalysisProgress(ticker);
+    const progress = getTickerAnalysisProgress(user.id, ticker);
     return res.status(200).json(progress ?? { ticker, status: "idle", articleIndex: 0, totalArticles: 0 });
   }
 
@@ -30,7 +30,7 @@ export default apiHandler(["GET", "POST"], async (req, res: NextApiResponse) => 
     const upperTicker = ticker.toUpperCase();
 
     // Check if already running
-    const existing = getTickerAnalysisProgress(upperTicker);
+    const existing = getTickerAnalysisProgress(user.id, upperTicker);
     if (existing && existing.status === "running") {
       return res.status(409).json({ error: `Already analyzing ${upperTicker}` });
     }

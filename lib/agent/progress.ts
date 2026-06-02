@@ -1,23 +1,37 @@
 import type { AgentProgress, TickerAnalysisProgress } from "./types";
 
-// Global state for progress tracking across API calls
-let currentProgress: AgentProgress = { status: "idle" };
-let isCancelled = false;
+// Per-user progress state. All state is keyed by userId so concurrent runs by
+// different tenants never observe or clobber each other's progress. The agent's
+// caller passes a uid for every operation; CLI/cron paths use a synthetic id.
+const currentProgressByUser = new Map<string, AgentProgress>();
+const cancelledUsers = new Set<string>();
 
-// Per-ticker analysis state — allows concurrent runs on different tickers
+// Per-(user, ticker) analysis state — allows concurrent runs on different tickers.
 const ANALYSIS_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 const tickerAnalysisMap = new Map<string, { data: TickerAnalysisProgress; expiresAt: number }>();
 
-export function setTickerAnalysis(ticker: string, progress: TickerAnalysisProgress): void {
-  tickerAnalysisMap.set(ticker, { data: progress, expiresAt: Date.now() + ANALYSIS_TTL_MS });
+// Composite key so one user's ticker run can never read another user's, while
+// still allowing the same ticker to be analyzed concurrently by different users.
+function analysisKey(uid: string, ticker: string): string {
+  return `${uid}::${ticker}`;
 }
 
-export function getTickerAnalysisProgress(ticker: string): TickerAnalysisProgress | undefined {
-  const entry = tickerAnalysisMap.get(ticker);
+const IDLE: AgentProgress = { status: "idle" };
+
+export function setTickerAnalysis(uid: string, ticker: string, progress: TickerAnalysisProgress): void {
+  tickerAnalysisMap.set(analysisKey(uid, ticker), {
+    data: progress,
+    expiresAt: Date.now() + ANALYSIS_TTL_MS,
+  });
+}
+
+export function getTickerAnalysisProgress(uid: string, ticker: string): TickerAnalysisProgress | undefined {
+  const key = analysisKey(uid, ticker);
+  const entry = tickerAnalysisMap.get(key);
   if (!entry) return undefined;
   if (Date.now() > entry.expiresAt) {
-    tickerAnalysisMap.delete(ticker);
+    tickerAnalysisMap.delete(key);
     return undefined;
   }
   return entry.data;
@@ -28,9 +42,9 @@ export function getTickerAnalysisProgress(ticker: string): TickerAnalysisProgres
  * entry has expired or was never set. Avoids non-null assertions on the
  * common "merge into current state" code path.
  */
-export function getOrInitTickerAnalysis(ticker: string): TickerAnalysisProgress {
+export function getOrInitTickerAnalysis(uid: string, ticker: string): TickerAnalysisProgress {
   return (
-    getTickerAnalysisProgress(ticker) ?? {
+    getTickerAnalysisProgress(uid, ticker) ?? {
       ticker,
       status: "running",
       articleIndex: 0,
@@ -39,32 +53,34 @@ export function getOrInitTickerAnalysis(ticker: string): TickerAnalysisProgress 
   );
 }
 
-export function getAgentProgress(): AgentProgress {
-  return currentProgress;
+export function getAgentProgress(uid: string): AgentProgress {
+  return currentProgressByUser.get(uid) ?? IDLE;
 }
 
-export function cancelStockAgent(): void {
-  if (currentProgress.status === "running") {
-    isCancelled = true;
-    currentProgress = { status: "idle", message: "Agent run cancelled." };
+export function cancelStockAgent(uid: string): void {
+  if (getAgentProgress(uid).status === "running") {
+    cancelledUsers.add(uid);
+    currentProgressByUser.set(uid, { status: "idle", message: "Agent run cancelled." });
   }
 }
 
 // ── Internal accessors shared within the agent module group ──
-// These mutate module-level state and are used by sweep.ts and ticker-analysis.ts.
+// These mutate per-user module-level state and are used by sweep.ts and
+// ticker-analysis.ts. `getAgentProgress`/`cancelStockAgent` are the public,
+// route-facing aliases over the same per-user state.
 
-export function getCurrentProgress(): AgentProgress {
-  return currentProgress;
+export function getCurrentProgress(uid: string): AgentProgress {
+  return currentProgressByUser.get(uid) ?? IDLE;
 }
 
-export function setCurrentProgress(progress: AgentProgress): void {
-  currentProgress = progress;
+export function setCurrentProgress(uid: string, progress: AgentProgress): void {
+  currentProgressByUser.set(uid, progress);
 }
 
-export function getIsCancelled(): boolean {
-  return isCancelled;
+export function getIsCancelled(uid: string): boolean {
+  return cancelledUsers.has(uid);
 }
 
-export function resetCancelled(): void {
-  isCancelled = false;
+export function resetCancelled(uid: string): void {
+  cancelledUsers.delete(uid);
 }

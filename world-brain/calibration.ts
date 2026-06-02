@@ -207,6 +207,37 @@ export function invalidateCalibrationCache(): void {
   cachedReport = null;
 }
 
+/**
+ * Returns a multiplier in (0, 1] for `rawConfidence`, derived from how the matching
+ * confidence bucket has actually performed. Used to deterministically shrink
+ * overconfident buckets toward their observed directional win rate — the advisory
+ * calibration text alone is unreliable with a cheap model, so the correction is
+ * applied to the numeric output instead of trusting the LLM.
+ *
+ * Shrink-only: a bucket whose observed win rate meets or beats its stated
+ * confidence is left untouched (factor 1), so we never inflate. Gated on at least
+ * 3 samples in the bucket (mirrors the sample floor in buildCalibrationBlock) and
+ * a handful of total resolved predictions, so cold-start runs are unaffected.
+ */
+export function getConfidenceReliabilityFactor(
+  report: CalibrationReport | null,
+  rawConfidence: number
+): number {
+  if (!report || report.totalResolved < 5) return 1;
+
+  const stats = report.byConfidenceBucket[confidenceBucket(rawConfidence)];
+  if (!stats || stats.n < 3) return 1;
+
+  // Midpoint of the 0.1-wide bucket this confidence falls into.
+  const clamped = Math.max(0, Math.min(0.999, rawConfidence));
+  const midpoint = Math.floor(clamped * 10) / 10 + 0.05;
+
+  // Only correct overconfidence: observed win rate trailing the stated bucket.
+  if (stats.winRate >= midpoint) return 1;
+
+  return stats.winRate / midpoint;
+}
+
 function pctString(rate: number): string {
   return `${Math.round(rate * 100)}%`;
 }

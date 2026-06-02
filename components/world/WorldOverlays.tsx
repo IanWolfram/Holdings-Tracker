@@ -1,4 +1,4 @@
-import CountryTooltip from "@/components/world/countrytooltip";
+import CountryTooltip from "@/components/world/CountryTooltip";
 import type { GlobeFocusTarget } from "@/components/world/GlobeCanvas";
 import CubeHoverLabel from "@/components/world/CubeHoverLabel";
 import FocusPanel from "@/components/world/FocusPanel";

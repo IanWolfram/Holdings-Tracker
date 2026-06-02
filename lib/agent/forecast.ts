@@ -22,7 +22,8 @@ export async function runForecast(
   runAt: number,
   macroSnapshot: MacroSnapshot | null,
   horizonDays: number,
-  daysUntilEarnings?: number | null
+  daysUntilEarnings?: number | null,
+  options?: { version?: string; shadow?: boolean }
 ): Promise<TickerPrediction | null> {
   let forecasterPrompt = "";
   try {
@@ -103,8 +104,14 @@ export async function runForecast(
     if (!parsed.direction || !["UP", "DOWN", "FLAT"].includes(parsed.direction)) return null;
 
     const active = getActiveModel();
+    const version = options?.version;
+    const shadow = options?.shadow === true;
+    // Keep v1 and shadow (v2) predictions distinct: they share ticker/horizon/runAt
+    // and may share an engine model, so the id must encode the version or the two
+    // would collide in the per-ticker predictions file and in calibration.
+    const idSuffix = shadow ? "-shadow" : version ? `-${version}` : "";
     return {
-      id: `${ticker}-${horizonDays}d-${runAt}`,
+      id: `${ticker}-${horizonDays}d-${runAt}${idSuffix}`,
       ticker,
       runAt,
       priceAtPrediction: currentPrice,
@@ -123,6 +130,8 @@ export async function runForecast(
       catalystTypes:
         predictionCatalystTypes.length > 0 ? predictionCatalystTypes : ["other"],
       engine: active.model,
+      ...(version ? { version } : {}),
+      ...(shadow ? { shadow: true } : {}),
       status: "pending",
     };
   } catch {

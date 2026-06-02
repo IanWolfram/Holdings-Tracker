@@ -1,5 +1,5 @@
 import type { NextApiResponse } from "next";
-import { callLlm, getSystemPrompt, preloadSystemPromptInsights } from "@/world-brain/brain";
+import { callLlm, getSystemPrompt, loadSessionInsights } from "@/world-brain/brain";
 import { getVaultStore, type VaultStore } from "@/lib/vault/store";
 import { requireUser } from "@/lib/auth/requireUser";
 import { getServicesForUser } from "@/src/registry";
@@ -207,7 +207,10 @@ export default apiHandler(["POST"], async (req, res: NextApiResponse) => {
   // ---- 2. Vault context ---------------------------------------------------
   let vaultContext = "";
   const store = await getVaultStore(user.id);
-  await preloadSystemPromptInsights(store);
+  // Load this user's session insights now; passed into getSystemPrompt below.
+  // Insights are threaded per request and never cached globally, so one tenant's
+  // insights can never leak into another tenant's system prompt.
+  const sessionInsights = await loadSessionInsights(store);
 
   {
     const mentionedTickers = detectTickers(message, holdingTickers);
@@ -246,7 +249,7 @@ export default apiHandler(["POST"], async (req, res: NextApiResponse) => {
   }
 
   // ---- 3. Build system prompt ---------------------------------------------
-  const systemPrompt = getSystemPrompt() + CHAT_ADDENDUM + holdingsContext + vaultContext;
+  const systemPrompt = getSystemPrompt(sessionInsights) + CHAT_ADDENDUM + holdingsContext + vaultContext;
 
   // ---- 4. Build user message with history ---------------------------------
   let fullMessage = message;
