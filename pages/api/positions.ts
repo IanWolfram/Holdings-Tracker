@@ -4,7 +4,6 @@ import { getHistory } from "@/lib/market-data";
 import { getServicesForUser } from "@/src/registry";
 import { requireUser } from "@/lib/auth/requireUser";
 import { fetchCompanyProfile } from "@/lib/company-profile";
-import { withSyntheticHistory } from "@/src/mappers/positionMapper";
 import { apiHandler } from "@/lib/api-handler";
 
 async function enrichWithHistory(positions: Position[]): Promise<Position[]> {
@@ -57,22 +56,19 @@ export default apiHandler(["GET"], async (req, res: NextApiResponse<Position[] |
     const withNames = await enrichWithCompanyNames(positions);
 
     // Race history enrichment against a 10s budget so the API stays responsive.
-    // Positions missing real history get synthetic charts as a fallback.
+    // Positions missing real history are returned WITHOUT history — the chart
+    // stays blank rather than showing inaccurate synthetic data.
     // Background enrichment continues warming the server cache for next poll.
     const HISTORY_BUDGET_MS = 10_000;
     const historyResult = await Promise.race([
-      enrichWithHistory(positions),
+      enrichWithHistory(withNames),
       new Promise<null>((resolve) => setTimeout(() => resolve(null), HISTORY_BUDGET_MS)),
     ]);
 
     // Keep warming cache in background for positions that didn't finish in time
-    enrichWithHistory(positions).catch(() => {});
+    enrichWithHistory(withNames).catch(() => {});
 
-    if (historyResult) {
-      res.status(200).json(withSyntheticHistory(historyResult));
-    } else {
-      res.status(200).json(withSyntheticHistory(withNames));
-    }
+    res.status(200).json(historyResult ?? withNames);
   } catch (err) {
     console.error("[/api/positions]", err);
     res.status(500).json({ error: "Failed to fetch positions" });
