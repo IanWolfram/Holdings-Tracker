@@ -17,6 +17,7 @@ import { readFileSync, existsSync } from "fs";
 import { resolve } from "path";
 import type { UnifiedAnalysis } from "../world-brain/brain";
 import { runStockAgent, runTickerAnalysis } from "../lib/agent/service";
+import { hydrateSecrets } from "../lib/secrets";
 
 // Load .env.local synchronously before main() runs any lib code
 const envPath = resolve(process.cwd(), ".env.local");
@@ -106,6 +107,12 @@ function renderStory(
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
+  // CLI scripts bypass Next instrumentation, so hydrate secrets from Supabase
+  // app_secrets here before any lib code reads process.env (E*TRADE, DeepSeek…).
+  // .env.local was loaded synchronously above, so the Supabase service creds are
+  // already present for this call.
+  await hydrateSecrets();
+
   const model = process.env.DEEPSEEK_MODEL ?? "deepseek-chat";
 
   console.log(`\n${B}${C}Pulse — Stock Agent${R}`);
