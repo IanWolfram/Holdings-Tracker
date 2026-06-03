@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { useAgentStatus } from "@/hooks/useAgentStatus";
 import { authedFetch } from "@/lib/api/client-fetch";
+import TopBar from "@/components/layout/TopBar";
 import AgentTopBar from "@/components/agent/AgentTopBar";
 import EmptyState from "@/components/agent/EmptyState";
 import ChatThread from "@/components/agent/ChatThread";
@@ -168,8 +169,8 @@ export default function AgentDashboard() {
     if (active) syncConversationToServer(active);
   }, [conversations, synced, activeId]);
 
-  // ---- Load overview stats + scheduled jobs ----
-  useEffect(() => {
+  // ---- Load overview stats + scheduled jobs (refreshable) ----
+  const refreshOverview = useCallback(() => {
     authedFetch("/api/agent/overview")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => d && setStats(d))
@@ -178,11 +179,15 @@ export default function AgentDashboard() {
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => d && setScans(mapJobsToScans(d.jobs ?? [])))
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    refreshOverview();
     authedFetch("/api/account/me")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => d?.account?.email && setUserEmail(d.account.email))
       .catch(() => {});
-  }, []);
+  }, [refreshOverview]);
 
   const activeConv = conversations.find((c) => c.id === activeId);
   const messages = activeConv?.messages ?? [];
@@ -307,6 +312,7 @@ export default function AgentDashboard() {
 
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column", position: "relative", background: "var(--surface-body, #1a1b1d)" }}>
+      <TopBar lastUpdated={null} refreshing={false} onRefresh={refreshOverview} />
       <AgentTopBar onHamburger={() => setDrawerOpen(true)} agentState={agentState} onPillClick={onPillClick} brandHref="/" />
 
       <main style={{ flex: 1, overflow: "auto", position: "relative" }}>
