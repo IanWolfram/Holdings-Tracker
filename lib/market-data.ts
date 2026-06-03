@@ -130,7 +130,7 @@ export async function getHistory(
   if (finnhubKey) {
     try {
       const to = Math.floor(Date.now() / 1000);
-      const from = to - 120 * 86_400; // ~4 months for 90 trading days
+      const from = to - 760 * 86_400; // ~2 years of calendar days (~520 trading days)
       const url =
         `${FINNHUB_BASE_URL}/stock/candle?symbol=${encodeURIComponent(ticker)}` +
         `&resolution=D&from=${from}&to=${to}&token=${finnhubKey}`;
@@ -144,7 +144,7 @@ export async function getHistory(
         if (json.s === "ok" && json.c && json.c.length > 0) {
           const data: HistoryData = {
             ticker,
-            closes: json.c.slice(-90),
+            closes: json.c.slice(-520),
             source: "finnhub",
             fetchedAt: Date.now(),
           };
@@ -185,7 +185,7 @@ function startPolygonFetch(ticker: string): Promise<HistoryData | null> {
 
   const promise = (async () => {
     try {
-      const closes = await fetchCandlesPolygon(ticker, 90);
+      const closes = await fetchCandlesPolygon(ticker, 760);
       if (closes.length > 0) {
         const data: HistoryData = {
           ticker,

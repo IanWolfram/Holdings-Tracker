@@ -3,6 +3,7 @@ import * as THREE from "three";
 import type { GlobeSceneContext } from "./useGlobeSceneInit";
 import type { CountryGeoData, GeoJSON, HQMarkerState } from "./types";
 import type { GlobeFocusTarget } from "./focus";
+import type { TrafficSystem } from "./traffic";
 import {
   findCountryAtLatLon,
   getCameraShiftX,
@@ -43,6 +44,7 @@ interface UseGlobeInteractionParams {
     lon: number;
     angularRadius: number;
   } | null>;
+  trafficRef: MutableRefObject<TrafficSystem | null>;
 }
 
 /**
@@ -77,6 +79,7 @@ export function useGlobeInteraction({
   onStockHoverRef,
   onCountryHoverRef,
   countryFocusOverrideRef,
+  trafficRef,
 }: UseGlobeInteractionParams) {
   useEffect(() => {
     const ctx = sceneCtxRef.current;
@@ -198,7 +201,23 @@ export function useGlobeInteraction({
         }
       }
 
-      if (!markerHandled) {
+      // Easter egg: clicking a boat/plane tracks it — the camera zooms in and
+      // follows it along its route (handled per-frame in animateGlobe).
+      const traffic = trafficRef.current;
+      let vehicleHandled = false;
+      if (!markerHandled && traffic?.tryPick(raycasterRef.current)) {
+        camera.clearViewOffset(); // no side panel while tracking, so center the view
+        onFocusClickRef.current(null); // close any open focus panel
+        vehicleHandled = true;
+      }
+
+      // Any non-vehicle click exits tracking and restores the panel view offset.
+      if (!vehicleHandled && traffic?.isTracking) {
+        traffic.clearTracked();
+        onResize();
+      }
+
+      if (!markerHandled && !vehicleHandled) {
         // Resolve the clicked country via sphere intersection + point-in-polygon —
         // identical to the hover path so click and hover always agree. (Raycasting
         // against the merged border LineSegments is unreliable: Raycaster's default

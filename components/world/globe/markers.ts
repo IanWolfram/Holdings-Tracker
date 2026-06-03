@@ -158,8 +158,7 @@ export function rebuildHQMarkers(
       basePos: surfacePos.clone(),
       dotRadius,
       dHalfH,
-      eastDir: null,
-      sepIndex: 0,
+      spreadOffset: null,
       clusterPeers: [],
       separationT: 0,
       focusT: 0,
@@ -195,7 +194,9 @@ export function rebuildHQMarkers(
     }
     for (let j = i + 1; j < markers.length; j++) {
       const b = markers[j];
-      if (a.basePos.distanceTo(b.basePos) > CLUSTER_DIST_THRESHOLD) {
+      // Same-country only: focusT is per-country, so a mixed-country cluster
+      // would spread unevenly (only matching members move on country focus).
+      if (a.countryCode !== b.countryCode || a.basePos.distanceTo(b.basePos) > CLUSTER_DIST_THRESHOLD) {
         continue;
       }
       const ca = clusterOf.get(a.ticker) ?? [a.ticker];
@@ -210,24 +211,48 @@ export function rebuildHQMarkers(
     }
   }
 
+  // Desired arc gap between adjacent markers on the spread circle (globe-local
+  // units; globe radius = 1). The circle radius grows with cluster size so the
+  // gap stays roughly constant no matter how many markers share a location.
+  const SPREAD_GAP = 0.07;
+
   const seen = new Set<string[]>();
   for (const cluster of clusterOf.values()) {
     if (cluster.length < 2 || seen.has(cluster)) {
       continue;
     }
     seen.add(cluster);
-    cluster.sort((a, b) => (worldData.profiles[a]?.lon ?? 0) - (worldData.profiles[b]?.lon ?? 0));
+    // Stable order independent of held/proposed (proposed tickers aren't in
+    // worldData.profiles), so the circular layout is deterministic.
+    cluster.sort((a, b) => {
+      const pa = markers.find((m) => m.ticker === a)!.basePos;
+      const pb = markers.find((m) => m.ticker === b)!.basePos;
+      return pa.x - pb.x || pa.y - pb.y || pa.z - pb.z;
+    });
+
     const centroid = new THREE.Vector3();
     for (const t of cluster) {
       centroid.add(markers.find((m) => m.ticker === t)!.basePos);
     }
     centroid.divideScalar(cluster.length).normalize();
+
+    // Orthonormal tangent basis at the cluster centroid.
     const eastDir = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), centroid).normalize();
-    const half = (cluster.length - 1) / 2;
+    const northDir = new THREE.Vector3().crossVectors(centroid, eastDir).normalize();
+    const center = centroid.clone().multiplyScalar(1.018);
+
+    const n = cluster.length;
+    const radius = Math.max(0.035, SPREAD_GAP / (2 * Math.sin(Math.PI / n)));
+
     cluster.forEach((t, idx) => {
       const ms = markers.find((m) => m.ticker === t)!;
-      ms.eastDir = eastDir.clone();
-      ms.sepIndex = idx - half;
+      const angle = (2 * Math.PI * idx) / n;
+      const dir = eastDir
+        .clone()
+        .multiplyScalar(Math.cos(angle))
+        .addScaledVector(northDir, Math.sin(angle));
+      // Offset that carries basePos onto its slot on the circle around `center`.
+      ms.spreadOffset = center.clone().addScaledVector(dir, radius).sub(ms.basePos);
       ms.clusterPeers = cluster;
     });
   }

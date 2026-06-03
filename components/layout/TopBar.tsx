@@ -210,7 +210,6 @@ export default function TopBar({
           />
           <AccountPanel
             key="account-panel"
-            isOpen={accountPanelOpen}
             onClose={closeAccountPanel}
             isConnected={isConnected}
             isConnecting={isConnecting}

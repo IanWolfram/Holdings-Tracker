@@ -94,15 +94,45 @@ export function useGlobeSceneInit({
     scene.add(globeGroup);
     globeGroupRef.current = globeGroup;
 
+    // Lighting only affects lit materials (the boats/planes use MeshLambert);
+    // the globe, markers, stars and atmosphere are MeshBasic and ignore it, so
+    // the globe's look is unchanged while the vehicle models get real shading.
+    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+    const sun = new THREE.DirectionalLight(0xffffff, 0.85);
+    sun.position.set(3, 4, 2);
+    scene.add(sun);
+
+    // Invisible depth-mask sphere — writes depth but no color, so it occludes
+    // any star behind the globe (they fail the depth test) without drawing a
+    // visible body. Depth occlusion is independent of fog, so stars stay hidden
+    // even with the Shadow slider at 0. Radius 0.99 sits just inside the
+    // wireframe (1.0) so the front-facing country lines still render on top.
+    const bodyGeo = new THREE.SphereGeometry(0.99, 64, 64);
+    const bodyMat = new THREE.MeshBasicMaterial({ colorWrite: false });
+    globeGroup.add(new THREE.Mesh(bodyGeo, bodyMat));
+
+    // Atmosphere glow fills the globe disc. depthTest:false lets it draw over
+    // the area the depth-mask body covers (otherwise the mask would occlude it
+    // and leave a flat-dark disc). renderOrder -1 keeps it under the continents
+    // and markers. The mask still blocks stars via the depth buffer.
     const atmGeo = new THREE.SphereGeometry(1.025, 64, 64);
-    const atmMat = new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.12, side: THREE.BackSide });
-    globeGroup.add(new THREE.Mesh(atmGeo, atmMat));
+    const atmMat = new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.12, side: THREE.BackSide, depthTest: false });
+    const atmMesh = new THREE.Mesh(atmGeo, atmMat);
+    atmMesh.renderOrder = -1;
+    globeGroup.add(atmMesh);
 
     // -- Star field ----------------------------------------------------------
-    const starCount = 2500;
+    // fog:false keeps stars at full brightness regardless of camera distance, so
+    // they read at the default zoom without zooming out. sizeAttenuation:false
+    // gives a constant pixel size; the large radius keeps them behind everything
+    // (beyond max zoom) where the depth-mask body occludes the far hemisphere.
+    // Added to globeGroup (not the scene) so the stars rotate together with the
+    // globe — dragging then reads as orbiting the camera around a fixed Earth in
+    // a fixed star field, rather than spinning the Earth under a static sky.
+    const starCount = 6000;
     const starPositions = new Float32Array(starCount * 3);
     for (let i = 0; i < starCount; i++) {
-      const r = 4 + Math.random() * 4;
+      const r = 8 + Math.random() * 8;
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
       starPositions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
@@ -111,7 +141,7 @@ export function useGlobeSceneInit({
     }
     const starGeo = new THREE.BufferGeometry();
     starGeo.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
-    scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.012, transparent: true, opacity: 0.7 })));
+    globeGroup.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.6, sizeAttenuation: false, transparent: true, opacity: 0.85, fog: false })));
 
     // -- Geo worker ----------------------------------------------------------
     workerRef.current = new Worker(new URL("@/lib/world/geo.worker.ts", import.meta.url));

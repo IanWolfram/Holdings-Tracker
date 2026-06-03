@@ -32,10 +32,15 @@ interface Props {
   isTickerAnalyzing?: boolean;
 }
 
-function glowClass(buy: number, sell: number, loading: boolean): string {
-  if (loading) return "glow-neutral";
-  if (buy > sell) return "glow-positive";
-  if (sell > buy) return "glow-negative";
+function dailyGlowClass(
+  todayDelta: { diff: number; pct: number } | null,
+  isProposed: boolean,
+  loading: boolean,
+): string {
+  if (isProposed) return "glow-proposed";
+  if (loading || !todayDelta) return "glow-neutral";
+  if (todayDelta.pct > 0) return "glow-positive";
+  if (todayDelta.pct < 0) return "glow-negative";
   return "glow-neutral";
 }
 
@@ -98,7 +103,7 @@ export default function PositionCard({
     return { diff: (last - prev) * quantity, pct: ((last - prev) / prev) * 100 };
   }, [history, quantity, dayChange, dayChangePct]);
 
-  const effectiveGlowClass = isProposed ? "glow-proposed" : glowClass(buy, sell, loading);
+  const effectiveGlowClass = dailyGlowClass(todayDelta, isProposed, loading);
 
   const { pendingStories, storyGroups } = useMemo(() => {
     return groupStoriesBySource(stories);
@@ -113,6 +118,16 @@ export default function PositionCard({
       : sell > buy
         ? "#FF4444"
         : "#cbd5e1";
+
+  // Top border reflects today's price move (green up / red down), and curves
+  // around the card's rounded corners like the E*TRADE connection card.
+  const topBorderColor = isProposed
+    ? "rgba(234, 179, 8, 0.55)"
+    : loading || !todayDelta
+      ? "rgba(148, 163, 184, 0.25)"
+      : todayDelta.pct > 0
+        ? "rgba(0, 255, 136, 0.65)"
+        : "rgba(255, 68, 68, 0.65)";
 
   return (
     <GlassView
@@ -132,6 +147,17 @@ export default function PositionCard({
         overflow: "hidden",
       }}
     >
+      {/* Curved top border + full-perimeter inset, follows the card's radius
+          (matches the E*TRADE .conn hero card from the Account Panel design). */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 pointer-events-none z-30"
+        style={{
+          borderRadius: `${POSITION_R}px`,
+          borderTop: `1.5px solid ${topBorderColor}`,
+          boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.04)",
+        }}
+      />
       {isProposed && onRemoveProposed && (
         <button
           onClick={(e) => {
@@ -204,6 +230,7 @@ export default function PositionCard({
           prediction={prediction}
           allPredictions={allPredictions}
           resolvedStats={resolvedStats}
+          currentPrice={currentPrice}
         />
       </div>
     </GlassView>

@@ -10,7 +10,7 @@ import EmptyState from "@/components/layout/EmptyState";
 import SourceBadge from "@/components/positions/SourceBadge";
 import CongressHeader from "@/components/positions/CongressHeader";
 import GlassContainer from "@/components/ui/LiquidGlass/GlassContainer";
-import PredictionStrip from "@/components/positions/PredictionStrip";
+import PredictionStrip, { PredictionPanel } from "@/components/positions/PredictionStrip";
 import type { TickerPrediction } from "@/types/predictions";
 
 interface PositionCardNewsFeedProps {
@@ -27,6 +27,7 @@ interface PositionCardNewsFeedProps {
   allPredictions?: TickerPrediction[];
   resolvedStats?: { total: number; correct: number };
   compact?: boolean;
+  currentPrice?: number;
 }
 
 export default function PositionCardNewsFeed({
@@ -39,25 +40,27 @@ export default function PositionCardNewsFeed({
   sourceOrder,
   sourcePriority,
   agentState,
-  prediction,
   allPredictions,
   resolvedStats,
   compact = false,
+  currentPrice = 0,
 }: PositionCardNewsFeedProps) {
   const [showPredictions, setShowPredictions] = useState(false);
 
   return (
     <>
       <PredictionStrip
-        prediction={prediction ?? null}
         allPredictions={allPredictions ?? []}
-        resolvedCount={resolvedStats?.total ?? 0}
         correctCount={resolvedStats?.correct ?? 0}
         compact={compact}
         open={showPredictions}
         onToggle={setShowPredictions}
       />
-      {!showPredictions && (
+      {/* News region — always mounted so it anchors the card height; the
+          prediction panel overlays it (rather than replacing it) so toggling
+          predictions never changes the card's height. */}
+      <div className="relative flex-1">
+        <div className={showPredictions ? "invisible" : undefined} aria-hidden={showPredictions || undefined}>
         <GlassContainer className={`flex-1 ${compact ? "p-2" : "p-3"} border-t border-white/[0.05]`}>
           {loading && !hasContent && (
             <EmptyState
@@ -163,7 +166,16 @@ export default function PositionCardNewsFeed({
             </div>
           )}
         </GlassContainer>
-      )}
+        </div>
+        {showPredictions && (
+          <div className="absolute inset-0 z-40 overflow-hidden border-t border-white/[0.05]">
+            <PredictionPanel
+              allPredictions={allPredictions ?? []}
+              currentPrice={currentPrice}
+            />
+          </div>
+        )}
+      </div>
     </>
   );
 }

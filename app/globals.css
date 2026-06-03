@@ -12,7 +12,16 @@
   --color-outline: #869585;
   --color-outline-variant: #3d4a3d;
   --color-positive: #00FF88;
+  --color-positive-dim: #00cc6e;
   --color-negative: #FF4444;
+
+  /* ── Account panel ink + rule tokens (used by components/layout/AccountPanel/*) ── */
+  --color-ink: #e8e8ea;
+  --color-ink-dim: #8a8f96;
+  --color-ink-dimmer: #555a62;
+  --color-ink-faint: #353940;
+  --color-rule: rgba(255, 255, 255, 0.06);
+  --color-rule-strong: rgba(255, 255, 255, 0.12);
 
   --font-headline: var(--font-space-grotesk), "Space Grotesk", sans-serif;
   --font-body: var(--font-inter), "Inter", sans-serif;
@@ -121,12 +130,8 @@ body {
 }
 
 /* ── Positive (green) ── */
-.glow-positive {
-  border-top: 1.5px solid rgba(0, 255, 136, 0.5);
-}
-.group:hover .glow-positive {
-  animation: border-pulse-green 2.8s ease-in-out infinite;
-}
+/* Top border lives on the rounded card overlay (see PositionCard.tsx) so it
+   follows the corner radius; here we only drive the downward bloom. */
 .glow-positive::after {
   background: radial-gradient(ellipse 100% 60px at 50% 0%,
     rgba(0, 255, 136, 0.12) 0%,
@@ -148,12 +153,6 @@ body {
 }
 
 /* ── Negative (red) ── */
-.glow-negative {
-  border-top: 1.5px solid rgba(255, 68, 68, 0.5);
-}
-.group:hover .glow-negative {
-  animation: border-pulse-red 2.8s ease-in-out infinite;
-}
 .glow-negative::after {
   background: radial-gradient(ellipse 100% 60px at 50% 0%,
     rgba(255, 68, 68, 0.10) 0%,
@@ -175,12 +174,6 @@ body {
 }
 
 /* ── Neutral (slate) ── */
-.glow-neutral {
-  border-top: 1.5px solid rgba(148, 163, 184, 0.3);
-}
-.group:hover .glow-neutral {
-  animation: border-pulse-slate 3.5s ease-in-out infinite;
-}
 .glow-neutral::after {
   background: radial-gradient(ellipse 120% 90px at 50% 0%,
     rgba(148, 163, 184, 0.15) 0%,
@@ -201,13 +194,7 @@ body {
   100% { opacity: 0.5; }
 }
 
-/* ── Proposed / Watchlist (amber dashed) ── */
-.glow-proposed {
-  border-top: 1.5px dashed rgba(234, 179, 8, 0.4);
-}
-.group:hover .glow-proposed {
-  animation: border-pulse-amber 3s ease-in-out infinite;
-}
+/* ── Proposed / Watchlist (amber) ── */
 .glow-proposed::after {
   background: radial-gradient(ellipse 120% 90px at 50% 0%,
     rgba(234, 179, 8, 0.12) 0%,

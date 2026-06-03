@@ -1,9 +1,194 @@
-import React from "react";
-import Sparkline from "@/components/ui/Sparkline";
+"use client";
+
+import React, { useMemo, useState } from "react";
+import { PositionChart } from "@/components/positions/PositionChart";
 import StockLogo from "@/components/ui/StockLogo";
 import SentimentBar from "@/components/bars/SentimentBar";
 import type { SentimentDirection } from "@/lib/utils/sentiment";
 import { formatCurrency, formatPercent, formatGainLoss } from "@/lib/utils/format";
+
+// Selectable x-axis windows, in trading-day points (~21 trading days / month).
+const WINDOWS: { key: string; points: number }[] = [
+  { key: "1M", points: 21 },
+  { key: "2M", points: 42 },
+  { key: "3M", points: 63 },
+  { key: "4M", points: 84 },
+  { key: "5M", points: 105 },
+  { key: "6M", points: 126 },
+  { key: "1Y", points: 252 },
+  { key: "2Y", points: 504 },
+];
+const DEFAULT_WINDOW_IDX = 5; // 6M
+
+// Approximate a date for each point by walking back trading days (skip weekends)
+// from today. Good enough for month/year axis labels without threading real
+// timestamps through the data layer.
+function buildTradingDates(count: number): Date[] {
+  const dates: Date[] = new Array(Math.max(count, 0));
+  if (count <= 0) return dates;
+  const d = new Date();
+  dates[count - 1] = new Date(d);
+  for (let i = count - 2; i >= 0; i--) {
+    do {
+      d.setDate(d.getDate() - 1);
+    } while (d.getDay() === 0 || d.getDay() === 6);
+    dates[i] = new Date(d);
+  }
+  return dates;
+}
+
+function buildTicks(dates: Date[], key: string): { pos: number; label: string }[] {
+  const n = dates.length;
+  if (n < 2) return [];
+  const pos = (i: number) => i / (n - 1);
+
+  // 1-month view: a mark every 5 trading days (≈ weekly), labelled M/D.
+  if (key === "1M") {
+    const out: { pos: number; label: string }[] = [];
+    for (let i = 0; i < n; i += 5) {
+      out.push({ pos: pos(i), label: `${dates[i].getMonth() + 1}/${dates[i].getDate()}` });
+    }
+    const last = dates[n - 1];
+    if (out.length === 0 || out[out.length - 1].pos < 1) {
+      out.push({ pos: 1, label: `${last.getMonth() + 1}/${last.getDate()}` });
+    }
+    return out;
+  }
+
+  // Longer views: a mark at each month boundary, thinned to ~7 labels. The
+  // partial oldest month (i=0) is skipped so the left edge isn't crowded.
+  const monthIdx: number[] = [];
+  for (let i = 1; i < n; i++) {
+    if (dates[i].getMonth() !== dates[i - 1].getMonth()) monthIdx.push(i);
+  }
+  const step = Math.max(1, Math.ceil(monthIdx.length / 7));
+  const withYear = key === "1Y" || key === "2Y";
+  const out: { pos: number; label: string }[] = [];
+  for (let k = 0; k < monthIdx.length; k += step) {
+    const i = monthIdx[k];
+    const mon = dates[i].toLocaleString("en-US", { month: "short" }).toUpperCase();
+    out.push({
+      pos: pos(i),
+      label: withYear ? `${mon} '${String(dates[i].getFullYear()).slice(2)}` : mon,
+    });
+  }
+  return out;
+}
+
+interface PriceChartPanelProps {
+  history: number[];
+  pricePaid: number;
+  purchaseDate?: number;
+  gainPositive: boolean;
+  width: number;
+  height: number;
+}
+
+function PriceChartPanel({ history, pricePaid, purchaseDate, gainPositive, width, height }: PriceChartPanelProps) {
+  const [windowIdx, setWindowIdx] = useState(DEFAULT_WINDOW_IDX);
+  const [showCostBasis, setShowCostBasis] = useState(false);
+
+  // Largest window the available history can actually fill.
+  const maxIdx = useMemo(() => {
+    let idx = 0;
+    // 5% tolerance: a provider's "2y" feed is ~499 trading days, just shy of 504.
+    for (let i = 0; i < WINDOWS.length; i++) {
+      if (WINDOWS[i].points * 0.95 <= history.length) idx = i;
+    }
+    return idx;
+  }, [history.length]);
+
+  const idx = Math.min(windowIdx, maxIdx);
+  const { priceSeries, ticks, buyMarker } = useMemo(() => {
+    const sliced = history.slice(-WINDOWS[idx].points);
+    const series = sliced.map((price, t) => ({ t, price }));
+    const dates = buildTradingDates(sliced.length);
+
+    // Place the buy marker only when the purchase falls inside the visible window.
+    let marker: { t: number; price: number } | undefined;
+    if (purchaseDate && pricePaid > 0 && dates.length > 1 && purchaseDate >= dates[0].getTime() - 86_400_000) {
+      let best = 0;
+      let bestDiff = Infinity;
+      for (let i = 0; i < dates.length; i++) {
+        const diff = Math.abs(dates[i].getTime() - purchaseDate);
+        if (diff < bestDiff) { bestDiff = diff; best = i; }
+      }
+      marker = { t: best, price: pricePaid };
+    }
+
+    return { priceSeries: series, ticks: buildTicks(dates, WINDOWS[idx].key), buyMarker: marker };
+  }, [history, idx, purchaseDate, pricePaid]);
+
+  const canExpand = idx < maxIdx;
+  const canShrink = idx > 0;
+  const expand = () => setWindowIdx(Math.min(maxIdx, idx + 1));
+  const shrink = () => setWindowIdx(Math.max(0, idx - 1));
+
+  const btn =
+    "w-3.5 h-3.5 flex items-center justify-center rounded-[3px] leading-none text-slate-400 " +
+    "hover:text-white hover:bg-white/10 disabled:opacity-20 disabled:hover:bg-transparent " +
+    "disabled:cursor-default transition-colors";
+
+  return (
+    <div className="flex items-center gap-1.5">
+      {/* PositionChart fills its container width (it measures itself), so the
+          column width is set on a wrapper rather than via a prop. */}
+      <div style={{ width }}>
+        <PositionChart
+          priceSeries={priceSeries}
+          height={height}
+          positive={gainPositive}
+          costBasis={showCostBasis ? pricePaid : undefined}
+          ticks={ticks}
+          buyMarker={buyMarker}
+        />
+      </div>
+      <div className="flex flex-col items-center gap-[2px]">
+        <button
+          type="button"
+          className={btn}
+          onClick={(e) => { e.stopPropagation(); expand(); }}
+          disabled={!canExpand}
+          title="Show more history"
+          aria-label="Expand time range"
+        >
+          <svg width="7" height="7" viewBox="0 0 8 8" fill="none" aria-hidden="true">
+            <path d="M1 5.5 L4 2.5 L7 5.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        <span className="font-mono text-[6px] font-bold tracking-wide text-slate-500 tabular-nums">
+          {WINDOWS[idx].key}
+        </span>
+        <button
+          type="button"
+          className={btn}
+          onClick={(e) => { e.stopPropagation(); shrink(); }}
+          disabled={!canShrink}
+          title="Show less history"
+          aria-label="Shrink time range"
+        >
+          <svg width="7" height="7" viewBox="0 0 8 8" fill="none" aria-hidden="true">
+            <path d="M1 2.5 L4 5.5 L7 2.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        {pricePaid > 0 && (
+          <button
+            type="button"
+            className={`${btn} mt-[1px] ${showCostBasis ? "text-amber-400 bg-amber-400/10 hover:text-amber-300" : ""}`}
+            onClick={(e) => { e.stopPropagation(); setShowCostBasis((v) => !v); }}
+            title="Toggle cost-basis line"
+            aria-label="Toggle cost-basis line"
+            aria-pressed={showCostBasis}
+          >
+            <svg width="8" height="8" viewBox="0 0 9 9" fill="none" aria-hidden="true">
+              <path d="M0.5 4.5 H8.5" stroke="currentColor" strokeWidth="1" strokeDasharray="1.6 1.2" />
+            </svg>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 interface TodayDelta {
   diff: number;
@@ -67,7 +252,7 @@ function Stat({ label, value, valueClass = "text-white", sub, align = "left", co
       </span>
       <span
         className={`font-mono font-bold leading-none tracking-tight ${
-          compact ? "text-[11px]" : "text-[12px]"
+          compact ? "text-[15px]" : "text-[20px]"
         } ${valueClass}`}
       >
         {value}
@@ -86,7 +271,6 @@ function Stat({ label, value, valueClass = "text-white", sub, align = "left", co
 
 export default function PositionCardHeader({
   ticker,
-  description,
   marketValue,
   gainLoss,
   quantity,
@@ -108,20 +292,22 @@ export default function PositionCardHeader({
   isProposed,
   targetPrice,
   targetShares,
-  hovered = false,
+  hovered: _hovered = false,
   onAnalyzeTicker,
   isTickerAnalyzing,
 }: PositionCardHeaderProps) {
+  const historyData = history ?? [];
+
   return (
     <div className={`ticker-header-glow ${glowClass}`}>
       {compact ? (
         // ---------- COMPACT HEADER ----------
-        <div className="px-[9px] pt-[7px] pb-[5px]">
+        <div className="px-[9px] pt-[7px] pb-[5px] bg-black/[0.55]">
           <div className="grid grid-cols-[auto_1fr_auto] gap-3 items-center">
             <StockLogo ticker={ticker} size={32} />
-            <div className="min-w-0 flex flex-col gap-[1px]">
+            <div className="min-w-0 flex flex-col gap-[2px]">
               <div className="flex items-baseline gap-1.5">
-                <h1 className="font-mono text-[14px] font-black text-white tracking-tighter leading-none">
+                <h1 className="font-mono text-[13px] font-black text-white tracking-tighter leading-none">
                   {ticker}
                 </h1>
                 {isProposed && (
@@ -130,33 +316,25 @@ export default function PositionCardHeader({
                   </span>
                 )}
               </div>
-              <div className="flex items-baseline gap-1.5 min-w-0 text-[8px] leading-tight">
-                <span
-                  className="text-slate-400 font-medium truncate"
-                  title={description}
-                >
-                  {description}
-                </span>
-                <span className="font-mono text-slate-500 font-medium shrink-0">
-                  · {formatCurrency(currentPrice)}
-                  <span className="opacity-50 text-[7px]">&nbsp;/ SH</span>
-                </span>
-              </div>
+              <span className="font-mono text-[9px] text-slate-500 font-medium leading-tight whitespace-nowrap">
+                {formatCurrency(currentPrice)}
+                <span className="opacity-50 text-[7px]">&nbsp;/ SH</span>
+              </span>
             </div>
             <div className="shrink-0">
-              <Sparkline data={history || []} width={76} height={24} purchaseDate={purchaseDate} />
+              <PriceChartPanel history={historyData} pricePaid={pricePaid} purchaseDate={purchaseDate} gainPositive={gainPositive} width={190} height={52} />
             </div>
           </div>
         </div>
       ) : (
         // ---------- ORIGINAL HEADER ----------
-        <div className="p-3 pb-2">
+        <div className="p-3 pb-2 bg-black/[0.55]">
           <div className="grid grid-cols-[auto_1fr_auto] gap-4 items-start">
             <div className="flex flex-col items-center gap-1.5 shrink-0">
               <StockLogo ticker={ticker} size={48} />
             </div>
-            <div className="min-w-0 flex flex-col gap-0.5">
-              <h1 className="font-mono text-[18px] font-black text-white tracking-tighter leading-none">
+            <div className="min-w-0 flex flex-col gap-1">
+              <h1 className="font-mono text-[16px] font-black text-white tracking-tighter leading-none">
                 {ticker}
               </h1>
               {isProposed && (
@@ -164,28 +342,22 @@ export default function PositionCardHeader({
                   Proposed
                 </span>
               )}
-              <p
-                className="text-[9px] text-slate-400 font-medium leading-tight truncate max-w-full"
-                title={description}
-              >
-                {description}
-              </p>
-              <span className="font-mono text-[9px] text-slate-500 font-medium">
+              <span className="font-mono text-[10px] text-slate-500 font-medium whitespace-nowrap">
                 {formatCurrency(currentPrice)}&thinsp;
                 <span className="opacity-50 text-[8px]">/ SH</span>
               </span>
             </div>
             <div className="shrink-0">
-              <Sparkline data={history || []} width={90} height={36} purchaseDate={purchaseDate} />
+              <PriceChartPanel history={historyData} pricePaid={pricePaid} purchaseDate={purchaseDate} gainPositive={gainPositive} width={220} height={58} />
             </div>
           </div>
         </div>
       )}
 
       {/* ---------- STATS ROW ---------- */}
-      <div className="flex border-t border-white/[0.06]">
+      <div className="flex border-t border-white/[0.06] bg-black/[0.55]">
         <div
-          className={`flex-1 ${compact ? "py-[5px] px-1" : "py-2 px-1.5"} flex items-center justify-center`}
+          className={`flex-1 ${compact ? "py-[5px] px-2.5" : "py-2 px-4"} flex items-center justify-start`}
         >
           {isProposed && !targetShares ? (
             <Stat
@@ -193,22 +365,22 @@ export default function PositionCardHeader({
               value={currentPrice > 0 ? formatCurrency(currentPrice) : "—"}
               valueClass={currentPrice > 0 ? "text-white" : "text-slate-400"}
               sub="no position"
-              align="center"
+              align="left"
               compact={compact}
             />
           ) : (
             <Stat
               label="Mkt Val"
               value={formatCurrency(marketValue)}
-              sub={targetShares ? `${targetShares} sh target` : `${quantity} sh`}
-              align="center"
+              sub={targetShares ? `${targetShares} sh target` : `${quantity} sh @ ${formatCurrency(pricePaid)}`}
+              align="left"
               compact={compact}
             />
           )}
         </div>
         <div className="w-px bg-white/[0.06]" />
         <div
-          className={`flex-1 ${compact ? "py-[5px] px-1" : "py-2 px-1.5"} flex items-center justify-center`}
+          className={`flex-[1.6] min-w-0 ${compact ? "py-[5px] px-2.5" : "py-2 px-4"} flex items-center justify-start`}
         >
           {isProposed && targetPrice ? (
             <Stat
@@ -216,7 +388,7 @@ export default function PositionCardHeader({
               value={formatCurrency(targetPrice)}
               valueClass="text-amber-400"
               sub={targetShares ? `${targetShares} sh` : "watching"}
-              align="center"
+              align="left"
               compact={compact}
             />
           ) : isProposed ? (
@@ -225,7 +397,7 @@ export default function PositionCardHeader({
               value={currentPrice > 0 ? formatCurrency(currentPrice) : "—"}
               valueClass={currentPrice > 0 ? (gainPositive ? "text-positive" : "text-negative") : "text-slate-400"}
               sub={targetShares ? `${targetShares} sh` : "watching"}
-              align="center"
+              align="left"
               compact={compact}
             />
           ) : (
@@ -233,8 +405,8 @@ export default function PositionCardHeader({
               label="P/L"
               value={formatGainLoss(gainLoss)}
               valueClass={gainPositive ? "text-positive" : "text-negative"}
-              sub={`${gainPositive ? "▲" : "▼"} ${Math.abs(gainPct).toFixed(2)}%  ·  @ ${formatCurrency(pricePaid)}`}
-              align="center"
+              sub={`${gainPositive ? "+" : "-"}${Math.abs(gainPct).toFixed(2)}%`}
+              align="left"
               compact={compact}
             />
           )}
@@ -243,7 +415,7 @@ export default function PositionCardHeader({
           <>
             <div className="w-px bg-white/[0.06]" />
             <div
-              className={`flex-1 ${compact ? "py-[5px] px-1" : "py-2 px-1.5"} flex items-center justify-center`}
+              className={`flex-1 ${compact ? "py-[5px] px-2.5" : "py-2 px-4"} flex items-center justify-start`}
             >
               <Stat
                 label="Today"
@@ -260,7 +432,7 @@ export default function PositionCardHeader({
                     : "text-slate-400"
                 }
                 sub={todayDelta ? `${formatPercent(todayDelta.pct)}` : "—"}
-                align="center"
+                align="left"
                 compact={compact}
               />
             </div>

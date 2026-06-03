@@ -1,8 +1,6 @@
 import type * as THREE from "three";
 
 export const CLUSTER_DIST_THRESHOLD = 0.08;
-export const CLUSTER_REST_SEP = 0.022;
-export const CLUSTER_HOVER_SEP = 0.044;
 
 export interface GeoFeature {
   type: string;
@@ -39,11 +37,12 @@ export interface HQMarkerState {
   basePos: THREE.Vector3;
   dotRadius: number;
   dHalfH: number;
-  eastDir: THREE.Vector3 | null;
-  sepIndex: number;
+  // Vector (globe-local) from basePos to this marker's slot on the spread
+  // circle. null when the marker isn't part of a multi-marker cluster.
+  spreadOffset: THREE.Vector3 | null;
   clusterPeers: string[];
-  separationT: number;
-  focusT: number;
+  separationT: number;  // 0→1 hover-driven spread (a cluster peer is hovered)
+  focusT: number;       // 0→1 focus-driven spread (the marker's country is focused)
   isProposed: boolean;        // true = orange proposed-position marker
   sphere: THREE.Mesh;          // white/orange sphere — visible at hoverT = 0
   hitSphere: THREE.Mesh;      // invisible larger sphere for hover/click detection

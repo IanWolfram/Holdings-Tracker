@@ -10,6 +10,7 @@ import type {
 import type { GlobeFocusTarget } from "@/components/world/globe/focus";
 import { computeCountryGeoData, latLonToVector3 } from "@/components/world/globe/math";
 import { rebuildHQMarkers } from "@/components/world/globe/markers";
+import { TrafficSystem } from "@/components/world/globe/traffic";
 import { useSyncedRef } from "./useSyncedRef";
 import { useGlobeSceneInit, type GlobeSceneContext } from "./useGlobeSceneInit";
 import { useGlobeAnimation } from "./useGlobeAnimation";
@@ -72,6 +73,7 @@ export function useGlobeScene({
   const geoJSONCacheRef = useRef<GeoJSON | null>(null);
   const workerRef = useRef<Worker | null>(null);
   const selectedDiamondRef = useRef<THREE.Mesh | null>(null);
+  const trafficRef = useRef<TrafficSystem | null>(null);
   const [webglAvailable, setWebglAvailable] = useState<boolean>(true);
 
   // -- Synced callback refs (always hold the latest value without re-triggering effects) --
@@ -80,6 +82,7 @@ export function useGlobeScene({
   const onStockHoverRef = useSyncedRef(onStockHover);
   const onCountryHoverRef = useSyncedRef(onCountryHover);
   const focusedTickerRef = useSyncedRef(focusedTicker ?? null);
+  const focusedCountryRef = useSyncedRef(focusedCountryCode ?? null);
   const countryFocusOverrideRef = useSyncedRef(countryFocusOverride ?? null);
 
   // -- Small local effects --------------------------------------------------
@@ -164,9 +167,16 @@ export function useGlobeScene({
 
     // Surface position — 1.018 matches marker placement
     // For proposed tickers not in worldData.profiles, use marker state
-    const surfacePos = profile
+    const baseSurface = profile
       ? latLonToVector3(profile.lat, profile.lon, 1.018)
       : ms!.basePos.clone();
+    // When the focused stock's country is focused, its cluster is spread onto a
+    // circle. Place the plumbob on the same spread slot so it doesn't snap back
+    // to the stacked centroid when the marker becomes the selection.
+    const countryFocused = !!focusedCountryCode && ms?.countryCode === focusedCountryCode;
+    const surfacePos = ms?.spreadOffset && countryFocused
+      ? baseSurface.add(ms.spreadOffset)
+      : baseSurface;
     const outward = surfacePos.clone().normalize();
 
     // Sit the bottom tip ON the surface: move center up by one half-height
@@ -179,7 +189,7 @@ export function useGlobeScene({
 
     globeGroup.add(diamond);
     selectedDiamondRef.current = diamond;
-  }, [focusedTicker, worldData]);
+  }, [focusedTicker, focusedCountryCode, worldData]);
 
   // navigateTo — compute target rotation for camera focus
   useEffect(() => {
@@ -221,11 +231,13 @@ export function useGlobeScene({
     selectedDiamondRef,
     hoveredMarkerTickerRef,
     focusedTickerRef,
+    focusedCountryRef,
     isFocusedRef,
     targetQuatRef,
     focusZoomRef,
     localHitRef,
     showProposedRef,
+    trafficRef,
   });
 
   // 3. Interaction reads sceneCtxRef and attaches event handlers
@@ -248,6 +260,7 @@ export function useGlobeScene({
     onStockHoverRef,
     onCountryHoverRef,
     countryFocusOverrideRef,
+    trafficRef,
   });
 
   // -- Data effects (geo data + marker rebuilding) -------------------------
@@ -275,8 +288,31 @@ export function useGlobeScene({
         }
       }
       workerRef.current?.postMessage({ geoJSON, stateGeoJSON, worldData, relevanceThreshold, focusedCountryCode });
+
+      // Build the boat/plane traffic system once, after the land geometry is
+      // available (its ocean grid is derived from the country polygons). The
+      // grid build is ~250ms, so defer to idle time to avoid stuttering mount.
+      const buildTraffic = () => {
+        if (!trafficRef.current && globeGroupRef.current && sceneCtxRef.current) {
+          trafficRef.current = new TrafficSystem(globeGroupRef.current, geoJSON.features, countryGeoDataRef.current);
+        }
+      };
+      if (typeof requestIdleCallback === "function") {
+        requestIdleCallback(buildTraffic, { timeout: 2500 });
+      } else {
+        setTimeout(buildTraffic, 300);
+      }
     });
   }, [worldData, relevanceThreshold, focusedCountryCode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Dispose the traffic system on unmount (runs independently of the data effect
+  // so route regeneration doesn't tear it down).
+  useEffect(() => {
+    return () => {
+      trafficRef.current?.dispose();
+      trafficRef.current = null;
+    };
+  }, []);
 
   useEffect(() => {
     const globeGroup = globeGroupRef.current;

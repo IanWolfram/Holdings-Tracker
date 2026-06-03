@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import VerdictBadge from "@/components/bars/VerdictBadge";
 import NewsCard from "@/components/cards/NewsCard";
 import StockLogo from "@/components/ui/StockLogo";
-import type { CompanyProfile, CountryState, GeoStory, WorldData } from "@/types/geo.types";
+import type { CompanyProfile, CountryState, WorldData } from "@/types/geo.types";
 import type { ClassifiedStory, Verdict } from "@/types/news.types";
 import type { Position } from "@/types/position.types";
 import type { GlobeFocusTarget } from "@/components/world/GlobeCanvas";
@@ -31,16 +31,6 @@ function flagEmoji(code: string): string {
   return code.toUpperCase().split("").map((c) => String.fromCodePoint(c.charCodeAt(0) + 127397)).join("");
 }
 
-function toClassifiedStory(story: GeoStory): ClassifiedStory {
-  const normalizedSource: ClassifiedStory["source"] =
-    story.source === "polygon" || story.source === "newsapi" ? story.source : "finnhub";
-  return {
-    ...story,
-    source: normalizedSource,
-    classifiedAt: new Date(story.datetime < 10_000_000_000 ? story.datetime * 1000 : story.datetime).toISOString(),
-  };
-}
-
 function fmtMoney(n: number): string {
   return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -49,9 +39,10 @@ function fmtMoney(n: number): string {
 // Shared shell pieces — used by both the country and stock views
 // ---------------------------------------------------------------------------
 
-const SHELL_STYLE = {
+// Shared shell chrome, sans width. The country view is content-sized (grows to
+// fit its row of logos, never below MIN_COUNTRY_WIDTH); the stock view is fixed.
+const SHELL_BASE = {
   position: "relative",
-  width: 360,
   maxWidth: "calc(100vw - 48px)",
   maxHeight: "calc(100vh - 106px)",
   background: "rgba(9, 14, 9, 0.97)",
@@ -61,6 +52,9 @@ const SHELL_STYLE = {
   borderRadius: 13,
   boxShadow: "0 12px 48px rgba(0,0,0,0.85), 0 0 0 1px rgba(0,255,136,0.04)",
 } as const;
+
+// Floor that fits the header (flag + country name + total + close) un-truncated.
+const MIN_COUNTRY_WIDTH = 300;
 
 function CloseButton({ onClose }: { onClose: () => void }) {
   const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -104,7 +98,7 @@ function PanelHeader({
   extra?: ReactNode;
 }) {
   return (
-    <div style={{ padding: "11px 13px 9px", borderBottom: "1px solid rgba(255,255,255,0.05)", flexShrink: 0 }}>
+    <div style={{ padding: "6px 13px 6px", borderBottom: "1px solid rgba(255,255,255,0.05)", flexShrink: 0 }}>
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <span style={{ flexShrink: 0, display: "flex", alignItems: "center" }}>{icon}</span>
@@ -123,23 +117,6 @@ function PanelHeader({
         </div>
       </div>
       {extra}
-    </div>
-  );
-}
-
-function AccentBox({ children }: { children: ReactNode }) {
-  return (
-    <div
-      style={{
-        marginTop: 8,
-        padding: "6px 8px",
-        borderRadius: 6,
-        background: "rgba(0,255,136,0.04)",
-        border: "1px solid rgba(0,255,136,0.09)",
-        textAlign: "center",
-      }}
-    >
-      {children}
     </div>
   );
 }
@@ -204,22 +181,19 @@ function CountryView({
 }) {
   const countryName = COUNTRY_NAMES[state.countryCode] ?? state.countryCode;
   const flag = flagEmoji(state.countryCode);
-  const stories = [...state.stories]
-    .sort((a, b) => (b.relevanceScore ?? 0) - (a.relevanceScore ?? 0))
-    .map(toClassifiedStory);
   const tickers = state.hqTickers;
 
+  // Logos are the focal point: a single horizontal row of large tiles. The
+  // shell is content-sized, so the panel widens to fit however many there are.
   const grid =
     state.isHQCountry && tickers.length > 0 ? (
       <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", marginTop: 8, paddingTop: 8 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
-          {tickers.slice(0, 9).map((ticker) => {
-              const handleClick = () => onStockClick(ticker);
-              return (
+        <div style={{ display: "flex", flexDirection: "row", gap: 6 }}>
+          {tickers.slice(0, 12).map((ticker) => (
             <motion.button
               key={ticker}
               type="button"
-              onClick={handleClick}
+              onClick={() => onStockClick(ticker)}
               whileHover={{
                 scale: 1.07,
                 backgroundColor: "rgba(0,255,136,0.07)",
@@ -229,33 +203,34 @@ function CountryView({
               whileTap={{ scale: 0.94 }}
               transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
               style={{
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-                padding: "5px 0 3px", borderRadius: 6,
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 5,
+                padding: "8px 8px 6px", borderRadius: 10,
                 backgroundColor: "rgba(255,255,255,0.02)",
                 border: "1px solid rgba(255,255,255,0.04)",
                 boxShadow: "0 0 0 rgba(0,0,0,0)",
                 cursor: "pointer", appearance: "none", WebkitAppearance: "none",
-                font: "inherit", color: "inherit",
+                font: "inherit", color: "inherit", flexShrink: 0,
               }}
             >
-              <StockLogo ticker={ticker} size={28} />
-              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, fontWeight: 600, color: "#94a3b8", letterSpacing: "0.03em" }}>
+              <StockLogo ticker={ticker} size={36} />
+              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, fontWeight: 600, color: "#94a3b8", letterSpacing: "0.03em" }}>
                 {ticker}
               </span>
             </motion.button>
-              );
-            })}
+          ))}
         </div>
-        {state.totalPositionValue > 0 && (
-          <AccentBox>
-            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 700, color: "#00FF88" }}>
-              ${fmtMoney(state.totalPositionValue)}
-            </span>
-            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "#475569", marginLeft: 4 }}>
-              total
-            </span>
-          </AccentBox>
-        )}
+      </div>
+    ) : null;
+
+  const totalBadge =
+    state.totalPositionValue > 0 ? (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", lineHeight: 1.1 }}>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 700, color: "#00FF88" }}>
+          ${fmtMoney(state.totalPositionValue)}
+        </span>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: "#475569", letterSpacing: "0.04em" }}>
+          total
+        </span>
       </div>
     ) : null;
 
@@ -265,12 +240,10 @@ function CountryView({
         icon={<span style={{ fontSize: 20, lineHeight: 1 }}>{flag}</span>}
         title={countryName}
         subtitle={state.countryCode}
-        badge={state.netVerdict ? <VerdictBadge verdict={state.netVerdict} confidence={Math.abs(state.netScore)} /> : null}
+        badge={totalBadge}
         onClose={onClose}
         extra={grid}
       />
-      <SignalsList stories={stories} />
-      <PanelFooter text="ESC OR CLICK OUTSIDE TO DISMISS" />
     </>
   );
 }
@@ -411,6 +384,12 @@ export default function FocusPanel({
   stockIndex,
   stockCount,
 }: FocusPanelProps) {
+  // Country view grows to fit its row of logos; stock view stays fixed-width.
+  const widthStyle: React.CSSProperties =
+    focusTarget.type === "country"
+      ? { width: "fit-content", minWidth: MIN_COUNTRY_WIDTH }
+      : { width: 360 };
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 16, y: -10 }}
@@ -422,7 +401,7 @@ export default function FocusPanel({
       <motion.div
         layout
         className="pointer-events-auto flex flex-col overflow-hidden"
-        style={SHELL_STYLE}
+        style={{ ...SHELL_BASE, ...widthStyle }}
         transition={{ layout: { duration: 0.32, ease: [0.22, 1, 0.36, 1] } }}
         onClick={(e) => e.stopPropagation()}
       >

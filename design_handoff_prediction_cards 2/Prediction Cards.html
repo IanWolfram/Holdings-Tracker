@@ -1,0 +1,689 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pulse · Prediction list</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:         #080809;
+    --card:       #121214;
+    --card-2:     #18181c;
+    --panel:      #0d0f0e;
+    --rule:       rgba(255,255,255,0.06);
+    --rule-2:     rgba(255,255,255,0.10);
+    --ink:        #e8e8ea;
+    --ink-dim:    #8a8f96;
+    --ink-dimmer: #555a62;
+    --ink-faint:  #3a3e44;
+    --positive:   #00ff88;
+    --positive-dim: #00cc6e;
+    --negative:   #ff4444;
+    --amber:      #e6a94c;
+    --slate:      #94a3b8;
+
+    --font-headline: "Space Grotesk", sans-serif;
+    --font-body:     "Inter", sans-serif;
+    --font-mono:     "JetBrains Mono", monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-body);
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 0%, rgba(0,255,136,0.04), transparent 60%),
+      var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 64px;
+    padding: 64px 40px 96px;
+    flex-wrap: wrap;
+  }
+
+  /* ─── annotation column ─── */
+  .notes { max-width: 320px; padding-top: 8px; }
+  .notes-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--positive); opacity: 0.8; margin-bottom: 14px;
+  }
+  .notes h1 {
+    font-family: var(--font-headline);
+    font-size: 30px; font-weight: 600; letter-spacing: -0.02em;
+    line-height: 1.12; margin: 0 0 16px;
+  }
+  .notes p {
+    font-size: 13px; line-height: 1.65; color: var(--ink-dim);
+    text-wrap: pretty; margin: 0 0 18px;
+  }
+  .notes p b { color: var(--ink); font-weight: 500; }
+  .notes ul {
+    list-style: none; padding: 0; margin: 0;
+    display: flex; flex-direction: column; gap: 11px; font-size: 12px;
+  }
+  .notes li {
+    position: relative; padding-left: 16px; color: var(--ink-dim); line-height: 1.5;
+  }
+  .notes li::before {
+    content: ""; position: absolute; left: 0; top: 7px;
+    width: 5px; height: 5px; background: var(--positive); border-radius: 50%;
+  }
+  .notes li b { color: var(--ink); font-weight: 500; }
+
+  /* ─── position card ─── */
+  .card {
+    width: 420px;
+    background: var(--card);
+    border: 1px solid var(--rule-2);
+    border-radius: 14px;
+    overflow: hidden;
+    position: relative;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.04) inset,
+      0 30px 60px -28px rgba(0,0,0,0.7),
+      0 0 0 1px rgba(0,255,136,0.05);
+  }
+  .card::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0,255,136,0.4), transparent);
+  }
+  .card-head {
+    display: grid; grid-template-columns: 40px 1fr auto; gap: 12px;
+    padding: 15px 16px 13px; align-items: start;
+    border-bottom: 1px solid var(--rule);
+  }
+  .ticker-icon {
+    width: 40px; height: 40px; border-radius: 9px; background: #0a0a0c;
+    border: 1px solid var(--rule-2); display: flex; align-items: center; justify-content: center;
+    color: var(--ink);
+  }
+  .ticker-icon svg { width: 20px; height: 20px; }
+  .ticker-meta { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .ticker-sym { font-family: var(--font-headline); font-size: 20px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
+  .ticker-name { font-size: 11px; color: var(--ink-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ticker-price { font-family: var(--font-mono); font-size: 11px; color: var(--slate); margin-top: 2px; }
+  .ticker-price .unit { color: var(--ink-dimmer); }
+  .card-chart { width: 132px; height: 44px; align-self: end; }
+
+  /* ─── predictions strip (toggle) ─── */
+  .pred-strip {
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 16px;
+    background: rgba(0,0,0,0.18);
+    border-bottom: 1px solid var(--rule);
+    cursor: pointer; user-select: none;
+    width: 100%; border-left: 0; border-right: 0; border-top: 0;
+    text-align: left; color: inherit; font: inherit;
+  }
+  .pred-strip-lbl {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink-dim);
+  }
+  .pred-strip-score {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    color: var(--ink-dim); white-space: nowrap;
+  }
+  .pred-strip-score b { color: var(--positive); font-weight: 600; }
+  .pred-strip .spacer { flex: 1; }
+  .pred-strip-chev {
+    color: var(--ink-dimmer); display: inline-flex; transition: transform 0.18s ease;
+  }
+  .pred-strip[aria-expanded="true"] .pred-strip-chev { transform: rotate(180deg); }
+
+  /* ─── predictions panel ─── */
+  .pred-panel {
+    background: var(--panel);
+    max-height: 372px;
+    overflow-y: auto;
+    border-bottom: 1px solid var(--rule);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.12) transparent;
+  }
+  .pred-panel::-webkit-scrollbar { width: 8px; }
+  .pred-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); border-radius: 4px; border: 2px solid transparent; background-clip: content-box; }
+  .pred-panel[hidden] { display: none; }
+
+  /* section label */
+  .pred-section {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 16px;
+    position: sticky; top: 0; z-index: 2;
+    background: var(--card-2);
+    border-bottom: 1px solid var(--rule-2);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.3);
+  }
+  .pred-section-lbl {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--ink);
+  }
+  .pred-section-count {
+    font-family: var(--font-mono); font-size: 9.5px; font-weight: 600; color: var(--ink-dim);
+    background: rgba(255,255,255,0.06); border: 1px solid var(--rule-2);
+    padding: 1px 6px; border-radius: 20px; line-height: 1.5;
+  }
+  .pred-section .line { flex: 1; }
+
+  /* filter button on resolved header */
+  .pred-filter { position: relative; display: flex; }
+  .pred-filter-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--font-mono); font-size: 9.5px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-dim);
+    background: rgba(255,255,255,0.04); border: 1px solid var(--rule-2);
+    border-radius: 6px; padding: 4px 7px 4px 8px; cursor: pointer;
+    transition: color .15s, border-color .15s, background .15s;
+  }
+  .pred-filter-btn:hover { color: var(--ink); border-color: var(--rule-2); }
+  .pred-filter-btn[aria-expanded="true"] { color: var(--ink); border-color: var(--positive-dim); background: rgba(0,255,136,0.06); }
+  .pred-filter-btn svg { width: 11px; height: 11px; opacity: 0.8; }
+  .pred-filter-btn .chev { transition: transform .18s ease; }
+  .pred-filter-btn[aria-expanded="true"] .chev { transform: rotate(180deg); }
+  .pred-filter-btn .active-dot {
+    width: 5px; height: 5px; border-radius: 50%; background: var(--positive);
+    box-shadow: 0 0 5px rgba(0,255,136,0.6); margin-left: -1px;
+  }
+
+  /* dropdown menu (fixed so panel overflow can't clip it) */
+  .pred-menu {
+    position: fixed; z-index: 50; min-width: 176px;
+    background: var(--card-2); border: 1px solid var(--rule-2);
+    border-radius: 9px; box-shadow: 0 18px 44px -12px rgba(0,0,0,0.85), 0 0 0 1px rgba(0,0,0,0.4);
+    padding: 5px;
+  }
+  .pred-menu[hidden] { display: none; }
+  .pred-menu-grp {
+    font-family: var(--font-mono); font-size: 8.5px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--ink-faint); padding: 7px 9px 5px;
+  }
+  .pred-menu-item {
+    display: flex; align-items: center; gap: 9px; width: 100%;
+    font-family: var(--font-mono); font-size: 11px; color: var(--ink-dim);
+    background: none; border: none; text-align: left;
+    padding: 6px 9px; border-radius: 6px; cursor: pointer;
+    transition: background .12s, color .12s;
+  }
+  .pred-menu-item:hover { background: rgba(255,255,255,0.05); color: var(--ink); }
+  .pred-menu-item[aria-checked="true"] { color: var(--ink); }
+  .pred-menu-item .swatch { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+  .pred-menu-item .swatch.all       { background: var(--ink-dimmer); }
+  .pred-menu-item .swatch.correct   { background: var(--positive); }
+  .pred-menu-item .swatch.partial   { background: var(--amber); }
+  .pred-menu-item .swatch.incorrect { background: var(--negative); }
+  .pred-menu-item .sort-ico { display: inline-flex; color: var(--ink-dimmer); }
+  .pred-menu-item .check { margin-left: auto; color: var(--positive); opacity: 0; }
+  .pred-menu-item[aria-checked="true"] .check { opacity: 1; }
+  .pred-menu-sep { height: 1px; background: var(--rule); margin: 5px 4px; }
+
+  .pred-empty {
+    font-family: var(--font-mono); font-size: 11px; color: var(--ink-dimmer);
+    padding: 18px 16px; text-align: center;
+  }
+
+  /* ─── one prediction row ─── */
+  .pr {
+    display: grid;
+    grid-template-columns: 2px 1fr;
+    gap: 12px;
+    padding: 0;
+    border-top: 1px solid var(--rule);
+  }
+  .pred-section + .pr { border-top: none; }
+  .pr-rail { background: transparent; }
+  .pr[data-status="pending"]    .pr-rail { background: var(--slate); opacity: 0.18; }
+
+  .pr-body { padding: 8px 16px 9px 4px; min-width: 0; }
+
+  /* resolved rows: same flush + railed layout as pending, filled with outcome color */
+  #resolved-rows .pr:first-child { border-top: none; }
+  .pr[data-status="resolved"][data-outcome="CORRECT"]   { background: rgba(0,255,136,0.055); }
+  .pr[data-status="resolved"][data-outcome="PARTIAL"]   { background: rgba(230,169,76,0.06); }
+  .pr[data-status="resolved"][data-outcome="INCORRECT"] { background: rgba(255,68,68,0.055); }
+  .pr[data-outcome="CORRECT"]   .pr-rail { background: var(--positive); opacity: 0.55; }
+  .pr[data-outcome="PARTIAL"]   .pr-rail { background: var(--amber); opacity: 0.55; }
+  .pr[data-outcome="INCORRECT"] .pr-rail { background: var(--negative); opacity: 0.5; }
+
+  /* line 1 — the forecast + its resolution */
+  .pr-top { display: flex; align-items: baseline; gap: 10px; }
+  .pr-forecast { display: flex; align-items: baseline; gap: 9px; min-width: 0; }
+  .pr-dir {
+    font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+    letter-spacing: 0.02em; white-space: nowrap;
+  }
+  .pr-dir .gly { font-size: 11px; margin-right: 3px; }
+  .pr-dir.up   { color: var(--positive); }
+  .pr-dir.down { color: var(--negative); }
+  .pr-dir.flat { color: var(--slate); }
+  .pr-mag { font-family: var(--font-mono); font-size: 12px; color: var(--ink); font-weight: 500; }
+
+  .pr-res { margin-left: auto; font-family: var(--font-mono); font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .pr-res .act { font-weight: 400; color: var(--ink-dimmer); margin-left: 3px; }
+  .pr-res.correct   { color: var(--positive); }
+  .pr-res.partial   { color: var(--amber); }
+  .pr-res.incorrect { color: var(--negative); }
+  .pr-res.pending   {
+    color: var(--ink-dim); font-weight: 500;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .pr-res.pending .ring {
+    width: 6px; height: 6px; border-radius: 50%;
+    border: 1.5px solid var(--slate); opacity: 0.55; display: inline-block;
+  }
+
+  /* ─── resolved: predicted → actual comparison group ─── */
+  .pr-compare {
+    display: flex; align-items: center; gap: 12px;
+    padding: 0;
+  }
+
+  .cmp-cell { display: flex; flex-direction: column; gap: 2px; }
+  .cmp-lbl {
+    font-family: var(--font-mono); font-size: 8.5px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink-dimmer); white-space: nowrap;
+  }
+  .cmp-lbl.now-lbl { text-align: center; }
+  .cmp-val {
+    font-family: var(--font-mono); font-size: 15px; font-weight: 600; letter-spacing: 0.01em;
+    color: var(--ink); display: inline-flex; align-items: baseline; gap: 3px; white-space: nowrap;
+  }
+  .cmp-val .gly { font-size: 10px; }
+  .cmp-val.up   { color: var(--positive); }
+  .cmp-val.down { color: var(--negative); }
+  .cmp-val.flat { color: var(--slate); }
+  .cmp-val.pend { color: var(--ink-faint); font-weight: 500; letter-spacing: 0.1em; min-height: 1em; }
+
+  .cmp-bridge {
+    display: inline-flex; flex-direction: column; align-items: center; gap: 2px;
+    margin-top: 11px; flex: none;
+  }
+  .cmp-horizon {
+    font-family: var(--font-mono); font-size: 8.5px; font-weight: 600;
+    letter-spacing: 0.06em; color: var(--ink-dimmer); line-height: 1;
+  }
+  .cmp-arrow { color: var(--ink-faint); display: block; }
+
+  .cmp-verdict {
+    margin-left: auto; flex: none;
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+    letter-spacing: 0.06em; padding: 4px 8px; border-radius: 20px;
+  }
+  .cmp-verdict.correct   { color: var(--positive); background: rgba(0,255,136,0.12); }
+  .cmp-verdict.partial   { color: var(--amber);    background: rgba(230,169,76,0.14); }
+  .cmp-verdict.incorrect { color: var(--negative); background: rgba(255,68,68,0.13); }
+  .cmp-verdict.pending {
+    color: var(--ink-dim); background: rgba(148,163,184,0.10); font-weight: 600;
+  }
+  .cmp-verdict.pending .time-ring { color: var(--slate); flex: none; }
+  .cmp-verdict svg { flex: none; }
+
+  /* line 2 — parameters, one quiet mono line */
+  .pr-meta {
+    display: flex; align-items: center; gap: 7px;
+    margin-top: 4px;
+    font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-dim);
+    white-space: nowrap;
+  }
+  .pr-meta > span { white-space: nowrap; }
+  .pr-meta .k { color: var(--ink-dimmer); }
+  .pr-meta .sep { color: var(--ink-faint); }
+
+  /* line 3 — reasoning, expandable */
+  .pr-why {
+    margin-top: 5px; width: 100%; text-align: left; cursor: pointer;
+    background: none; border: none; padding: 0; display: block;
+    font-family: var(--font-body); font-size: 11.5px; line-height: 1.5;
+    color: var(--ink-dimmer);
+    transition: color 0.15s ease;
+  }
+  .pr-why:hover { color: var(--ink-dim); }
+  .pr-why .txt {
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1;
+    overflow: hidden;
+  }
+  .pr-why.open .txt { -webkit-line-clamp: unset; color: var(--ink-dim); }
+</style>
+</head>
+<body>
+
+<section class="notes">
+  <div class="notes-eyebrow">Pulse · Predictions</div>
+  <h1>Prediction list, calmed down.</h1>
+  <p>
+    The old list repeated <b>seven uppercase labels</b> on every card — the labels
+    out-shouted the data. This version leads with the forecast, trails it with the
+    outcome, and folds the rest into one quiet line.
+  </p>
+  <ul>
+    <li><b>Forecast leads.</b> Direction + magnitude, color-coded, read first.</li>
+    <li><b>Resolution trails.</b> Outcome (with actual %) or time-left, right-aligned.</li>
+    <li><b>One meta line.</b> Conf · horizon · date · price — no stacked labels.</li>
+    <li><b>Status rail</b> keys correct / partial / incorrect down the edge.</li>
+    <li><b>Pending &amp; resolved</b> split into two quiet sections.</li>
+    <li><b>Reasoning</b> stays one line; tap to expand.</li>
+  </ul>
+</section>
+
+<div class="card">
+  <div class="card-head">
+    <div class="ticker-icon">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12 2a4 4 0 0 0-4 4v10a4 4 0 1 0 8 0V6a4 4 0 0 0-4-4Zm-2 4a2 2 0 1 1 4 0v10a2 2 0 1 1-4 0V6Z"/>
+        <circle cx="12" cy="20" r="2"/>
+      </svg>
+    </div>
+    <div class="ticker-meta">
+      <div class="ticker-sym">PLTR</div>
+      <div class="ticker-name">Palantir Technologies Inc</div>
+      <div class="ticker-price">$142.27 <span class="unit">/ SH</span></div>
+    </div>
+    <div class="card-chart" id="chart-mount"></div>
+  </div>
+
+  <button class="pred-strip" id="pred-strip" aria-expanded="true" aria-controls="pred-panel">
+    <span class="pred-strip-lbl">Predictions</span>
+    <span class="pred-strip-score"><b>2</b>/8 correct</span>
+    <span class="spacer"></span>
+    <span class="pred-strip-chev">
+      <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 5 7 9 11 5"/></svg>
+    </span>
+  </button>
+
+  <div class="pred-panel" id="pred-panel"></div>
+</div>
+
+<script src="chart-data.js"></script>
+<script>
+  /* ── sparkline (reused V2 treatment) ── */
+  (function () {
+    const MAIN = window.CHART_MAIN, PRED = window.CHART_PRED;
+    const smoothPath = window.smoothPath, downsample = window.downsample;
+    function ticks() {
+      return [4,38,72,106].map((x,i)=>{
+        const lbl=['FEB','MAR','APR','MAY'][i], now=i===3;
+        return `<text x="${x}" y="33" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="4.5" letter-spacing="0.5" font-weight="${now?600:500}" fill="rgba(255,255,255,${now?0.5:0.28})">${lbl}</text>`;
+      }).join('');
+    }
+    const ds = downsample(MAIN, 36), last = ds[ds.length-1];
+    const area = `${smoothPath(ds)} L ${ds[ds.length-1][0]} 26 L ${ds[0][0]} 26 Z`;
+    document.getElementById('chart-mount').innerHTML = `
+      <svg viewBox="-3 -1 116 38" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style="overflow:visible;display:block;">
+        <defs>
+          <linearGradient id="ar" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#00ff88" stop-opacity="0.32"/>
+            <stop offset="60%" stop-color="#00cc6e" stop-opacity="0.08"/>
+            <stop offset="100%" stop-color="#00ff88" stop-opacity="0"/>
+          </linearGradient>
+          <linearGradient id="ln" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#00cc6e"/><stop offset="100%" stop-color="#00ff88"/>
+          </linearGradient>
+        </defs>
+        ${ticks()}
+        <path d="${smoothPath(PRED)}" fill="none" stroke="rgba(148,163,184,0.22)" stroke-width="0.6" stroke-linecap="round"/>
+        <path d="${area}" fill="url(#ar)"/>
+        <path d="${smoothPath(ds)}" fill="none" stroke="url(#ln)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="${last[0]}" cy="${last[1]}" r="2.4" fill="#00ff88" fill-opacity="0.18"/>
+        <circle cx="${last[0]}" cy="${last[1]}" r="1.2" fill="#00ff88"/>
+      </svg>`;
+  })();
+
+  /* ── prediction data ── */
+  const CURRENT_PRICE = 142.27;
+  const GLY = { UP: '▲', DOWN: '▼', FLAT: '→' };
+  const PREDICTIONS = [
+    // pending
+    { dir:'FLAT', mag:1.2, conf:0.80, horizon:1,  run:'May 27', price:133.04, daysLeft:1,  status:'pending',
+      why:'1d horizon defaults to FLAT absent a strong same-day catalyst. No earnings, no regulatory event, no sharp technical setup. VIX at 17 and a risk-on regime provide no edge intraday.' },
+    { dir:'UP',   mag:8.0, conf:0.72, horizon:30, run:'May 14', price:133.76, daysLeft:17, status:'pending',
+      why:'30-day horizon favors macro regime and sector momentum. Government-contract pipeline expanding and relative strength vs. peers holding through the drawdown. Conviction moderate given broad-market beta.' },
+    { dir:'DOWN', mag:3.5, conf:0.61, horizon:7,  run:'May 24', price:135.10, daysLeft:4,  status:'pending',
+      why:'Short-term momentum rolling over after a failed retest of the April high. RSI divergence and thinning volume argue for a modest pullback into the 7-day window.' },
+    // resolved
+    { dir:'UP',   mag:5.0, conf:0.68, horizon:14, run:'May 06', price:128.40, status:'resolved', outcome:'CORRECT',   actual:6.1,
+      why:'Two-week setup favored continuation off the early-May base; earnings strength and guidance raise validated the directional call.' },
+    { dir:'FLAT', mag:1.2, conf:0.80, horizon:1,  run:'May 20', price:138.90, status:'resolved', outcome:'INCORRECT', actual:-3.2,
+      why:'Called FLAT on a quiet 1-day horizon, but an unscheduled sector sell-off dragged the name down sharply. Single-session shocks remain the hardest miss to hedge.' },
+    { dir:'UP',   mag:4.0, conf:0.65, horizon:7,  run:'May 11', price:131.20, status:'resolved', outcome:'PARTIAL',   actual:1.4,
+      why:'Direction was right but magnitude overshot — the move materialized at roughly a third of the predicted size as the rally stalled mid-week.' },
+    { dir:'DOWN', mag:6.0, conf:0.70, horizon:14, run:'Apr 22', price:151.30, status:'resolved', outcome:'CORRECT',   actual:-7.4,
+      why:'Macro de-risking and a broad tech rotation supported the bearish two-week call; the position drew down past the predicted band.' },
+    { dir:'UP',   mag:3.0, conf:0.58, horizon:7,  run:'Apr 30', price:140.10, status:'resolved', outcome:'INCORRECT', actual:-2.6,
+      why:'Low-conviction long into resistance failed; the name reversed at the prior swing high instead of breaking out as the model leaned.' },
+  ];
+
+  function fmtActual(v) { return `(${v >= 0 ? '+' : ''}${v.toFixed(1)}%)`; }
+  function signed(v) { return `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(1)}%`; }
+
+  // small radial donut showing fraction of horizon remaining
+  function timeRing(daysLeft, horizon) {
+    const frac = Math.max(0, Math.min(1, daysLeft / horizon));
+    const r = 5, c = 2 * Math.PI * r, on = frac * c;
+    return `<svg class="time-ring" viewBox="0 0 14 14" width="13" height="13" aria-hidden="true">
+      <circle cx="7" cy="7" r="${r}" fill="none" stroke="currentColor" stroke-width="2" opacity="0.22"/>
+      <circle cx="7" cy="7" r="${r}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-dasharray="${on.toFixed(2)} ${(c - on).toFixed(2)}" transform="rotate(-90 7 7)"/>
+    </svg>`;
+  }
+
+  // arrow length scales with prediction horizon (longer prediction = longer arrow)
+  function arrowSVG(horizon) {
+    const h = Math.max(1, Math.min(30, horizon));
+    const W = Math.round(22 + ((h - 1) / 29) * 40); // 1d → 22px, 30d → 62px
+    const tip = W - 1, base = tip - 5;
+    return `<svg class="cmp-arrow" viewBox="0 0 ${W} 12" width="${W}" height="12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="1" y1="6" x2="${tip - 0.5}" y2="6"/><polyline points="${base} 2 ${tip} 6 ${base} 10"/></svg>`;
+  }
+
+  // predicted move as a signed target: UP → +mag, DOWN → −mag, FLAT → ±band
+  function predictedDisplay(p) {
+    if (p.dir === 'FLAT') return { cls: 'flat', text: `±${p.mag.toFixed(1)}%` };
+    if (p.dir === 'UP')   return { cls: 'up',   text: `+${p.mag.toFixed(1)}%` };
+    return { cls: 'down', text: `−${p.mag.toFixed(1)}%` };
+  }
+
+  const VERDICT_ICON = {
+    CORRECT:   '<svg viewBox="0 0 14 14" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="2.5 7.5 6 10.5 11.5 3.5"/></svg>',
+    PARTIAL:   '<svg viewBox="0 0 14 14" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="3" y1="7" x2="11" y2="7"/></svg>',
+    INCORRECT: '<svg viewBox="0 0 14 14" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="3.5" y1="3.5" x2="10.5" y2="10.5"/><line x1="10.5" y1="3.5" x2="3.5" y2="10.5"/></svg>'
+  };
+
+  function metaHTML(p, opts) {
+    const showHorizon = !(opts && opts.skipHorizon);
+    return `
+      <div class="pr-meta">
+        <span>${Math.round(p.conf*100)}% <span class="k">conf</span></span>
+        ${showHorizon ? `<span class="sep">·</span><span>${p.horizon}d</span>` : ''}
+        <span class="sep">·</span>
+        <span>${p.run}</span>
+        <span class="sep">·</span>
+        <span>$${p.price.toFixed(2)}</span>
+      </div>`;
+  }
+
+  function pendingRowHTML(p) {
+    const pred = predictedDisplay(p);
+    const nowMove = ((CURRENT_PRICE - p.price) / p.price) * 100;
+    return `
+      <article class="pr" data-status="pending">
+        <div class="pr-rail"></div>
+        <div class="pr-body">
+          <div class="pr-compare" data-outcome="PENDING">
+            <div class="cmp-cell">
+              <span class="cmp-lbl">Predicted</span>
+              <span class="cmp-val ${pred.cls}">${pred.text}</span>
+            </div>
+            <span class="cmp-bridge" aria-hidden="true">
+              <span class="cmp-horizon">${p.horizon}d</span>
+              ${arrowSVG(p.horizon)}
+            </span>
+            <div class="cmp-cell">
+              <span class="cmp-lbl now-lbl">Now</span>
+              <span class="cmp-val act ${nowMove >= 0 ? 'up' : 'down'}">${signed(nowMove)}</span>
+            </div>
+            <span class="cmp-verdict pending">${timeRing(p.daysLeft, p.horizon)}${p.daysLeft}d left</span>
+          </div>
+          ${metaHTML(p, { skipHorizon: true })}
+          <button class="pr-why" type="button"><span class="txt">${p.why}</span></button>
+        </div>
+      </article>`;
+  }
+
+  function resolvedRowHTML(p) {
+    const pred = predictedDisplay(p);
+    const oc = p.outcome.toLowerCase();
+    const actDir = p.actual >= 0 ? 'up' : 'down';
+    return `
+      <article class="pr" data-status="resolved" data-outcome="${p.outcome}">
+        <div class="pr-rail"></div>
+        <div class="pr-body">
+          <div class="pr-compare" data-outcome="${p.outcome}">
+            <div class="cmp-cell">
+              <span class="cmp-lbl">Predicted</span>
+              <span class="cmp-val ${pred.cls}">${pred.text}</span>
+            </div>
+            <span class="cmp-bridge" aria-hidden="true">
+              <span class="cmp-horizon">${p.horizon}d</span>
+              ${arrowSVG(p.horizon)}
+            </span>
+            <div class="cmp-cell">
+              <span class="cmp-lbl now-lbl">Actual</span>
+              <span class="cmp-val act ${actDir}">${signed(p.actual)}</span>
+            </div>
+            <span class="cmp-verdict ${oc}">${VERDICT_ICON[p.outcome]}${p.outcome}</span>
+          </div>
+          ${metaHTML(p, { skipHorizon: true })}
+          <button class="pr-why" type="button"><span class="txt">${p.why}</span></button>
+        </div>
+      </article>`;
+  }
+
+  function rowHTML(p) {
+    return p.status === 'pending' ? pendingRowHTML(p) : resolvedRowHTML(p);
+  }
+
+  function sectionHTML(label, count, group, extra) {
+    return `<div class="pred-section" data-group="${group}"><span class="pred-section-lbl">${label}</span><span class="pred-section-count" data-count="${group}">${count}</span><span class="line"></span>${extra || ''}</div>`;
+  }
+
+  const FILTER_BTN = `
+    <div class="pred-filter">
+      <button class="pred-filter-btn" id="filter-btn" aria-haspopup="true" aria-expanded="false">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 2.5h11l-4.2 5v4l-2.6 1.2v-5.2z"/></svg>
+        <span id="filter-label">Newest</span>
+        <span class="active-dot" id="filter-dot" hidden></span>
+        <span class="chev" aria-hidden="true"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 5 7 9 11 5"/></svg></span>
+      </button>
+    </div>`;
+
+  const SORT_ICO = {
+    newest: '<svg viewBox="0 0 14 14" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="2.5" x2="4" y2="11.5"/><polyline points="1.5 9 4 11.5 6.5 9"/><line x1="8.5" y1="3.5" x2="12.5" y2="3.5"/><line x1="8.5" y1="7" x2="11.5" y2="7"/><line x1="8.5" y1="10.5" x2="10.5" y2="10.5"/></svg>',
+    oldest: '<svg viewBox="0 0 14 14" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="2.5" x2="4" y2="11.5"/><polyline points="1.5 5 4 2.5 6.5 5"/><line x1="8.5" y1="3.5" x2="10.5" y2="3.5"/><line x1="8.5" y1="7" x2="11.5" y2="7"/><line x1="8.5" y1="10.5" x2="12.5" y2="10.5"/></svg>'
+  };
+
+  const MENU = `
+    <div class="pred-menu" id="filter-menu" hidden role="menu">
+      <div class="pred-menu-grp">Outcome</div>
+      <button class="pred-menu-item" role="menuitemradio" data-kind="outcome" data-val="all" aria-checked="true"><span class="swatch all"></span>All<span class="check" aria-hidden="true">✓</span></button>
+      <button class="pred-menu-item" role="menuitemradio" data-kind="outcome" data-val="CORRECT" aria-checked="false"><span class="swatch correct"></span>Correct<span class="check" aria-hidden="true">✓</span></button>
+      <button class="pred-menu-item" role="menuitemradio" data-kind="outcome" data-val="PARTIAL" aria-checked="false"><span class="swatch partial"></span>Partial<span class="check" aria-hidden="true">✓</span></button>
+      <button class="pred-menu-item" role="menuitemradio" data-kind="outcome" data-val="INCORRECT" aria-checked="false"><span class="swatch incorrect"></span>Incorrect<span class="check" aria-hidden="true">✓</span></button>
+      <div class="pred-menu-sep"></div>
+      <div class="pred-menu-grp">Sort by date</div>
+      <button class="pred-menu-item" role="menuitemradio" data-kind="sort" data-val="newest" aria-checked="true"><span class="sort-ico">${SORT_ICO.newest}</span>Newest first<span class="check" aria-hidden="true">✓</span></button>
+      <button class="pred-menu-item" role="menuitemradio" data-kind="sort" data-val="oldest" aria-checked="false"><span class="sort-ico">${SORT_ICO.oldest}</span>Oldest first<span class="check" aria-hidden="true">✓</span></button>
+    </div>`;
+
+  const MONTHS = { Jan:0, Feb:1, Mar:2, Apr:3, May:4, Jun:5, Jul:6, Aug:7, Sep:8, Oct:9, Nov:10, Dec:11 };
+  function runTs(run) { const [m, d] = run.split(' '); return new Date(2026, MONTHS[m] ?? 0, parseInt(d, 10)).getTime(); }
+
+  const pending  = PREDICTIONS.filter(p => p.status === 'pending');
+  const resolved = PREDICTIONS.filter(p => p.status === 'resolved');
+  const panel = document.getElementById('pred-panel');
+
+  let html = '';
+  if (pending.length)  html += sectionHTML('Pending', pending.length, 'pending') + pending.map(rowHTML).join('');
+  if (resolved.length) html += sectionHTML('Resolved', resolved.length, 'resolved', FILTER_BTN) + `<div id="resolved-rows"></div>` + MENU;
+  panel.innerHTML = html;
+
+  /* ── resolved filter + sort ── */
+  const state = { outcome: 'all', sort: 'newest' };
+  const resolvedRows = document.getElementById('resolved-rows');
+  const resolvedCount = panel.querySelector('[data-count="resolved"]');
+
+  function renderResolved() {
+    let list = resolved.slice();
+    if (state.outcome !== 'all') list = list.filter(p => p.outcome === state.outcome);
+    list.sort((a, b) => state.sort === 'newest' ? runTs(b.run) - runTs(a.run) : runTs(a.run) - runTs(b.run));
+    resolvedRows.innerHTML = list.length
+      ? list.map(rowHTML).join('')
+      : `<div class="pred-empty">No ${state.outcome.toLowerCase()} predictions</div>`;
+    resolvedCount.textContent = state.outcome === 'all' ? resolved.length : `${list.length}/${resolved.length}`;
+
+    const label = document.getElementById('filter-label');
+    const dot = document.getElementById('filter-dot');
+    const names = { all: 'Newest', CORRECT: 'Correct', PARTIAL: 'Partial', INCORRECT: 'Incorrect' };
+    if (state.outcome !== 'all') { label.textContent = names[state.outcome]; }
+    else { label.textContent = state.sort === 'newest' ? 'Newest' : 'Oldest'; }
+    dot.hidden = (state.outcome === 'all');
+  }
+  renderResolved();
+
+  /* menu open/close (fixed position under the button) */
+  const filterBtn = document.getElementById('filter-btn');
+  const menu = document.getElementById('filter-menu');
+
+  function positionMenu() {
+    const r = filterBtn.getBoundingClientRect();
+    menu.style.top = (r.bottom + 6) + 'px';
+    menu.style.left = Math.max(8, r.right - menu.offsetWidth) + 'px';
+  }
+  function openMenu() {
+    menu.hidden = false;
+    positionMenu();
+    filterBtn.setAttribute('aria-expanded', 'true');
+  }
+  function closeMenu() {
+    menu.hidden = true;
+    filterBtn.setAttribute('aria-expanded', 'false');
+  }
+  filterBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    menu.hidden ? openMenu() : closeMenu();
+  });
+  menu.addEventListener('click', e => {
+    const item = e.target.closest('.pred-menu-item');
+    if (!item) return;
+    e.stopPropagation();
+    const kind = item.dataset.kind, val = item.dataset.val;
+    state[kind] = val;
+    menu.querySelectorAll(`[data-kind="${kind}"]`).forEach(b =>
+      b.setAttribute('aria-checked', String(b === item)));
+    renderResolved();
+  });
+  document.addEventListener('click', () => { if (!menu.hidden) closeMenu(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !menu.hidden) closeMenu(); });
+  panel.addEventListener('scroll', () => { if (!menu.hidden) positionMenu(); });
+  window.addEventListener('resize', () => { if (!menu.hidden) positionMenu(); });
+
+  /* reasoning expand */
+  panel.addEventListener('click', e => {
+    const btn = e.target.closest('.pr-why');
+    if (btn) btn.classList.toggle('open');
+  });
+
+  /* strip toggle */
+  const strip = document.getElementById('pred-strip');
+  strip.addEventListener('click', () => {
+    const open = strip.getAttribute('aria-expanded') === 'true';
+    strip.setAttribute('aria-expanded', String(!open));
+    panel.hidden = open;
+  });
+</script>
+
+</body>
+</html>

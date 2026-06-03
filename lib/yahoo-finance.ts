@@ -91,11 +91,11 @@ async function getCrumb(): Promise<{ crumb: string; cookie: string }> {
 
 export async function fetchYahooHistory(
   ticker: string,
-  days = 90
+  days = 520
 ): Promise<HistoryData> {
   const { crumb, cookie } = await getCrumb();
 
-  const url = `https://query2.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=6mo&crumb=${encodeURIComponent(crumb)}`;
+  const url = `https://query2.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=2y&crumb=${encodeURIComponent(crumb)}`;
   let res = await fetch(url, {
     headers: { ...YAHOO_HEADERS, Cookie: cookie, Accept: "application/json" },
   });
@@ -103,7 +103,7 @@ export async function fetchYahooHistory(
   if (res.status === 401 || res.status === 403) {
     crumbCache = null;
     const { crumb: freshCrumb, cookie: freshCookie } = await getCrumb();
-    const retryUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=6mo&crumb=${encodeURIComponent(freshCrumb)}`;
+    const retryUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=2y&crumb=${encodeURIComponent(freshCrumb)}`;
     res = await fetch(retryUrl, {
       headers: {
         ...YAHOO_HEADERS,

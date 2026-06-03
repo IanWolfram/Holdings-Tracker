@@ -1,7 +1,5 @@
 import * as THREE from "three";
 import {
-  CLUSTER_HOVER_SEP,
-  CLUSTER_REST_SEP,
   type HQMarkerState,
   type RenderState,
 } from "@/components/world/globe/types";
@@ -15,6 +13,10 @@ const _d = new THREE.Vector3();
 const _hoverBasePos = new THREE.Vector3();
 const _hoverWorldPos = new THREE.Vector3();
 const LOCAL_Y = new THREE.Vector3(0, 1, 0);
+const FORWARD = new THREE.Vector3(0, 0, 1);
+const _trackUp = new THREE.Vector3();
+const _trackQuat = new THREE.Quaternion();
+const TRACK_ZOOM = 1.7;
 let _labelTicker: string | null = null;
 let _svgMountRect: DOMRect | null = null;
 let _svgMountRectTs = 0;
@@ -32,6 +34,7 @@ export function animateGlobe(
   selectedDiamond: THREE.Mesh | null,
   hoveredMarkerTicker: string | null,
   focusedTicker: string | null,
+  focusedCountryCode: string | null,
   isFocused: boolean,
   targetQuat: THREE.Quaternion | null,
   focusZoom: number,
@@ -39,13 +42,15 @@ export function animateGlobe(
   mount: HTMLDivElement,
   state: RenderState,
   renderer: THREE.WebGLRenderer,
-  showProposed: boolean = true
+  showProposed: boolean = true,
+  trackedLocal: THREE.Vector3 | null = null
 ) {
   const animNow = performance.now();
   const dt = _lastAnimTime ? Math.min((animNow - _lastAnimTime) / 1000, 0.1) : 0.016;
   _lastAnimTime = animNow;
 
-  const effectiveTarget = isFocused ? focusZoom : state.targetZoom;
+  const isTracking = trackedLocal !== null;
+  const effectiveTarget = isTracking ? TRACK_ZOOM : isFocused ? focusZoom : state.targetZoom;
   camera.position.z += (effectiveTarget - camera.position.z) * 0.16;
 
   if (scene.fog instanceof THREE.Fog) {
@@ -54,7 +59,16 @@ export function animateGlobe(
   }
 
   if (!state.isDragging) {
-    if (isFocused && targetQuat) {
+    if (isTracking && trackedLocal) {
+      // Rotate the globe so the tracked vehicle's current position faces the
+      // camera. trackedLocal updates every frame as the vehicle moves, so the
+      // camera continuously follows it along its route.
+      _trackUp.copy(trackedLocal).normalize();
+      _trackQuat.setFromUnitVectors(_trackUp, FORWARD);
+      globeGroup.quaternion.slerp(_trackQuat, 0.1);
+      state.dragVelocity.x *= 0.9;
+      state.dragVelocity.y *= 0.9;
+    } else if (isFocused && targetQuat) {
       globeGroup.quaternion.slerp(targetQuat, 0.055);
       state.dragVelocity.x *= 0.9;
       state.dragVelocity.y *= 0.9;
@@ -89,28 +103,35 @@ export function animateGlobe(
     for (const ms of hqMarkers) {
       const prevHoverT = ms.hoverT;
       const prevSepT = ms.separationT;
+      const prevFocusT = ms.focusT;
       const isHovered = ms.ticker === hoveredMarkerTicker;
       const isFocusedMarker = ms.ticker === focusedTicker;
       const effectiveVisible = ms.isProposed ? showProposed && ms.visible : ms.visible;
       ms.hoverT += ((isHovered ? 1 : 0) - ms.hoverT) * 0.14;
 
-      if (ms.eastDir !== null && ms.clusterPeers.length > 1) {
-        const anyPeerActive = hoveredMarkerTicker !== null && ms.clusterPeers.includes(hoveredMarkerTicker);
-        ms.separationT += ((anyPeerActive ? 1 : 0) - ms.separationT) * 0.10;
+      // Clustered markers spread onto a circle when a peer is hovered
+      // (separationT) or when their country is focused (focusT). Either one
+      // pulls them off the shared origin point so they're never stacked.
+      if (ms.spreadOffset !== null) {
+        const peerHovered = hoveredMarkerTicker !== null && ms.clusterPeers.includes(hoveredMarkerTicker);
+        const countryFocused = focusedCountryCode !== null && ms.countryCode === focusedCountryCode;
+        ms.separationT += ((peerHovered ? 1 : 0) - ms.separationT) * 0.10;
+        ms.focusT += ((countryFocused ? 1 : 0) - ms.focusT) * 0.10;
       }
 
       if (
         Math.abs(ms.hoverT - prevHoverT) > 1e-4 ||
         Math.abs(ms.separationT - prevSepT) > 1e-4 ||
+        Math.abs(ms.focusT - prevFocusT) > 1e-4 ||
         ms.renderedVisible !== effectiveVisible
       ) {
         hitDirty = true;
       }
       ms.renderedVisible = effectiveVisible;
 
-      const sepDist = CLUSTER_REST_SEP + (CLUSTER_HOVER_SEP - CLUSTER_REST_SEP) * ms.separationT;
-      if (ms.eastDir) {
-        _tmpPos.copy(ms.basePos).addScaledVector(ms.eastDir, ms.sepIndex * sepDist);
+      const spreadT = Math.max(ms.focusT, ms.separationT);
+      if (ms.spreadOffset) {
+        _tmpPos.copy(ms.basePos).addScaledVector(ms.spreadOffset, spreadT);
       } else {
         _tmpPos.copy(ms.basePos);
       }
@@ -135,6 +156,14 @@ export function animateGlobe(
       ms.group.visible = shouldBeVisible && !isFocusedMarker;
 
       if (ms.group.visible) {
+        // Move the visible meshes onto the spread position. (Only clustered
+        // markers have a spreadOffset; lone markers stay at their build-time
+        // position, so skip the per-frame writes for them.)
+        if (ms.spreadOffset) {
+          ms.sphere.position.copy(_tmpPos);
+          ms.hoverDiamond.position.copy(_tmpPos).addScaledVector(ms.outward, ms.dHalfH);
+        }
+
         // Sphere: fade out and shrink as hoverT rises, scaled by camera zoom
         const sphereMat = ms.sphere.material as THREE.MeshBasicMaterial;
         const sphereOpacity = 1 - ms.hoverT;
@@ -172,13 +201,11 @@ export function animateGlobe(
     ? (labelMs.ticker === focusedTicker ? 1 : labelMs.hoverT)
     : 0;
   if (labelEl && labelMs && labelOpacity > 0.01) {
-    const sepDist2 =
-      CLUSTER_REST_SEP +
-      (CLUSTER_HOVER_SEP - CLUSTER_REST_SEP) * labelMs.separationT;
-    if (labelMs.eastDir) {
+    if (labelMs.spreadOffset) {
+      const labelSpreadT = Math.max(labelMs.focusT, labelMs.separationT);
       _hoverBasePos
         .copy(labelMs.basePos)
-        .addScaledVector(labelMs.eastDir, labelMs.sepIndex * sepDist2);
+        .addScaledVector(labelMs.spreadOffset, labelSpreadT);
     } else {
       _hoverBasePos.copy(labelMs.basePos);
     }
