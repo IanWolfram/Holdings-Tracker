@@ -55,7 +55,9 @@ No test framework is configured. There are no test commands.
 
 Secrets (API keys, E\*TRADE consumer credentials, etc.) live in the Supabase **`app_secrets`** table — one source of truth across environments. `lib/secrets.ts` `hydrateSecrets()` reads them at server boot (from `src/instrumentation.ts`, Node runtime only) and copies them into `process.env`, so the rest of the app keeps reading `process.env.X`. **An explicitly-set env var (e.g. from `.env.local`) always wins** — hydration only fills keys that are unset.
 
-CLI entry points (`scripts/agent.ts`, `world-refresh`) bypass instrumentation and must call `hydrateSecrets()` themselves. The Supabase connection vars (`NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`) must stay in the real environment — they're needed to read `app_secrets` and so can't be sourced from it.
+CLI entry points (`scripts/agent.ts`, `world-refresh`) bypass instrumentation and must call `hydrateSecrets()` themselves. The Supabase connection vars (`NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`) must stay in the real environment — they're needed to read `app_secrets` and so can't be sourced from it. Application/script code reads `process.env`; it must **not** parse `.env.local` itself. Let the runtime load it (e.g. `npx tsx --env-file=.env.local …`) so `process.env` is the single interface.
+
+**Inspect the secrets:** `npx tsx --env-file=.env.local scripts/list-secrets.ts` lists every key in `app_secrets` (values masked; add `--reveal` to print them in full).
 
 ## E\*TRADE Environment (`ETRADE_ENV`)
 
@@ -164,7 +166,7 @@ A self-scoring directional-forecast loop. The agent emits dated predictions, the
 - **Supabase** — Auth (email + password + confirmation), Postgres (RLS-protected), `app_secrets` config table.
 - **DeepSeek API** — `https://api.deepseek.com/v1`, model `deepseek-chat` (override `DEEPSEEK_MODEL`). Requires `DEEPSEEK_API_KEY`. OpenAI is a supported alternate base URL in `brain.ts`.
 - **E\*TRADE OAuth 1.0a** — tokens expire daily at midnight ET. Re-authorize via `/api/etrade/auth` in the browser, or `npm run etrade:auth` from the CLI.
-- **News/market**: Finnhub, Polygon, NewsAPI. Extra signal sources: Congress trades (`lib/apify-congress.ts`, `/api/congress`) and insider activity (`lib/insiders.ts`).
+- **News/market**: Finnhub, Polygon, NewsAPI. Extra signal sources: Congress trades and insider activity (`lib/insiders.ts` → `/api/congress`). Congress data comes from our own **official-source ingester** (`lib/congress/`: House Clerk PTRs + Senate eFD → parse → `@unitedstates/congress-legislators` roster join → Supabase `congress_trades`), refreshed by a daily cron and the `npm run congress:ingest` CLI. `lib/pelositracker.ts` is the legacy fallback (`CONGRESS_SOURCE=pelosi`); excess return is computed locally vs SPY. See `docs/congress-official-scraper-plan.md`. OCR for scanned/paper PTRs is deferred.
 - **Cloudflare Turnstile** — bot protection on `/signup`.
 
 ## Database Schema (Supabase)
@@ -177,5 +179,6 @@ Key tables (RLS-protected, `auth.uid() = user_id` unless system-scoped):
 - `vault_notes` — markdown body + JSONB frontmatter, unique on `(user_id, path)`.
 - `user_activity` — last-seen / last-refresh timestamps.
 - `app_secrets` — shared plaintext config (see Configuration & Secrets).
+- `congress_trades` — parsed congressional PTR rows (shared/public, no `user_id`; authenticated read-only, service-role writes). `congress_ingest_log` — per-filing ingest status for incremental runs (service-role only).
 
 Bootstrap trigger `handle_new_user()` inserts default `user_preferences` + `user_activity` rows on signup. Migrations live in `supabase/migrations/`.

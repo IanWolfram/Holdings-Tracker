@@ -1,25 +1,25 @@
 import type { CongressTrade } from "@/types/news.types";
 
-import { fetchCongressTrades } from "./pelositracker";
-
-const CONGRESS_CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
-let cache: { data: CongressTrade[]; expiresAt: number } | null = null;
+import { fetchCongressTrades as fetchFromPelosi, clearCongressCache } from "./pelositracker";
+import { fetchCongressTrades as fetchFromDb } from "./congress";
 
 export function clearInsidersCache(): void {
-  cache = null;
+  clearCongressCache();
 }
 
 /**
- * Main entry point for the Hot Trades feed (Congress trades from pelositracker.app).
+ * Source switch for the Hot Trades feed. Cut over to the official-source
+ * pipeline (Phase 7): the `congress_trades` table is now the default, having
+ * been backfilled and cross-validated against pelositracker (our DB is a strict
+ * superset of pelositracker's recent data — its gaps were just the 100-row cap).
+ *
+ *   - default / `CONGRESS_SOURCE=db`     → official-source pipeline
+ *   - `CONGRESS_SOURCE=pelosi`           → legacy pelositracker.app (kept as a
+ *                                          fallback / reconciliation oracle)
  */
+const CONGRESS_SOURCE = process.env.CONGRESS_SOURCE?.toLowerCase();
+
 export async function getHotTrades(portfolioTickers: string[] = []): Promise<CongressTrade[]> {
-  if (cache && cache.expiresAt > Date.now()) {
-    return cache.data;
-  }
-
-  const trades = await fetchCongressTrades(portfolioTickers);
-
-  cache = { data: trades, expiresAt: Date.now() + CONGRESS_CACHE_TTL_MS };
-  return trades;
+  if (CONGRESS_SOURCE === "pelosi") return fetchFromPelosi(portfolioTickers);
+  return fetchFromDb(portfolioTickers);
 }
-

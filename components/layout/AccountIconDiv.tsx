@@ -3,11 +3,11 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 
-const ORBIT_RADIUS = 20;
-const ICON_SIZE = 14;
-const IDLE_TUNE_ANGLE = -135;
-const IDLE_GEAR_ANGLE = -20;
-const IDLE_PERSON_ANGLE = 135;
+const ORBIT_RADIUS = 22;
+const ICON_SIZE = 17;
+const IDLE_TUNE_ANGLE = -150;
+const IDLE_GEAR_ANGLE = -30;
+const IDLE_PERSON_ANGLE = 90;
 const ORBIT_DURATION = 3;
 
 interface AccountIconDivProps {
@@ -48,7 +48,7 @@ function OrbitIcon({
           <motion.span
             className="material-symbols-outlined"
             style={{ fontSize: ICON_SIZE, display: "block" }}
-            animate={{ color: hovered ? "#e2e8f0" : "#64748b" }}
+            animate={{ color: hovered ? "#f1f5f9" : "#cbd5e1" }}
             transition={{ duration: 0.2 }}
           >
             {icon}
@@ -67,14 +67,32 @@ export default function AccountIconDiv({ onClick, isOpen }: AccountIconDivProps)
 
   return (
     <div
-      className={`group relative flex items-center justify-center self-stretch w-[60px] cursor-pointer transition-colors ${
+      className={`group relative flex items-center justify-center self-stretch w-[76px] cursor-pointer transition-colors ${
         isOpen ? "bg-white/[0.06]" : "hover:bg-white/[0.04]"
       }`}
       onClick={onClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <div className="absolute w-[40px] h-[40px] rounded-full border border-white/[0.14]" />
+      {/* Touch ID-style recessed well: polished metal ring + sunken dark center */}
+      <div
+        className="absolute w-[44px] h-[44px] rounded-full p-[1.5px]"
+        style={{
+          background:
+            "conic-gradient(from 90deg, rgba(255,255,255,0.04) 0deg, rgba(255,255,255,0.45) 60deg, rgba(255,255,255,0.05) 140deg, rgba(255,255,255,0.04) 220deg, rgba(255,255,255,0.45) 300deg, rgba(255,255,255,0.04) 360deg)",
+          boxShadow: "0 1px 2px rgba(0,0,0,0.5)",
+        }}
+      >
+        <div
+          className="h-full w-full rounded-full"
+          style={{
+            background:
+              "radial-gradient(circle at 50% 35%, #2c2c32 0%, #18181b 62%, #0e0e10 100%)",
+            boxShadow:
+              "inset 0 2px 3px rgba(0,0,0,0.85), inset 0 -1px 1.5px rgba(255,255,255,0.06)",
+          }}
+        />
+      </div>
 
       <OrbitIcon idleAngle={IDLE_TUNE_ANGLE} icon="tune" hovered={hovered} />
       <OrbitIcon idleAngle={IDLE_GEAR_ANGLE} icon="settings" hovered={hovered} />

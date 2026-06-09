@@ -1,16 +1,20 @@
 "use client";
 
-import { useId, useState } from "react";
-import { motion } from "framer-motion";
-import { formatDistanceToNow } from "date-fns";
+import { useEffect, useId, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { format, formatDistanceToNow } from "date-fns";
 import GlassView from "@/components/ui/LiquidGlass/GlassView";
+import {
+  CARD_RADIUS,
+  HOVER_EXPAND_DELAY,
+  REVEAL_EASE,
+} from "@/lib/utils/newsCardAnimations";
 import type { CongressTrade } from "@/types/news.types";
 
-const R = 8;
-const REVEAL_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
-const GROW_DURATION = 0.5;
+const CONGRESS_COLOR = "#b45309"; // amber-700 — section identity
+const CARD_BG = "rgba(38, 26, 14, 0.55)"; // dark muted brown card fill
+const EDGE_BROWN = "#8a5a2b"; // brown corner brackets + edge fills
 
-const CONGRESS_COLOR = "#b45309";   // amber-700
 const PARTY_COLOR: Record<string, string> = {
   D: "#3b82f6", // blue
   R: "#ef4444", // red
@@ -31,23 +35,187 @@ const TRADE_COLOR: Record<string, string> = {
   sell_option: "#f97316",
 };
 
+/** Color an excess-return string by sign: green up, red down, slate when N/A. */
+function returnColor(ret?: string): string {
+  if (!ret || ret === "N/A") return "#64748b";
+  return ret.trim().startsWith("-") ? "#FF4444" : "#00FF88";
+}
+
+/** Format a unix-seconds timestamp as a short date, or an em dash when missing. */
+function shortDate(ts: number | undefined): string {
+  if (!ts) return "—";
+  return format(new Date(ts * 1000), "MMM d, yyyy");
+}
+
+/** Animated arrow that rotates on hover — mirrors the news card affordance. */
+function NavArrowIcon({ hovered, color }: { hovered: boolean; color: string }) {
+  return (
+    <motion.div
+      className="flex items-center justify-center relative w-4 h-4 shrink-0"
+      animate={{ rotate: hovered ? -45 : 0, scale: hovered ? 1.1 : 1 }}
+      transition={{ duration: 0.4, ease: REVEAL_EASE }}
+    >
+      <svg viewBox="0 0 24 24" className="absolute inset-0 w-full h-full overflow-visible">
+        <path
+          d="M 4 12 H 20 M 14 6 L 20 12 L 14 18"
+          fill="none"
+          stroke={hovered ? color : "#64748b"}
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{
+            opacity: hovered ? 1 : 0.4,
+            filter: hovered ? `drop-shadow(0 0 2px ${color})` : "none",
+          }}
+        />
+      </svg>
+    </motion.div>
+  );
+}
+
+/** Single labelled metric used inside the disclosure panel. */
+function DetailItem({ label, value, color }: { label: string; value: string; color?: string }) {
+  return (
+    <div className="flex flex-col gap-0.5 min-w-0">
+      <span className="text-[8.5px] font-bold uppercase tracking-widest text-slate-500">{label}</span>
+      <span className="text-[10px] font-mono truncate" style={{ color: color ?? "#cbd5e1" }}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+/** Reveal-on-hover disclosure detail — analogous to the news card's AI panel. */
+function CongressDetailPanel({
+  expanded,
+  trade,
+  tradeColor,
+  compact,
+}: {
+  expanded: boolean;
+  trade: CongressTrade;
+  tradeColor: string;
+  compact: boolean;
+}) {
+  const retColor = returnColor(trade.excessReturn);
+  const compliant = trade.isCompliant;
+
+  return (
+    <AnimatePresence initial={false}>
+      {expanded && (
+        <motion.div
+          key="disclosure"
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.22, ease: REVEAL_EASE }}
+          className="overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className={compact ? "mt-[6px]" : "mt-2"}>
+            <div
+              className={compact ? "rounded-[3px] p-1.5" : "rounded-[4px] p-2"}
+              style={{
+                background: "rgba(10,12,18,0.7)",
+                border: "1px solid rgba(255,255,255,0.06)",
+                borderTop: `1px solid ${tradeColor}20`,
+              }}
+            >
+              {/* Header: label + STOCK Act compliance flag */}
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">
+                  Disclosure
+                </span>
+                {compliant !== undefined && (
+                  <span
+                    className="text-[8px] font-black px-1 py-0.5 rounded-[2px] tracking-tight leading-none"
+                    style={{
+                      color: compliant ? "#00FF88" : CONGRESS_COLOR,
+                      background: compliant ? "rgba(0,255,136,0.10)" : "rgba(180,83,9,0.14)",
+                      border: `1px solid ${compliant ? "rgba(0,255,136,0.3)" : "rgba(180,83,9,0.4)"}`,
+                    }}
+                  >
+                    {compliant ? "ON TIME" : "LATE FILE"}
+                  </span>
+                )}
+              </div>
+
+              {/* Excess return — the congress card's headline metric */}
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-[9px] text-slate-500">Excess return</span>
+                <span
+                  className="text-[10px] font-mono px-1.5 py-0.5 rounded"
+                  style={{ color: retColor, background: `${retColor}14` }}
+                >
+                  {trade.excessReturn ?? "N/A"}
+                </span>
+              </div>
+
+              {/* Disclosure facts */}
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                <DetailItem label="Traded" value={shortDate(trade.tradeDate)} />
+                <DetailItem label="Filed" value={shortDate(trade.filedDate)} />
+                <DetailItem label="Asset" value={trade.assetType || "—"} />
+                <DetailItem label="Chamber" value={trade.chamber === "senate" ? "Senate" : "House"} />
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 interface Props {
   trade: CongressTrade;
   isNew?: boolean;
+  /** Kept so the collapsed stack can pin the top card open (matches NewsCard). */
+  pinned?: boolean;
   compact?: boolean;
 }
 
 export default function CongressTradeCard({
   trade,
   isNew = false,
+  pinned = false,
   compact = process.env.NEXT_PUBLIC_UI_MODE === "compact",
 }: Props) {
   const rawId = useId();
   const id = rawId.replace(/:/g, "");
   const [hovered, setHovered] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const expandTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const innerHoveredRef = useRef(false);
 
-  const handleMouseEnter = () => setHovered(true);
-  const handleMouseLeave = () => setHovered(false);
+  useEffect(() => {
+    return () => {
+      if (expandTimerRef.current) clearTimeout(expandTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!pinned && !innerHoveredRef.current) setExpanded(false);
+  }, [pinned]);
+
+  const handleMouseEnter = () => {
+    innerHoveredRef.current = true;
+    setHovered(true);
+    if (expandTimerRef.current) clearTimeout(expandTimerRef.current);
+    expandTimerRef.current = setTimeout(() => {
+      setExpanded(true);
+      expandTimerRef.current = null;
+    }, HOVER_EXPAND_DELAY * 1_000);
+  };
+
+  const handleMouseLeave = () => {
+    innerHoveredRef.current = false;
+    if (expandTimerRef.current) {
+      clearTimeout(expandTimerRef.current);
+      expandTimerRef.current = null;
+    }
+    setHovered(false);
+    if (!pinned) setExpanded(false);
+  };
 
   const timeAgo = formatDistanceToNow(new Date(trade.tradeDate * 1000), { addSuffix: true });
   const tradeLabel = TRADE_LABEL[trade.tradeType] ?? "TRADE";
@@ -59,172 +227,95 @@ export default function CongressTradeCard({
       layout
       layoutId={id}
       interactive
-      cornerRadius={R}
+      cornerRadius={CARD_RADIUS}
       className="relative cursor-pointer group/item rounded-[8px]"
-      style={{ color: CONGRESS_COLOR }}
+      style={{ color: EDGE_BROWN }}
       onClick={() => window.open(trade.url, "_blank")}
     >
       <div
-        className={compact ? "px-[7px] py-[5px] relative" : "p-2 relative"}
+        className={`${compact ? "px-[7px] py-[5px]" : "p-2"} relative rounded-[8px]`}
+        style={{ backgroundColor: CARD_BG }}
+        data-hovered={hovered ? "true" : undefined}
+        data-expanded={expanded ? "true" : undefined}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        {/* Corner brackets — brown tinted */}
+        {/* Corner brackets */}
         <span className="news-cap news-cap-top-left" />
         <span className="news-cap news-cap-top-right" />
         <span className="news-cap news-cap-bottom-left" />
         <span className="news-cap news-cap-bottom-right" />
 
-        {/* Animated edge fills */}
+        {/* Animated edge fills — grow on hover over the same cadence as news cards */}
         <motion.span
           className="news-edge news-edge-top"
           initial={false}
           animate={{ scaleX: hovered ? 1 : 0, opacity: hovered ? 1 : 0.4 }}
-          transition={{ duration: GROW_DURATION, ease: REVEAL_EASE }}
+          transition={{ duration: hovered ? HOVER_EXPAND_DELAY : 0.2, ease: "linear" }}
         />
         <motion.span
           className="news-edge news-edge-bottom"
           initial={false}
           animate={{ scaleX: hovered ? 1 : 0, opacity: hovered ? 1 : 0.4 }}
-          transition={{ duration: GROW_DURATION, ease: REVEAL_EASE, delay: 0.04 }}
+          transition={{ duration: hovered ? HOVER_EXPAND_DELAY : 0.2, ease: "linear" }}
         />
 
-        {/* Content */}
-        <motion.div
-          className="relative"
-          style={{ zIndex: 2 }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-        >
-          {compact ? (
-            // ---------- COMPACT LAYOUT ----------
-            <>
-              <div className="flex items-center justify-between gap-1">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span
-                    className="text-[8px] font-black px-1 py-0.5 rounded-sm leading-none shrink-0"
-                    style={{
-                      backgroundColor: partyColor + "33",
-                      color: partyColor,
-                      border: `1px solid ${partyColor}44`,
-                    }}
-                  >
-                    {trade.party}
-                  </span>
-                  <span className="text-[11px] font-bold text-white leading-none truncate">
-                    {trade.politician}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  {isNew && (
-                    <span className="text-[7px] font-black px-1 py-0.5 rounded-sm bg-red-500/20 text-red-400 border border-red-500/30 leading-none">
-                      NEW
-                    </span>
-                  )}
-                  <span
-                    className="material-symbols-outlined text-[14px]"
-                    style={{ color: CONGRESS_COLOR }}
-                  >
-                    gavel
-                  </span>
-                </div>
-              </div>
+        <div className="relative" style={{ zIndex: 2 }}>
+          {/* Primary line: gavel + party + politician (the "headline") */}
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span
+              className="material-symbols-outlined text-[14px] shrink-0"
+              style={{ color: CONGRESS_COLOR }}
+            >
+              gavel
+            </span>
+            <span
+              className="text-[9px] font-black px-1 py-0.5 rounded-sm leading-none shrink-0"
+              style={{
+                backgroundColor: partyColor + "33",
+                color: partyColor,
+                border: `1px solid ${partyColor}44`,
+              }}
+            >
+              {trade.party}
+            </span>
+            <span className={`${compact ? "text-[12px]" : "text-[13px]"} font-semibold text-white leading-snug truncate`}>
+              {trade.politician}
+            </span>
+            {isNew && (
+              <span className="text-[7.5px] font-black px-1 py-0.5 rounded-sm bg-red-500/20 text-red-400 border border-red-500/30 leading-none shrink-0">
+                NEW
+              </span>
+            )}
+          </div>
 
-              <div className="mt-1 flex items-center gap-2">
-                <span className="font-mono text-[11px] font-black text-white leading-none">
-                  {trade.ticker}
-                </span>
-                <span
-                  className="text-[8px] font-black px-1 py-0.5 rounded-sm leading-none"
-                  style={{
-                    color: tradeColor,
-                    backgroundColor: tradeColor + "22",
-                    border: `1px solid ${tradeColor}44`,
-                  }}
-                >
-                  {tradeLabel}
-                </span>
-                <span className="ml-auto text-[10px] text-slate-500 tabular-nums">
-                  {timeAgo}
-                </span>
-              </div>
-            </>
-          ) : (
-            // ---------- ORIGINAL LAYOUT ----------
-            <>
-              {/* Top row: politician + new badge */}
-              <div className="flex items-center justify-between gap-1 mb-0.5">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  {/* Party chip */}
-                  <span
-                    className="text-[9px] font-black px-1 py-0.5 rounded-sm leading-none shrink-0"
-                    style={{
-                      backgroundColor: partyColor + "33",
-                      color: partyColor,
-                      border: `1px solid ${partyColor}44`,
-                    }}
-                  >
-                    {trade.party}
-                  </span>
-                  <span className="text-[12px] font-semibold text-white leading-snug truncate">
-                    {trade.politician}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  {isNew && (
-                    <span className="text-[8px] font-black px-1 py-0.5 rounded-sm bg-red-500/20 text-red-400 border border-red-500/30 leading-none">
-                      NEW
-                    </span>
-                  )}
-                  {/* Gavel icon */}
-                  <span
-                    className="material-symbols-outlined text-[16px]"
-                    style={{ color: CONGRESS_COLOR }}
-                  >
-                    gavel
-                  </span>
-                </div>
-              </div>
+          {/* Meta line: action pill + ticker + amount … time + arrow */}
+          <div className={`${compact ? "mt-1" : "mt-1.5"} flex items-center gap-2 text-[11px] text-slate-500`}>
+            <span
+              className="text-[9px] font-black px-1 py-0.5 rounded-sm leading-none shrink-0"
+              style={{
+                color: tradeColor,
+                backgroundColor: tradeColor + "22",
+                border: `1px solid ${tradeColor}44`,
+              }}
+            >
+              {tradeLabel}
+            </span>
+            <span className="font-mono text-[12px] font-black text-white shrink-0">{trade.ticker}</span>
+            <span className="truncate">{trade.amount}</span>
+            <div className="ml-auto flex items-center gap-1.5 shrink-0">
+              <span className="tabular-nums">{timeAgo}</span>
+              <NavArrowIcon hovered={hovered} color={tradeColor} />
+            </div>
+          </div>
 
-              {/* Ticker + trade type + amount */}
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[13px] font-black text-white">
-                  {trade.ticker}
-                </span>
-                <span
-                  className="text-[9px] font-black px-1 py-0.5 rounded-sm leading-none"
-                  style={{
-                    color: tradeColor,
-                    backgroundColor: tradeColor + "22",
-                    border: `1px solid ${tradeColor}44`,
-                  }}
-                >
-                  {tradeLabel}
-                </span>
-                <span className="text-[10px] text-slate-400 truncate">
-                  {trade.assetType}
-                </span>
-              </div>
-
-              {/* Amount + time */}
-              <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
-                <div className="flex items-center gap-1">
-                  <span
-                    className="material-symbols-outlined text-[12px]"
-                    style={{ color: CONGRESS_COLOR }}
-                  >
-                    account_balance
-                  </span>
-                  <span>{trade.amount}</span>
-                  <span className="opacity-40">·</span>
-                  <span className="capitalize">{trade.chamber}</span>
-                </div>
-                <span>{timeAgo}</span>
-              </div>
-            </>
-          )}
-        </motion.div>
+          <CongressDetailPanel
+            expanded={expanded}
+            trade={trade}
+            tradeColor={tradeColor}
+            compact={compact}
+          />
+        </div>
       </div>
     </GlassView>
   );

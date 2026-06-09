@@ -26,6 +26,7 @@ const UA =
 const FETCH_TIMEOUT_MS = 10_000;
 const MAX_CONCURRENCY = 5;
 const DIRECTORY_TTL_MS = 24 * 60 * 60 * 1000; // party/chamber rarely change
+const TICKER_TTL_MS = 15 * 60 * 1000; // per-ticker trade cache
 
 // Identity revivers for Nuxt's custom payload types — we only care about the
 // plain values, so unwrap reactive/ref wrappers to their inner value.
@@ -194,7 +195,34 @@ function extractTransactions(data: Record<string, unknown>, ticker: string): Pel
   return [...compliant, ...nonCompliant];
 }
 
+// Per-ticker trade cache. Keyed by uppercase ticker so held and watchlist
+// requests for overlapping tickers share results within the TTL.
+const tickerCache = new Map<string, { data: CongressTrade[]; expiresAt: number }>();
+
+/** Clear all pelositracker caches (used by tests / manual cache busting). */
+export function clearCongressCache(): void {
+  tickerCache.clear();
+  directoryCache = null;
+}
+
 async function fetchTickerTrades(
+  ticker: string,
+  directory: Map<string, PoliticianMeta>,
+): Promise<CongressTrade[]> {
+  const key = ticker.toUpperCase();
+  const cached = tickerCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) return cached.data;
+
+  const trades = await fetchTickerTradesUncached(ticker, directory);
+  // Only cache non-empty results so a transient failure (→ []) doesn't pin an
+  // empty feed for 15 minutes; a real "no trades" ticker re-checks next poll.
+  if (trades.length > 0) {
+    tickerCache.set(key, { data: trades, expiresAt: Date.now() + TICKER_TTL_MS });
+  }
+  return trades;
+}
+
+async function fetchTickerTradesUncached(
   ticker: string,
   directory: Map<string, PoliticianMeta>,
 ): Promise<CongressTrade[]> {
@@ -221,6 +249,8 @@ async function fetchTickerTrades(
         tradeDate: toUnix(t.tradedDate),
         filedDate: toUnix(t.filedDate),
         url: slug ? `${BASE}/politicians/${slug}` : `${BASE}/stock/${ticker.toLowerCase()}`,
+        excessReturn: t.excessReturn ?? "N/A",
+        isCompliant: t.isCompliant,
       } satisfies CongressTrade;
     });
 }

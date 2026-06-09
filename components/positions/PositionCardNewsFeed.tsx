@@ -58,6 +58,12 @@ export default function PositionCardNewsFeed({
   ];
   const analyzedStories = analyzedSources.flatMap((s) => storyGroups[s] ?? []);
 
+  // A heavily-traded ticker can have 100+ congressional disclosures. Render only
+  // the most recent (already sorted newest-first) to keep the DOM light — the
+  // collapsed stack only previews the top card anyway.
+  const MAX_CONGRESS_TRADES = 25;
+  const recentCongressTrades = congressTrades.slice(0, MAX_CONGRESS_TRADES);
+
   return (
     <>
       <PredictionStrip
@@ -133,8 +139,8 @@ export default function PositionCardNewsFeed({
               )}
 
               {congressTrades.length > 0 && (
-                <NewsCollapsible badge={<CongressHeader />} count={congressTrades.length}>
-                  {congressTrades.map((trade) => (
+                <NewsCollapsible badge={<CongressHeader />} count={recentCongressTrades.length}>
+                  {recentCongressTrades.map((trade) => (
                     <CongressTradeCard key={trade.id} trade={trade} />
                   ))}
                 </NewsCollapsible>

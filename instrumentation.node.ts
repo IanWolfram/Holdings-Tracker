@@ -42,6 +42,22 @@ export async function register() {
     }
   });
 
+  // Daily congressional-trade ingest — pull new House + Senate PTRs into the
+  // shared `congress_trades` table. Incremental (skips already-logged filings),
+  // so this is a light no-op on days with no new disclosures. 03:00 UTC keeps it
+  // clear of the resolve (22:00) and recalibrate (02:00) jobs; the 30–45 day
+  // STOCK Act filing lag makes daily cadence more than enough.
+  cron.schedule("0 3 * * *", async () => {
+    try {
+      const { runCongressIngest } = await import("./lib/congress/ingest");
+      const result = await runCongressIngest({ logger: (m) => console.info(m) });
+      const rows = (result.house?.rowsUpserted ?? 0) + (result.senate?.rowsUpserted ?? 0);
+      console.info(`[congress-cron] Ingested ${rows} trade row(s)`);
+    } catch (err) {
+      console.error("[congress-cron] Failed:", (err as Error).message);
+    }
+  });
+
   globalState._recalibrateCronScheduled = true;
-  console.info("[recalibrate-cron] Scheduled: monthly recalibration (2am UTC, 1st) + daily prediction resolution (22:00 UTC)");
+  console.info("[recalibrate-cron] Scheduled: monthly recalibration (2am UTC, 1st) + daily prediction resolution (22:00 UTC) + daily congress ingest (03:00 UTC)");
 }

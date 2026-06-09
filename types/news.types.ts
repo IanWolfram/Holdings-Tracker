@@ -52,4 +52,6 @@ export interface CongressTrade {
   tradeDate: number;   // unix timestamp (seconds)
   filedDate: number;   // unix timestamp (seconds)
   url: string;
+  excessReturn?: string; // performance vs market since the trade, e.g. "+0.89%", "-10.46%", "N/A"
+  isCompliant?: boolean; // filed within the STOCK Act 45-day disclosure window
 }

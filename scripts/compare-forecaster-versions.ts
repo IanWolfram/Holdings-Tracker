@@ -16,24 +16,12 @@
  *   npx tsx scripts/compare-forecaster-versions.ts
  */
 import { createClient } from "@supabase/supabase-js";
-import { existsSync, readFileSync } from "fs";
-import { resolve } from "path";
 import { getDailyBars, type DailyBar } from "../lib/marketdata/prices";
 import { findBarOnOrAfter, flatBandFromBars } from "../lib/marketdata/volatility";
 import { computePredictionOutcome } from "../world-brain/predictions";
 import type { PredictionOutcome, TickerPrediction } from "../types/predictions";
-
-function loadLocalEnv(): void {
-  const envPath = resolve(process.cwd(), ".env.local");
-  if (!existsSync(envPath)) return;
-  for (const line of readFileSync(envPath, "utf8").split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const [key, ...rest] = trimmed.split("=");
-    if (!key || key in process.env) continue;
-    process.env[key] = rest.join("=").trim();
-  }
-}
+import { hydrateSecrets } from "../lib/secrets";
+import { directionalStats, type DirectionalStats } from "../world-brain/forecaster-metrics";
 
 const MIN_PAIRS = 10; // promotion gate: need at least this many matched pairs.
 const PROMOTE_MARGIN = 0.05; // v2 must beat v1 directional accuracy by ≥5pp.
@@ -92,6 +80,19 @@ function computeMetrics(items: Scored[]): Metrics {
   };
 }
 
+/** Directional precision on a re-scored set — see world-brain/forecaster-metrics. */
+function directionalReport(items: Scored[]): DirectionalStats {
+  return directionalStats(items.map((s) => ({ direction: s.direction, actualPct: s.actualPct })));
+}
+
+function fmtDir(d: DirectionalStats): string {
+  return (
+    `n=${d.n}  precision=${(d.precision * 100).toFixed(1)}%  ` +
+    `(95% CI ${(d.ci95[0] * 100).toFixed(0)}–${(d.ci95[1] * 100).toFixed(0)}%)  ` +
+    `edge=${d.edgePct >= 0 ? "+" : ""}${d.edgePct.toFixed(2)}%/call`
+  );
+}
+
 /** Always-FLAT counterfactual on the same set, scored under the same bands. */
 function baselineFlat(items: Scored[]): Metrics {
   const flat = items.map((it) => ({
@@ -109,13 +110,15 @@ function fmt(m: Metrics): string {
 }
 
 async function main(): Promise<void> {
-  loadLocalEnv();
+  // Connection vars come from the real environment (process.env); everything
+  // else (FINNHUB_API_KEY, DeepSeek, …) is hydrated from Supabase `app_secrets`.
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) {
     console.error("[compare] Missing Supabase env (NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY).");
     process.exit(1);
   }
+  await hydrateSecrets();
   const sb = createClient(url, key);
 
   const { data, error } = await sb
@@ -140,7 +143,9 @@ async function main(): Promise<void> {
   // Re-score everything from bars under the current rules.
   const barCache = new Map<string, DailyBar[]>();
   const scored: Scored[] = [];
-  let unresolvable = 0;
+  let noBars = 0; // bar fetch failed / insufficient history — a DATA gap, can bias the sample
+  let futureHorizon = 0; // horizon date not reached yet — legitimately unresolvable
+  const noBarsTickers = new Set<string>();
   for (const p of all) {
     if (typeof p.priceAtPrediction !== "number" || !p.runAt || !p.horizonDays) continue;
     let bars = barCache.get(p.ticker);
@@ -149,13 +154,14 @@ async function main(): Promise<void> {
       barCache.set(p.ticker, bars);
     }
     if (!bars || bars.length < 20) {
-      unresolvable++;
+      noBars++;
+      noBarsTickers.add(p.ticker);
       continue;
     }
     const targetDate = dateKey(p.runAt + p.horizonDays * 86_400_000);
     const resBar = findBarOnOrAfter(bars, targetDate);
     if (!resBar) {
-      unresolvable++; // horizon date not reached / no bar yet
+      futureHorizon++; // horizon date not reached / no bar yet — expected, not a data gap
       continue;
     }
     const actualPct = ((resBar.close - p.priceAtPrediction) / p.priceAtPrediction) * 100;
@@ -179,12 +185,30 @@ async function main(): Promise<void> {
   const v2 = scored.filter((s) => s.version === "v2");
 
   console.log("=== Forecaster comparison (re-scored under current rules) ===");
-  console.log(`Re-scored: ${scored.length}  | unresolvable (no horizon bar): ${unresolvable}\n`);
+  console.log(
+    `Re-scored: ${scored.length}  | future-horizon (not due yet): ${futureHorizon}  | ` +
+      `no-bars (DATA GAP): ${noBars}${noBars ? ` [${[...noBarsTickers].join(", ")}]` : ""}`,
+  );
+  if (noBars > 0) {
+    console.log(
+      "  ⚠ no-bars rows were dropped — if from rate-limiting, the resolved set is biased. Re-run to confirm stability.",
+    );
+  }
+  console.log("");
 
-  console.log("ALL v1 (production):", fmt(computeMetrics(v1)));
-  console.log("  always-FLAT baseline:", fmt(baselineFlat(v1)));
-  console.log("ALL v2 (shadow):     ", fmt(computeMetrics(v2)));
-  if (v2.length) console.log("  always-FLAT baseline:", fmt(baselineFlat(v2)));
+  // Headline forecaster metric: directional precision (edge when it commits).
+  // Overall win/dirAcc is shown too, but always-FLAT structurally wins that axis
+  // at short horizons (FLAT is the majority-correct class), so it is NOT the test.
+  console.log("DIRECTIONAL PRECISION — the test that matters (always-FLAT can't compete here):");
+  console.log("  v1:", fmtDir(directionalReport(v1)));
+  if (v2.length) console.log("  v2:", fmtDir(directionalReport(v2)));
+  console.log("");
+
+  console.log("Overall accuracy (context only — FLAT is the majority class):");
+  console.log("  ALL v1 (production):", fmt(computeMetrics(v1)));
+  console.log("    always-FLAT baseline:", fmt(baselineFlat(v1)));
+  console.log("  ALL v2 (shadow):     ", fmt(computeMetrics(v2)));
+  if (v2.length) console.log("    always-FLAT baseline:", fmt(baselineFlat(v2)));
 
   // Head-to-head on matched forecasts (same ticker/horizon/runAt in both versions).
   const v2Keys = new Set(v2.map((s) => s.key));

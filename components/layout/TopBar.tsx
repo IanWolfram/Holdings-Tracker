@@ -201,10 +201,8 @@ export default function TopBar({
           </div>
 
           {/* settings / account orbit */}
-          <div className="relative z-30 -ml-3 flex items-stretch rounded-l-[14px] border-l border-white/10 bg-[#26262a]">
-            <div className="my-1.5 ml-1.5 mr-1.5 flex items-stretch rounded-[15px] border border-white/10 overflow-hidden">
-              <AccountIconDiv onClick={openAccountPanel} isOpen={accountPanelOpen} />
-            </div>
+          <div className="relative z-30 -ml-3 flex items-stretch rounded-l-[14px] border-l border-white/10 bg-[#3a3a40] overflow-hidden">
+            <AccountIconDiv onClick={openAccountPanel} isOpen={accountPanelOpen} />
           </div>
         </div>
       </div>

@@ -12,6 +12,7 @@ import { getVaultStore } from "../lib/vault/store";
 import { createServiceClient } from "../lib/supabase/server";
 import { resolveEligiblePredictions } from "./predictions";
 import { updateCalibration } from "./calibration";
+import { appendForecasterSnapshot } from "./forecaster-metrics";
 
 const PREDICTION_PATH_RE = /^predictions\/([A-Z0-9.\-]+?)-(\d+)d\.json$/;
 
@@ -47,6 +48,20 @@ export async function resolvePendingForUser(
       await updateCalibration(store);
     } catch (err) {
       console.error(`[resolve-all] Calibration update failed for ${userId}:`, (err as Error).message);
+    }
+    // Append a directional-precision snapshot so the forecaster's edge (and its
+    // CI tightening as samples accumulate) is tracked over time in _metrics/.
+    try {
+      const snap = await appendForecasterSnapshot(store, nowMs);
+      if (snap) {
+        console.info(
+          `[resolve-all] ${userId} directional precision ${(snap.precision * 100).toFixed(1)}% ` +
+            `(n=${snap.n}, 95% CI ${(snap.ci95[0] * 100).toFixed(0)}–${(snap.ci95[1] * 100).toFixed(0)}%, ` +
+            `edge ${snap.edgePct >= 0 ? "+" : ""}${snap.edgePct.toFixed(2)}%/call)`,
+        );
+      }
+    } catch (err) {
+      console.error(`[resolve-all] Snapshot failed for ${userId}:`, (err as Error).message);
     }
   }
 

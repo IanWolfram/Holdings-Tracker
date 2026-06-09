@@ -8,20 +8,25 @@ export function useCongress() {
   const fetchCongress = useCallback(async (tickers: string[]) => {
     if (tickers.length === 0) return;
     try {
-      const res = await authedFetch("/api/congress");
+      const upper = tickers.map((ticker) => ticker.toUpperCase());
+      const res = await authedFetch(
+        `/api/congress?tickers=${encodeURIComponent(upper.join(","))}`,
+      );
       if (!res.ok) return;
       const { trades }: { trades: CongressTrade[] } = await res.json();
-      const tickerSet = new Set(tickers.map((ticker) => ticker.toUpperCase()));
+
+      // Seed every requested ticker with an empty array so this fetch refreshes
+      // exactly the tickers it asked about (clearing any stale trades for them).
+      const tickerSet = new Set(upper);
       const byTicker: Record<string, CongressTrade[]> = {};
+      for (const ticker of upper) byTicker[ticker] = [];
       for (const trade of trades) {
-        if (tickerSet.has(trade.ticker)) {
-          if (!byTicker[trade.ticker]) {
-            byTicker[trade.ticker] = [];
-          }
-          byTicker[trade.ticker].push(trade);
-        }
+        if (tickerSet.has(trade.ticker)) byTicker[trade.ticker].push(trade);
       }
-      setCongressTrades(byTicker);
+
+      // Merge — don't replace — so a held-tickers fetch and a watchlist fetch
+      // don't wipe each other's results.
+      setCongressTrades((prev) => ({ ...prev, ...byTicker }));
     } catch {
       // ignore
     }
