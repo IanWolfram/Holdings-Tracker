@@ -7,6 +7,8 @@ import type {
   PredictionOutcome,
 } from "../types/predictions";
 import { FLAT_BAND_PCT, CORRECT_DIRECTION_MAGNITUDE_RATIO } from "../types/predictions";
+import type { DailyBar } from "../lib/marketdata/prices";
+import { findBarOnOrAfter, flatBandFromBars } from "../lib/marketdata/volatility";
 
 export const SUPPORTED_HORIZONS = [1, 7, 30] as const;
 export type SupportedHorizon = (typeof SUPPORTED_HORIZONS)[number];
@@ -69,11 +71,12 @@ function derivePredictionCatalystTypes(prediction: TickerPrediction): CatalystTy
 export function computePredictionOutcome(
   direction: TickerPrediction["direction"],
   magnitudePct: number,
-  actualPct: number
+  actualPct: number,
+  flatBandPct: number = FLAT_BAND_PCT
 ): PredictionOutcome {
   const absActual = Math.abs(actualPct);
   let effectiveDirection: TickerPrediction["direction"];
-  if (absActual <= FLAT_BAND_PCT) {
+  if (absActual <= flatBandPct) {
     effectiveDirection = "FLAT";
   } else {
     effectiveDirection = actualPct > 0 ? "UP" : "DOWN";
@@ -84,14 +87,25 @@ export function computePredictionOutcome(
   return "PARTIAL";
 }
 
+function dateKey(ms: number): string {
+  return new Date(ms).toISOString().slice(0, 10);
+}
+
 export async function resolveEligiblePredictions(
   store: VaultStore,
   ticker: string,
   currentPrice: number | null,
   nowMs: number,
-  horizon?: number
+  horizon?: number,
+  bars?: DailyBar[] | null
 ): Promise<{ resolved: number }> {
-  if (currentPrice === null) return { resolved: 0 };
+  // With daily bars we resolve against the close at the horizon DATE (the true
+  // 1d/7d/30d window) rather than the live price at whatever moment the resolver
+  // happens to run — which previously scored a "1d" prediction resolved 5 days
+  // late against a 5-day move. Without bars we fall back to the legacy live-price
+  // path, which still requires a current price.
+  const hasBars = Array.isArray(bars) && bars.length > 0;
+  if (!hasBars && currentPrice === null) return { resolved: 0 };
 
   const horizons: number[] = horizon ? [horizon] : [...SUPPORTED_HORIZONS];
   let resolved = 0;
@@ -102,7 +116,7 @@ export async function resolveEligiblePredictions(
 
     const pending = predictions.filter((p) => p.status === "pending");
     if (pending.length > 0) {
-      const now = new Date(nowMs).toISOString().split("T")[0];
+      const now = dateKey(nowMs);
       const pendingAges = pending.map((p) => ({
         id: p.id,
         daysSince: Math.floor((nowMs - p.runAt) / 86_400_000),
@@ -122,26 +136,46 @@ export async function resolveEligiblePredictions(
       const daysSince = Math.floor((nowMs - p.runAt) / 86_400_000);
       if (daysSince < p.horizonDays) return p;
 
+      // Resolution price + the date it actually corresponds to.
+      let resolutionPrice: number;
+      let resolvedAtMs: number;
+      let band: number;
+
+      if (hasBars) {
+        const targetDate = dateKey(p.runAt + p.horizonDays * 86_400_000);
+        const resolutionBar = findBarOnOrAfter(bars!, targetDate);
+        // Horizon date has no bar yet (future / data lag) — keep pending.
+        if (!resolutionBar) return p;
+        resolutionPrice = resolutionBar.close;
+        resolvedAtMs = Date.parse(`${resolutionBar.date}T16:00:00.000Z`) || nowMs;
+        band = flatBandFromBars(bars!, dateKey(p.runAt), p.horizonDays);
+      } else {
+        resolutionPrice = currentPrice as number;
+        resolvedAtMs = nowMs;
+        band = FLAT_BAND_PCT;
+      }
+
       const actualPct =
-        ((currentPrice - p.priceAtPrediction) / p.priceAtPrediction) * 100;
-      const outcome = computePredictionOutcome(p.direction, p.magnitudePct, actualPct);
+        ((resolutionPrice - p.priceAtPrediction) / p.priceAtPrediction) * 100;
+      const outcome = computePredictionOutcome(p.direction, p.magnitudePct, actualPct, band);
       const catalystTypes = derivePredictionCatalystTypes(p);
       changed = true;
       resolved++;
 
       debug(
         "predictions",
-        `Resolved ${p.id}: ${p.direction} → ${outcome} (predicted ${p.magnitudePct}%, actual ${actualPct.toFixed(2)}%)`
+        `Resolved ${p.id}: ${p.direction} → ${outcome} (predicted ${p.magnitudePct}%, actual ${actualPct.toFixed(2)}%, band ±${band.toFixed(2)}%)`
       );
 
       return {
         ...p,
         catalystTypes,
         status: "resolved" as const,
-        resolvedAt: nowMs,
-        priceAtResolution: currentPrice,
+        resolvedAt: resolvedAtMs,
+        priceAtResolution: Math.round(resolutionPrice * 100) / 100,
         actualPct: Math.round(actualPct * 100) / 100,
         outcome,
+        flatBandPct: Math.round(band * 100) / 100,
       };
     });
 

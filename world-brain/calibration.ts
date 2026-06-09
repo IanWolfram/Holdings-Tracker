@@ -103,6 +103,10 @@ async function collectResolvedPredictions(store: VaultStore): Promise<TickerPred
         if (!value || typeof value !== "object") continue;
         const prediction = value as TickerPrediction;
         if (prediction.status !== "resolved") continue;
+        // Shadow predictions trial a new forecaster version — they are evaluated
+        // separately (scripts/compare-forecaster-versions.ts) and must never
+        // contaminate the live calibration report shown to the model/UI.
+        if (prediction.shadow) continue;
         if (typeof prediction.confidence !== "number") continue;
         if (!prediction.outcome) continue;
         resolved.push(prediction);
@@ -219,6 +223,27 @@ export function invalidateCalibrationCache(): void {
  * 3 samples in the bucket (mirrors the sample floor in buildCalibrationBlock) and
  * a handful of total resolved predictions, so cold-start runs are unaffected.
  */
+/**
+ * Aggregate overall (win rate, avg stated confidence) across all confidence
+ * buckets. Used as a fallback when the specific bucket is too thin to trust on
+ * its own — overconfidence in this system is systemic, so the overall gap is a
+ * reasonable prior for a sparsely-populated bucket.
+ */
+function overallConfidenceGap(
+  report: CalibrationReport
+): { winRate: number; avgConfidence: number; n: number } | null {
+  let n = 0;
+  let correct = 0;
+  let confSum = 0;
+  for (const stats of Object.values(report.byConfidenceBucket)) {
+    n += stats.n;
+    correct += stats.correct;
+    confSum += stats.avgConfidence * stats.n;
+  }
+  if (n === 0) return null;
+  return { winRate: correct / n, avgConfidence: confSum / n, n };
+}
+
 export function getConfidenceReliabilityFactor(
   report: CalibrationReport | null,
   rawConfidence: number
@@ -226,16 +251,25 @@ export function getConfidenceReliabilityFactor(
   if (!report || report.totalResolved < 5) return 1;
 
   const stats = report.byConfidenceBucket[confidenceBucket(rawConfidence)];
-  if (!stats || stats.n < 3) return 1;
 
   // Midpoint of the 0.1-wide bucket this confidence falls into.
   const clamped = Math.max(0, Math.min(0.999, rawConfidence));
   const midpoint = Math.floor(clamped * 10) / 10 + 0.05;
 
-  // Only correct overconfidence: observed win rate trailing the stated bucket.
-  if (stats.winRate >= midpoint) return 1;
+  // Primary: correct overconfidence using THIS bucket's observed win rate.
+  if (stats && stats.n >= 3) {
+    if (stats.winRate >= midpoint) return 1;
+    return stats.winRate / midpoint;
+  }
 
-  return stats.winRate / midpoint;
+  // Fallback: the bucket is too thin, but the model is systemically
+  // overconfident. Shrink toward the overall observed win-rate / stated-
+  // confidence ratio so a sparse bucket still gets grounded. Gated on enough
+  // total resolved predictions so cold-start runs are untouched.
+  const overall = overallConfidenceGap(report);
+  if (!overall || overall.n < 8 || overall.avgConfidence <= 0) return 1;
+  if (overall.winRate >= overall.avgConfidence) return 1;
+  return overall.winRate / overall.avgConfidence;
 }
 
 function pctString(rate: number): string {

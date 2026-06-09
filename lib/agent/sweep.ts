@@ -23,7 +23,7 @@ import {
 import { FALLBACK_CONFIDENCE, MAX_ARTICLE_CONTENT_CHARS, SYSTEM_USER_ID } from "../constants";
 import { getVaultStore, type VaultStore } from "@/lib/vault/store";
 import { getBasicQuote } from "../market-data";
-import { getDetailedQuote, type MarketQuote } from "../marketdata/prices";
+import { getDetailedQuote, getDailyBars, type MarketQuote } from "../marketdata/prices";
 import { getMacroSnapshot, type MacroSnapshot } from "../marketdata/macro";
 import {
   getEventsSnapshot,
@@ -162,11 +162,16 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
         try {
           const quote = await getBasicQuote(pos.ticker);
           basicQuoteCache[pos.ticker] = quote;
+          // Daily bars let the resolver score against the close at the horizon
+          // date and size the FLAT band to the ticker's own volatility.
+          const bars = await getDailyBars(pos.ticker).catch(() => []);
           const resolved = await resolveEligiblePredictions(
             userVaultStore,
             pos.ticker,
             quote?.currentPrice ?? null,
-            startedAt
+            startedAt,
+            undefined,
+            bars
           );
           resolvedCount += resolved.resolved;
         } catch {
@@ -433,7 +438,7 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
                 macroSnapshot,
                 horizon,
                 daysUntilEarnings,
-                { version: "v2", shadow: true }
+                { version: "v2", shadow: true, marketQuote: tickerMarketQuote }
               ).catch(() => null);
               if (shadowPrediction) {
                 await appendPrediction(userVaultStore, shadowPrediction);

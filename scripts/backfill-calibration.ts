@@ -7,6 +7,11 @@ import type { PredictionDirection, TickerPrediction } from "../types/predictions
 import { resolveVaultPath } from "../lib/constants";
 import { getDailyBars, type DailyBar } from "../lib/marketdata/prices";
 import {
+  findBarOnOrBefore,
+  findBarOnOrAfter,
+  flatBandFromBars,
+} from "../lib/marketdata/volatility";
+import {
   computePredictionOutcome,
   loadPredictions,
   savePredictions,
@@ -84,20 +89,6 @@ function magnitudeFromConfidence(direction: PredictionDirection, confidence: num
 
 function toDateKey(ms: number): string {
   return new Date(ms).toISOString().slice(0, 10);
-}
-
-function findBarOnOrBefore(bars: DailyBar[], targetDate: string): DailyBar | null {
-  for (let i = bars.length - 1; i >= 0; i--) {
-    if (bars[i].date <= targetDate) return bars[i];
-  }
-  return null;
-}
-
-function findBarOnOrAfter(bars: DailyBar[], targetDate: string): DailyBar | null {
-  for (const bar of bars) {
-    if (bar.date >= targetDate) return bar;
-  }
-  return null;
 }
 
 function createPredictionId(ticker: string, date: string, source: string): string {
@@ -217,7 +208,8 @@ async function main(): Promise<void> {
     const actualPct =
       ((resolutionBar.close - predictionBar.close) / predictionBar.close) * 100;
     const roundedActualPct = Math.round(actualPct * 100) / 100;
-    const outcome = computePredictionOutcome(direction, magnitudePct, roundedActualPct);
+    const band = flatBandFromBars(bars, date, 7);
+    const outcome = computePredictionOutcome(direction, magnitudePct, roundedActualPct, band);
 
     const sourceUrl = fm.url ?? fullPath;
     const id = createPredictionId(ticker, date, sourceUrl);
@@ -253,6 +245,7 @@ async function main(): Promise<void> {
       priceAtResolution: resolutionBar.close,
       actualPct: roundedActualPct,
       outcome,
+      flatBandPct: Math.round(band * 100) / 100,
     };
 
     pendingByTickerDate.set(groupKey, synthetic);

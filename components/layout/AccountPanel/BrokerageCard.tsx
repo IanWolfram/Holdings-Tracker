@@ -17,7 +17,7 @@ export function BrokerageCard({
 }) {
   return (
     <div style={{ padding: "18px 18px 22px", borderBottom: "1px solid var(--color-rule)" }}>
-      <SectionHeader title="Brokerage" icon="link" />
+      <SectionHeader title="Brokerage Connection" icon="link" />
       <div
         style={{
           borderRadius: 10,

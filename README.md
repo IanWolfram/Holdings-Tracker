@@ -1,20 +1,20 @@
 # Pulse (Holdings Tracker)
 
-A real-time financial portfolio dashboard that aggregates E*TRADE positions, fetches news from Finnhub, Polygon, and NewsAPI, classifies sentiment using a hardware-native Apple MLX AI engine, and supports both **Personal Mode** (offline, single-user) and **Cloud Mode** (multi-tenant Supabase Auth). Built with Next.js 16, React 19, Tailwind CSS 4, SWR, and Framer Motion.
+A real-time, multi-tenant financial portfolio dashboard. Pulse aggregates E*TRADE positions, pulls news from Finnhub, Polygon, and NewsAPI, classifies sentiment with the DeepSeek API, and runs a self-calibrating **directional forecasting** engine that scores its own past predictions and feeds the results back into its prompts. Built with Next.js 16, React 19, Tailwind CSS 4, SWR, Framer Motion, and three.js.
 
 ---
 
 ## Features
 
-- **Real-time Portfolio Sync** — Live stock and option positions from E*TRADE, with automatic mock fallback.
-- **News Aggregator** — Headlines from Finnhub, Polygon, and NewsAPI, classified by an AI Brain (BUY/SELL/HOLD + confidence + reason + geo-origin).
-- **Stale-While-Revalidate Caching** — Dashboard data is served instantly from cache; background revalidation kicks in when TTL expires. No more cron-driven prewarming.
-- **Multi-Tenant Auth** — Supabase email+password auth with per-user E*TRADE tokens (AES-256-GCM encrypted) and RLS-protected vault storage.
-- **Personal Mode** — No login required. All data stays on-device. Obsidian-compatible vault on disk. Privacy-first.
-- **Cloud Mode** — Sign up, link your E*TRADE account, access your portfolio from any device.
-- **Electron Desktop App** — One-time mode chooser at first launch. Spawns Next.js locally in either mode.
+- **Real-time Portfolio Sync** — Live stock and option positions from E*TRADE, with automatic mock fallback when tokens are missing or expired.
+- **News Aggregator** — Headlines from Finnhub, Polygon, and NewsAPI, classified by the AI Brain (BUY/SELL/HOLD + confidence + reason + geo-origin).
+- **Directional Forecasting & Self-Calibration** — The agent emits dated 1/7/30-day predictions, automatically resolves them against the real close at the horizon date, and recalibrates confidence and sector rules over time. A shadow "v2" forecaster can run in parallel for data-driven A/B promotion.
+- **Stale-While-Revalidate Caching** — Dashboard data is served instantly from cache; background revalidation runs when the TTL expires.
+- **Multi-Tenant Auth** — Supabase email + password auth with per-user E*TRADE tokens (AES-256-GCM encrypted) and RLS-protected vault storage. Every request is scoped to an authenticated user.
 - **3D Globe Intelligence View** — Geographic sentiment visualization with per-country BUY/SELL/HOLD scores.
-- **Telegram Integration** — Alerts and digests via Telegram Bot API.
+- **Extra Signal Sources** — Congressional trade disclosures and insider activity layered into the analysis.
+- **Telegram Integration** — Alerts and digests via the Telegram Bot API.
+- **Electron Desktop App** — Wraps the dashboard in a native window (auth still required).
 
 ---
 
@@ -23,13 +23,14 @@ A real-time financial portfolio dashboard that aggregates E*TRADE positions, fet
 | Layer | Technology |
 |---|---|
 | Framework | Next.js 16 (App Router + Pages Router) |
-| UI | React 19, Tailwind CSS 4, Framer Motion |
+| UI | React 19, Tailwind CSS 4, Framer Motion, three.js |
 | Auth | Supabase Auth (email + password + confirmation) |
 | Database | Supabase Postgres (RLS-protected per-user tables) |
+| AI Engine | DeepSeek API (`deepseek-chat`; OpenAI supported as an alternate provider) |
+| Market Data | Polygon (OHLC bars + quotes), Finnhub, NewsAPI |
 | Encryption | AES-256-GCM (app-layer, `key_version` for rotation) |
-| AI Engine | Apple MLX (DeepSeek-R1-Distill-Qwen on Apple Silicon) |
 | Caching | MapCache / DiskCache with SWR (`getWithMeta`) |
-| Desktop | Electron (Personal Mode or Cloud Mode) |
+| Desktop | Electron |
 | Bot Protection | Cloudflare Turnstile on `/signup` |
 
 ---
@@ -38,9 +39,9 @@ A real-time financial portfolio dashboard that aggregates E*TRADE positions, fet
 
 ### Prerequisites
 
-- **Hardware**: Apple Silicon (M1+) recommended for MLX inference.
 - **Node.js** 18+ and npm.
-- **Supabase project** (for Cloud Mode). Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`.
+- **Supabase project** — set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`.
+- **DeepSeek API key** — for sentiment classification and forecasting.
 - **E*TRADE Developer Account** — Consumer Key and secret.
 
 ### Installation
@@ -59,47 +60,47 @@ A real-time financial portfolio dashboard that aggregates E*TRADE positions, fet
    cp .env.example .env.local
    ```
 
-   Fill in API keys. Key variables:
+   Fill in the keys you have. Key variables:
 
    | Variable | Purpose |
    |---|---|
-   | `PULSE_SINGLE_USER_MODE` | `1` for Personal Mode, `0` or unset for Cloud Mode |
    | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
    | `SUPABASE_SERVICE_ROLE_KEY` | Server-only, never bundled to client |
    | `ETRADE_TOKEN_ENC_KEY` | 32-byte hex key for AES-256-GCM token encryption |
-   | `AI_ENGINE` | Set to `mlx` to activate hardware-native inference |
+   | `ETRADE_CONSUMER_KEY` / `ETRADE_CONSUMER_SECRET` | E*TRADE developer credentials |
+   | `ETRADE_ENV` | `mock`, `sandbox`, or `live` |
+   | `DEEPSEEK_API_KEY` | DeepSeek API key (override model with `DEEPSEEK_MODEL`) |
+   | `FINNHUB_API_KEY` / `NEWSAPI_API_KEY` | News sources |
 
-3. **Authenticate with E*TRADE** (Personal Mode only):
+   > **Note on secrets:** Most API keys can also live in the Supabase `app_secrets` table, which is hydrated into the environment at server boot. Anything you set explicitly in `.env.local` always takes precedence, so local overrides remain authoritative. The Supabase connection vars above must stay in `.env.local` (they're used to read `app_secrets`).
+
+3. **Authenticate with E*TRADE**:
 
    ```bash
    npm run etrade:auth
    ```
 
-   Follow the URL in the console, log in, and paste the verification code. Tokens expire daily at midnight ET.
+   Follow the URL in the console, log in, and paste the verification code. Access tokens expire daily at midnight ET. In the browser, re-authorization happens via `/api/etrade/auth`.
 
-   In Cloud Mode, E*TRADE authorization happens in the browser via `/api/etrade/auth`.
-
-4. **Start the AI Brain** (optional, for MLX inference):
-
-   ```bash
-   ./scripts/mlx-server.sh   # Starts DeepSeek-R1 on port 8080
-   ```
-
-5. **Launch the dev server**:
+4. **Start the dev server**:
 
    ```bash
    npm run dev                # http://localhost:3000
    ```
 
-### Electron Desktop App
+   The app opens at `/terminal` after login.
 
-When launched via Electron, the app shows a one-time mode chooser:
+---
 
-- **Personal Mode** — Spawns Next.js with `PULSE_SINGLE_USER_MODE=1`. No login. Opens directly to `/world`.
-- **Cloud Mode** — Full Supabase Auth. Opens to `/login`. E*TRADE tokens encrypted in the cloud.
+## App Routes
 
-The choice is stored in `userData/pulse-mode.json` and persists across launches.
+| Route | Description |
+|---|---|
+| `/terminal` | Main dashboard — positions, P/L, verdicts (default). |
+| `/world` | 3D globe with per-country sentiment. |
+| `/hot` | Hot/trending intelligence view. |
+| `/agent` | Agent console — sweeps, chat, forecasts. |
 
 ---
 
@@ -108,55 +109,38 @@ The choice is stored in `userData/pulse-mode.json` and persists across launches.
 ### Auth Flow
 
 ```
-/signup ──→ Supabase signUp ──→ email confirmation ──→ /auth/callback ──→ /world
+/signup ──→ Supabase signUp ──→ email confirmation ──→ /auth/callback ──→ /terminal
 /login  ──→ Supabase signIn ──→ session cookie ──→ middleware.ts ──→ protected routes
 ```
 
-- `middleware.ts` (Edge runtime) enforces auth on all routes except `/login`, `/signup`, `/forgot-password`, `/reset`, `/check-email`, `/auth/callback`.
-- In Personal Mode (`PULSE_SINGLE_USER_MODE=1`), middleware passes through without checking auth.
-- API routes use `requireUser()` which returns a dev user in Personal Mode.
+`middleware.ts` (Edge runtime) enforces auth on all routes except `/login`, `/signup`, `/forgot-password`, `/reset`, `/check-email`, `/auth/callback`. API routes use `requireUser()` and scope all data per-user via `getServicesForUser(userId)`.
 
 ### SWR Caching
 
-World data and news use a stale-while-revalidate pattern:
+World and news data use a stale-while-revalidate pattern. `MapCache.getWithMeta()` returns `{ value, isStale }`; fresh data is served directly, stale data is returned immediately while a background revalidation runs. No cron-driven prewarming.
 
-- `MapCache.getWithMeta()` returns `{ value, isStale }`.
-- When data is fresh, it's served directly.
-- When stale, the cached value is returned immediately and background revalidation is kicked off.
-- No cron-driven prewarming. Data is fetched on-demand when users view the dashboard.
+### Forecasting & Calibration
+
+The stock agent synthesizes each ticker's news verdicts, a macro snapshot, and recently resolved outcomes into directional predictions at 1-, 7-, and 30-day horizons (`world-brain/agents/FORECASTER.md` prompt). Predictions are stored per-user, then resolved against the actual close at the horizon date and aggregated into a calibration report. Two background jobs keep this honest:
+
+- **Daily prediction resolution** — 22:00 UTC (after the US close).
+- **Monthly recalibration** — 02:00 UTC on the 1st, which also refreshes sector rules.
 
 ### E*TRADE Token Security
 
-- **Personal Mode**: tokens in `.env.local`, read by `npm run etrade:auth`.
-- **Cloud Mode**: tokens encrypted with AES-256-GCM (`lib/crypto/tokenCipher.ts`) and stored in `etrade_tokens` table. `key_version` column supports future key rotation.
-- The `scripts/etrade-auth.mjs` CLI script refuses to run in Cloud Mode.
-
-### Vault Storage
-
-- **Personal Mode**: `FsVaultStore` — markdown files on disk at `WORLD_VAULT_PATH`. Compatible with Obsidian.
-- **Cloud Mode**: `SupabaseVaultStore` — `vault_notes` table with JSONB frontmatter. A future export endpoint can produce an Obsidian zip snapshot.
+Tokens are encrypted with AES-256-GCM (`lib/crypto/tokenCipher.ts`) and stored per-user in the `etrade_tokens` table. The `key_version` column supports future key rotation.
 
 ---
 
-## Intelligence Tools
-
-### Stock Agent
-
-Run a deep-intelligence sweep across your entire portfolio:
+## Intelligence Tools (CLI)
 
 ```bash
-npm run agent
+npm run agent                # Full portfolio intelligence sweep (analyze + forecast + resolve)
+npm run world:refresh        # Force a 3D globe data refresh
+npm run backfill             # Backfill calibration from historical predictions
+npm run recalibrate          # Recompute sector rules from calibration (--apply to write)
+npm run compare:forecasters  # A/B production vs. shadow forecaster versions
 ```
-
-### World Intelligence Refresh
-
-Force a 3D globe data refresh (requires dev server):
-
-```bash
-npm run world:refresh
-```
-
-Both tools use your live E*TRADE positions and require the MLX server.
 
 ---
 
@@ -180,17 +164,18 @@ pm2 save && pm2 startup
 
 ## Database Schema
 
-Supabase tables (all RLS-protected, `auth.uid() = user_id`):
+Supabase tables (RLS-protected, `auth.uid() = user_id` unless system-scoped):
 
 | Table | Purpose |
 |---|---|
-| `etrade_tokens` | Per-user encrypted OAuth tokens (AES-256-GCM) |
+| `etrade_tokens` | Per-user encrypted OAuth tokens (AES-256-GCM, `key_version`) |
 | `etrade_request_tokens` | Short-lived OAuth request secrets (10-min TTL) |
-| `user_preferences` | AI model, vault enabled, cron opt-in |
-| `vault_notes` | Markdown body + JSONB frontmatter, unique on `(user_id, path)` |
+| `user_preferences` | AI model, default timescale, vault enabled, cron opt-in |
+| `vault_notes` | Markdown body + JSONB frontmatter (predictions, calibration, insights), unique on `(user_id, path)` |
 | `user_activity` | Last seen, last refresh timestamps |
+| `app_secrets` | Shared config/API keys hydrated into the environment at boot |
 
-A `handle_new_user()` trigger bootstraps default preferences and activity rows on signup.
+A `handle_new_user()` trigger bootstraps default preferences and activity rows on signup. Migrations live in `supabase/migrations/`.
 
 ---
 

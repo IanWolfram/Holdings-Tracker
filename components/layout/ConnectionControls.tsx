@@ -1,19 +1,11 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { authedFetch } from "@/lib/api/client-fetch";
-import AccountIconDiv from "@/components/layout/AccountIconDiv";
-import TopBarDivider from "@/components/layout/TopBarDivider";
-import AgentTrigger from "@/components/triggers/AgentTrigger";
 
 interface ConnectionControlsProps {
   successVisible: boolean;
   isConnected: boolean;
   isConnecting: boolean;
   setIsConnecting: (value: boolean) => void;
-  timeStr: string | null;
-  onRefresh: () => void;
-  refreshing: boolean;
-  accountPanelOpen: boolean;
-  setAccountPanelOpen: (open: boolean) => void;
 }
 
 export default function ConnectionControls({
@@ -21,15 +13,8 @@ export default function ConnectionControls({
   isConnected,
   isConnecting,
   setIsConnecting,
-  timeStr,
-  onRefresh,
-  refreshing,
-  accountPanelOpen,
-  setAccountPanelOpen,
 }: ConnectionControlsProps) {
   const [error, setError] = useState<string | null>(null);
-
-  const openAccountPanel = useCallback(() => setAccountPanelOpen(true), [setAccountPanelOpen]);
 
   async function startAuth() {
     setError(null);
@@ -51,58 +36,38 @@ export default function ConnectionControls({
     }
   }
 
+  const connected = successVisible || isConnected;
+
   return (
-    <div className="flex items-center h-full">
-      <TopBarDivider />
-
-      <div className="flex items-center justify-center px-2 py-1.5">
-        <AgentTrigger />
-      </div>
-
-      <div className="flex items-center justify-between gap-3 pl-3 pr-0 py-1.5 bg-white/6 border border-white/7 rounded-sm h-full">
-        {successVisible || isConnected ? (
-          <button
-            onClick={startAuth}
-            className="font-mono text-[10px] text-positive font-bold flex items-center gap-2 hover:brightness-125 transition-all"
-            title="E*Trade Connected (Click to Reconnect)"
-          >
-            <div className="relative flex items-center justify-center">
-              <img
-                src="/etrade-logo.png"
-                alt="E*Trade"
-                className={`w-6 h-6 object-contain ${isConnecting ? "animate-spin opacity-50" : ""}`}
-              />
-            </div>
-            <span className="hidden sm:inline">{isConnecting ? "reconnecting..." : "connected"}</span>
-          </button>
-        ) : (
-          <>
-            <button
-              disabled={isConnecting}
-              onClick={startAuth}
-              className={`font-mono text-[10px] text-slate-400 hover:text-white transition-colors flex items-center gap-2 group ${isConnecting ? "opacity-50" : ""}`}
-              title="Connect E*Trade"
-            >
-              <img
-                src="/etrade-logo.png"
-                alt="E*Trade"
-                className={`w-6 h-6 object-contain grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 transition-all ${isConnecting ? "animate-spin" : ""}`}
-              />
-              <span className="hidden sm:inline">{isConnecting ? "connecting..." : "connect"}</span>
-            </button>
-            <TopBarDivider />
-            {timeStr && (
-              <span className="font-mono text-[11px] font-medium text-slate-200">{timeStr}</span>
-            )}
-          </>
-        )}
-        {error && (
-          <span className="font-mono text-[9px] text-negative max-w-[120px] truncate" title={error}>
-            {error}
-          </span>
-        )}
-        <AccountIconDiv onClick={openAccountPanel} isOpen={accountPanelOpen} />
-      </div>
-    </div>
+    <button
+      onClick={startAuth}
+      className="flex items-center gap-2.5 self-stretch px-3.5 bg-white/[0.05] hover:brightness-125 transition-all"
+      title={connected ? "E*Trade connected — click to reconnect" : "Connect E*Trade"}
+    >
+      <img
+        src="/etrade-logo.png"
+        alt="E*Trade"
+        className={`w-[22px] h-[22px] object-contain transition-all ${
+          isConnecting ? "animate-spin opacity-50" : ""
+        } ${connected ? "" : "grayscale opacity-60 group-hover:grayscale-0"}`}
+      />
+      {error ? (
+        <span className="font-mono text-[9px] text-negative max-w-[120px] truncate" title={error}>
+          {error}
+        </span>
+      ) : (
+        <span
+          className={`hidden sm:inline font-mono pr-1.5 text-[11px] font-bold tracking-[0.02em] ${
+            isConnecting
+              ? "text-slate-300"
+              : connected
+                ? "text-etrade-gradient"
+                : "text-slate-400"
+          }`}
+        >
+          {isConnecting ? "reconnecting…" : connected ? "connected" : "connect"}
+        </span>
+      )}
+    </button>
   );
 }

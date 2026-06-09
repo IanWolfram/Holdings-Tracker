@@ -70,6 +70,10 @@ export default function AccountPanel({ onClose, isConnected, isConnecting }: Acc
               cronOptIn={logic.preferences?.cronOptIn ?? null}
               cronSaving={logic.cronSaving}
               onCronToggle={logic.handleCronToggle}
+              defaultTimescale={logic.preferences?.defaultTimescale ?? null}
+              onTimescaleChange={logic.handleTimescaleChange}
+              analyzedMaxAgeDays={logic.preferences?.analyzedMaxAgeDays ?? null}
+              onAnalyzedAgeChange={logic.handleAnalyzedAgeChange}
             />
             {logic.account && !logic.isDev && (
               <AccountDetailsSection

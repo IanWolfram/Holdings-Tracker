@@ -58,15 +58,19 @@ export default apiHandler(["GET"], async (req, res: NextApiResponse<Position[] |
     // Race history enrichment against a 10s budget so the API stays responsive.
     // Positions missing real history are returned WITHOUT history — the chart
     // stays blank rather than showing inaccurate synthetic data.
-    // Background enrichment continues warming the server cache for next poll.
+    //
+    // We launch the enrichment ONCE and keep a handle to it. Promise.race does
+    // not cancel the loser, so this same in-flight promise keeps running after
+    // the budget elapses and warms the server cache for the next poll. (Starting
+    // a second enrichWithHistory here would double every Yahoo/Finnhub call and
+    // help trip Yahoo's 429 rate-limit.)
     const HISTORY_BUDGET_MS = 10_000;
+    const enrichPromise = enrichWithHistory(withNames);
+    enrichPromise.catch(() => {}); // background cache-warm; don't crash on late rejection
     const historyResult = await Promise.race([
-      enrichWithHistory(withNames),
+      enrichPromise,
       new Promise<null>((resolve) => setTimeout(() => resolve(null), HISTORY_BUDGET_MS)),
     ]);
-
-    // Keep warming cache in background for positions that didn't finish in time
-    enrichWithHistory(withNames).catch(() => {});
 
     res.status(200).json(historyResult ?? withNames);
   } catch (err) {

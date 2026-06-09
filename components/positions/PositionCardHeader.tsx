@@ -1,24 +1,16 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { PositionChart } from "@/components/positions/PositionChart";
 import StockLogo from "@/components/ui/StockLogo";
 import SentimentBar from "@/components/bars/SentimentBar";
 import type { SentimentDirection } from "@/lib/utils/sentiment";
 import { formatCurrency, formatPercent, formatGainLoss } from "@/lib/utils/format";
+import { useAccount } from "@/hooks/useAccount";
+import { TIMESCALE_WINDOWS, timescaleIndex } from "@/lib/timescales";
 
 // Selectable x-axis windows, in trading-day points (~21 trading days / month).
-const WINDOWS: { key: string; points: number }[] = [
-  { key: "1M", points: 21 },
-  { key: "2M", points: 42 },
-  { key: "3M", points: 63 },
-  { key: "4M", points: 84 },
-  { key: "5M", points: 105 },
-  { key: "6M", points: 126 },
-  { key: "1Y", points: 252 },
-  { key: "2Y", points: 504 },
-];
-const DEFAULT_WINDOW_IDX = 5; // 6M
+const WINDOWS = TIMESCALE_WINDOWS;
 
 // Approximate a date for each point by walking back trading days (skip weekends)
 // from today. Good enough for month/year axis labels without threading real
@@ -85,7 +77,16 @@ interface PriceChartPanelProps {
 }
 
 function PriceChartPanel({ history, pricePaid, purchaseDate, gainPositive, width, height }: PriceChartPanelProps) {
-  const [windowIdx, setWindowIdx] = useState(DEFAULT_WINDOW_IDX);
+  // Seed the visible window from the user's saved default timescale. This stays
+  // in sync with the preference until the user manually steps this card's range,
+  // after which the per-card choice wins (touchedRef latches).
+  const { preferences } = useAccount();
+  const defaultIdx = timescaleIndex(preferences?.defaultTimescale);
+  const [windowIdx, setWindowIdx] = useState(defaultIdx);
+  const touchedRef = useRef(false);
+  useEffect(() => {
+    if (!touchedRef.current) setWindowIdx(defaultIdx);
+  }, [defaultIdx]);
   const [showCostBasis, setShowCostBasis] = useState(false);
 
   // Largest window the available history can actually fill.
@@ -121,8 +122,8 @@ function PriceChartPanel({ history, pricePaid, purchaseDate, gainPositive, width
 
   const canExpand = idx < maxIdx;
   const canShrink = idx > 0;
-  const expand = () => setWindowIdx(Math.min(maxIdx, idx + 1));
-  const shrink = () => setWindowIdx(Math.max(0, idx - 1));
+  const expand = () => { touchedRef.current = true; setWindowIdx(Math.min(maxIdx, idx + 1)); };
+  const shrink = () => { touchedRef.current = true; setWindowIdx(Math.max(0, idx - 1)); };
 
   const btn =
     "w-3.5 h-3.5 flex items-center justify-center rounded-[3px] leading-none text-slate-400 " +
@@ -222,6 +223,7 @@ interface PositionCardHeaderProps {
   hovered?: boolean;
   onAnalyzeTicker?: () => void;
   isTickerAnalyzing?: boolean;
+  onRemoveProposed?: () => void;
 }
 
 interface StatProps {
@@ -295,6 +297,7 @@ export default function PositionCardHeader({
   hovered: _hovered = false,
   onAnalyzeTicker,
   isTickerAnalyzing,
+  onRemoveProposed,
 }: PositionCardHeaderProps) {
   const historyData = history ?? [];
 
@@ -310,11 +313,6 @@ export default function PositionCardHeader({
                 <h1 className="font-mono text-[13px] font-black text-white tracking-tighter leading-none">
                   {ticker}
                 </h1>
-                {isProposed && (
-                  <span className="ml-0.5 inline-flex items-center rounded px-1 py-0.5 text-[6px] font-mono font-bold uppercase tracking-wider bg-amber-500/15 text-amber-400 border border-amber-500/30">
-                    Proposed
-                  </span>
-                )}
               </div>
               <span className="font-mono text-[9px] text-slate-500 font-medium leading-tight whitespace-nowrap">
                 {formatCurrency(currentPrice)}
@@ -337,11 +335,6 @@ export default function PositionCardHeader({
               <h1 className="font-mono text-[16px] font-black text-white tracking-tighter leading-none">
                 {ticker}
               </h1>
-              {isProposed && (
-                <span className="ml-1.5 inline-flex items-center rounded px-1.5 py-0.5 text-[7px] font-mono font-bold uppercase tracking-wider bg-amber-500/15 text-amber-400 border border-amber-500/30">
-                  Proposed
-                </span>
-              )}
               <span className="font-mono text-[10px] text-slate-500 font-medium whitespace-nowrap">
                 {formatCurrency(currentPrice)}&thinsp;
                 <span className="opacity-50 text-[8px]">/ SH</span>
@@ -411,6 +404,26 @@ export default function PositionCardHeader({
             />
           )}
         </div>
+        {isProposed && onRemoveProposed && (
+          <>
+            <div className="w-px bg-white/[0.06]" />
+            <div
+              className={`flex-1 ${compact ? "py-[5px] px-2.5" : "py-2 px-4"} flex items-center justify-end`}
+            >
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemoveProposed();
+                }}
+                className="w-5 h-5 flex items-center justify-center rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 hover:bg-amber-500/25 hover:text-amber-300 transition-colors font-mono text-[10px] leading-none"
+                aria-label="Remove proposed position"
+              >
+                x
+              </button>
+            </div>
+          </>
+        )}
         {!isProposed && (
           <>
             <div className="w-px bg-white/[0.06]" />

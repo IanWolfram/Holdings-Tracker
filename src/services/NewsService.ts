@@ -8,9 +8,10 @@ import { dedupeStories } from "@/lib/utils/dedupeStories";
 import { getVaultStoriesForTicker } from "@/lib/vault-stories";
 
 const NEWS_WINDOW_S = 7 * 24 * 60 * 60;
+const DEFAULT_VAULT_WINDOW_DAYS = 7;
 
-function withinNewsWindow(stories: ClassifiedStory[]): ClassifiedStory[] {
-  const cutoff = Math.floor(Date.now() / 1000) - NEWS_WINDOW_S;
+function withinWindow(stories: ClassifiedStory[], windowS: number): ClassifiedStory[] {
+  const cutoff = Math.floor(Date.now() / 1000) - windowS;
   return stories.filter((s) => s.datetime >= cutoff);
 }
 
@@ -26,7 +27,18 @@ export class NewsService {
     private readonly classifier: IClassifier,
     private readonly cache: ICache,
     private readonly userId: string = SYSTEM_USER_ID,
+    // Window (days) for analyzed/vault stories. The per-user service caches the
+    // largest selectable window so pages/api/news.ts can trim to the user's
+    // chosen age at response time without a cache miss. Internal callers
+    // (agent, world-data) keep the default 7-day window.
+    private readonly vaultWindowDays: number = DEFAULT_VAULT_WINDOW_DAYS,
   ) {}
+
+  /** Final merged-list window: wide enough to retain vault stories up to
+   *  vaultWindowDays while provider stories remain bounded to NEWS_WINDOW_S. */
+  private get _windowS(): number {
+    return Math.max(NEWS_WINDOW_S, this.vaultWindowDays * 24 * 60 * 60);
+  }
 
   invalidateTicker(ticker: string): void {
     this.cache.delete(ticker);
@@ -84,9 +96,38 @@ export class NewsService {
     const totalRealStories = finnhubItems.length + newsapiItems.length;
 
     if (totalRealStories === 0) {
-      this.cache.set(ticker, [], NEWS_CACHE_TTL_MS);
-      this.kickOffPolygonEnrichment(ticker, companyName);
-      return [];
+      // Don't cache an empty result — that poisons the cache for 5 min and
+      // leaves position cards blank. Instead, await Polygon synchronously on
+      // this request so the card gets stories on first load.
+      const polygonItems = this.providers.polygon
+        ? await this.providers.polygon.fetchNews(ticker, companyName).catch((err) => {
+            console.error(`[news] Polygon sync fetch error for ${ticker}:`, err);
+            return [] as Awaited<ReturnType<INewsProvider["fetchNews"]>>;
+          })
+        : [];
+
+      if (polygonItems.length === 0) {
+        // Genuinely no news anywhere — cache empty with a short TTL so we retry sooner.
+        this.cache.set(ticker, [], NEWS_CACHE_TTL_MS / 6);
+        return [];
+      }
+
+      const cutoff = Math.floor(Date.now() / 1000) - NEWS_WINDOW_S;
+      const polygonRaw = polygonItems
+        .map((a) => ({ ticker, ...a, source: "polygon" as const }))
+        .filter((s) => s.datetime >= cutoff);
+
+      const polygonClassified: ClassifiedStory[] = [];
+      for (const s of polygonRaw) {
+        const cls = await this.classifier.classify(s.ticker, s.headline, s.summary ?? "", s.url);
+        polygonClassified.push({ ...s, ...cls });
+      }
+
+      const vaultStories = await getVaultStoriesForTicker(ticker, this.vaultWindowDays, this.userId);
+      const merged = dedupeStories([...polygonClassified, ...vaultStories], companyName);
+      const recent = withinWindow(merged, this._windowS).sort((a, b) => b.datetime - a.datetime);
+      this.cache.set(ticker, recent, NEWS_CACHE_TTL_MS);
+      return recent;
     }
 
     const cutoff = Math.floor(Date.now() / 1000) - NEWS_WINDOW_S;
@@ -103,10 +144,10 @@ export class NewsService {
       classified.push({ ...s, ...cls });
     }
 
-    const vaultStories = await getVaultStoriesForTicker(ticker, 7, this.userId);
+    const vaultStories = await getVaultStoriesForTicker(ticker, this.vaultWindowDays, this.userId);
     const allClassified = [...classified, ...vaultStories];
     const deduped = dedupeStories(allClassified, companyName);
-    const recent = withinNewsWindow(deduped).sort((a, b) => b.datetime - a.datetime);
+    const recent = withinWindow(deduped, this._windowS).sort((a, b) => b.datetime - a.datetime);
     const allRecent = recent;
 
     this.cache.set(ticker, allRecent, NEWS_CACHE_TTL_MS);
@@ -147,7 +188,7 @@ export class NewsService {
     }
 
     const merged = dedupeStories([...cached, ...newClassified], companyName);
-    const recent = withinNewsWindow(merged).sort((a, b) => b.datetime - a.datetime);
+    const recent = withinWindow(merged, this._windowS).sort((a, b) => b.datetime - a.datetime);
     this.cache.set(ticker, recent, NEWS_CACHE_TTL_MS);
   }
 

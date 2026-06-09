@@ -19,7 +19,8 @@ interface GlobeCanvasProps {
   focusedCountryCode?: string | null;
   navigateTo?: { lat: number; lon: number } | null;
   onRelevanceChange?: (value: number) => void;
-  countryFocusOverride?: { code: string; lat: number; lon: number; angularRadius: number } | null;
+  countryFocusOverrides?: Record<string, { lat: number; lon: number; angularRadius: number }> | null;
+  externalHoveredTicker?: string | null;
   proposedMarkers?: ProposedMarkerData[];
   showProposed?: boolean;
   onShowProposedChange?: (value: boolean) => void;
@@ -36,7 +37,8 @@ export default function GlobeCanvas({
   focusedCountryCode,
   navigateTo,
   onRelevanceChange,
-  countryFocusOverride,
+  countryFocusOverrides,
+  externalHoveredTicker,
   proposedMarkers,
   showProposed = true,
   onShowProposedChange,
@@ -51,7 +53,8 @@ export default function GlobeCanvas({
     focusedTicker,
     focusedCountryCode,
     navigateTo,
-    countryFocusOverride,
+    countryFocusOverrides,
+    externalHoveredTicker,
     proposedMarkers,
     showProposed,
   });

@@ -63,6 +63,7 @@ interface WorldOverlaysProps {
   focusTarget: GlobeFocusTarget;
   handleDismissFocus: () => void;
   onStockSelect: (ticker: string) => void;
+  onStockHover: (ticker: string | null) => void;
   setHoveredTicker: (ticker: string | null) => void;
   stockNavIndex: number;
   countryStocks: Array<{ ticker: string }>;
@@ -79,6 +80,7 @@ export default function WorldOverlays({
   focusTarget,
   handleDismissFocus,
   onStockSelect,
+  onStockHover,
   setHoveredTicker,
   stockNavIndex,
   countryStocks,
@@ -152,6 +154,7 @@ export default function WorldOverlays({
               positions={positions}
               onClose={handleDismissFocus}
               onStockClick={onStockSelect}
+              onStockHover={onStockHover}
               stockIndex={stockNavIndex >= 0 ? stockNavIndex + 1 : undefined}
               stockCount={countryStocks.length > 1 ? countryStocks.length : undefined}
             />

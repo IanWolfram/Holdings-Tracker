@@ -27,6 +27,8 @@ export default apiHandler(["GET"], async (req, res: NextApiResponse) => {
       cronOptIn: preferences.cronOptIn,
       aiModel: preferences.aiModel,
       vaultEnabled: preferences.vaultEnabled,
+      defaultTimescale: preferences.defaultTimescale,
+      analyzedMaxAgeDays: preferences.analyzedMaxAgeDays,
     },
     etrade: {
       env: process.env.ETRADE_ENV ?? "live",

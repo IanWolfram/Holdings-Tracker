@@ -173,15 +173,20 @@ function PanelFooter({ text }: { text: string }) {
 // ---------------------------------------------------------------------------
 
 function CountryView({
-  state, onClose, onStockClick,
+  state, onClose, onStockClick, onStockHover,
 }: {
   state: CountryState;
   onClose: () => void;
   onStockClick: (ticker: string) => void;
+  onStockHover: (ticker: string | null) => void;
 }) {
   const countryName = COUNTRY_NAMES[state.countryCode] ?? state.countryCode;
   const flag = flagEmoji(state.countryCode);
   const tickers = state.hqTickers;
+
+  // Clear the map highlight if this view unmounts (panel closed, or morphed to
+  // the stock view) without a trailing mouseleave on a logo button.
+  useEffect(() => () => onStockHover(null), [onStockHover]);
 
   // Logos are the focal point: a single horizontal row of large tiles. The
   // shell is content-sized, so the panel widens to fit however many there are.
@@ -194,6 +199,8 @@ function CountryView({
               key={ticker}
               type="button"
               onClick={() => onStockClick(ticker)}
+              onMouseEnter={() => onStockHover(ticker)}
+              onMouseLeave={() => onStockHover(null)}
               whileHover={{
                 scale: 1.07,
                 backgroundColor: "rgba(0,255,136,0.07)",
@@ -371,6 +378,7 @@ interface FocusPanelProps {
   positions: Position[];
   onClose: () => void;
   onStockClick: (ticker: string) => void;
+  onStockHover: (ticker: string | null) => void;
   stockIndex?: number;
   stockCount?: number;
 }
@@ -381,6 +389,7 @@ export default function FocusPanel({
   positions,
   onClose,
   onStockClick,
+  onStockHover,
   stockIndex,
   stockCount,
 }: FocusPanelProps) {
@@ -433,6 +442,7 @@ export default function FocusPanel({
                 state={worldData.countries[focusTarget.code]}
                 onClose={onClose}
                 onStockClick={onStockClick}
+                onStockHover={onStockHover}
               />
             </motion.div>
           ) : (

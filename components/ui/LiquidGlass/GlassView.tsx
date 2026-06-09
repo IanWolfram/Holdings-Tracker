@@ -100,7 +100,7 @@ export default function GlassView({
         whileHover={interactive ? { backgroundColor: hasContext ? undefined : (tint ? `${tint}1A` : "rgba(255,255,255,0.08)") } : {}}
         whileTap={interactive ? { scale: 0.99 } : {}}
       >
-        <div className="relative z-20">{children}</div>
+        <div className="relative z-20 h-full">{children}</div>
       </motion.div>
 
       {/* The Silhouette Portal into Parent's SVG Mask */}

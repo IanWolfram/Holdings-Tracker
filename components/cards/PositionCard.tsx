@@ -134,7 +134,7 @@ export default function PositionCard({
       layout
       layoutId={ticker}
       cornerRadius={POSITION_R}
-      className={`relative flex flex-col group shadow-2xl transition-all duration-300${isProposed ? " glass-edge-proposed" : ""}`}
+      className={`relative flex flex-col group shadow-2xl transition-all duration-300 ${compact ? "h-[440px]" : "h-[520px]"}${isProposed ? " glass-edge-proposed" : ""}`}
       style={{
         backgroundColor: frosted ? "rgba(8, 13, 9, 0.92)" : "rgba(0, 0, 0, 0.6)",
         backdropFilter: frosted
@@ -154,25 +154,15 @@ export default function PositionCard({
         className="absolute inset-0 pointer-events-none z-30"
         style={{
           borderRadius: `${POSITION_R}px`,
-          borderTop: `1.5px solid ${topBorderColor}`,
+          // Proposed cards already carry a dashed amber perimeter (.glass-edge-proposed),
+          // so skip this solid accent to avoid a doubled-up top border.
+          borderTop: isProposed ? undefined : `1.5px solid ${topBorderColor}`,
           boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.04)",
         }}
       />
-      {isProposed && onRemoveProposed && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onRemoveProposed(ticker);
-          }}
-          className="absolute top-2 right-2 z-30 w-5 h-5 flex items-center justify-center rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 hover:bg-amber-500/25 hover:text-amber-300 transition-colors font-mono text-[10px] leading-none"
-          aria-label="Remove proposed position"
-        >
-          x
-        </button>
-      )}
       <div
         ref={articleRef}
-        className="relative"
+        className="relative flex flex-col h-full min-h-0"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
@@ -214,6 +204,7 @@ export default function PositionCard({
           hovered={_hovered}
           onAnalyzeTicker={onAnalyzeTicker}
           isTickerAnalyzing={isTickerAnalyzing}
+          onRemoveProposed={onRemoveProposed ? () => onRemoveProposed(ticker) : undefined}
         />
 
         <PositionCardNewsFeed

@@ -7,6 +7,7 @@ import { getRecentResolvedPredictions } from "../../world-brain/predictions";
 import { FALLBACK_CONFIDENCE } from "../constants";
 import { getActiveModel } from "../ai-config";
 import type { MacroSnapshot } from "../marketdata/macro";
+import type { MarketQuote } from "../marketdata/prices";
 import type { VaultStore } from "@/lib/vault/store";
 import type { CatalystType, TickerPrediction, PredictionDirection } from "@/types/predictions";
 import type { TickerResult } from "./types";
@@ -23,7 +24,7 @@ export async function runForecast(
   macroSnapshot: MacroSnapshot | null,
   horizonDays: number,
   daysUntilEarnings?: number | null,
-  options?: { version?: string; shadow?: boolean }
+  options?: { version?: string; shadow?: boolean; marketQuote?: MarketQuote | null }
 ): Promise<TickerPrediction | null> {
   let forecasterPrompt = "";
   try {
@@ -77,12 +78,31 @@ export async function runForecast(
       ? `\nEarnings in ${daysUntilEarnings} day${daysUntilEarnings === 1 ? "" : "s"} — widen magnitude bands and treat this window as higher-variance. Bias confidence down unless catalysts are unambiguous.`
       : "";
 
+  // Volatility block — only fed to v2, so the v1-vs-v2 shadow A/B isolates the
+  // effect of giving the forecaster the ticker's OWN realized volatility instead
+  // of the generic large-cap/small-cap magnitude table in FORECASTER.md.
+  const mq = options?.marketQuote;
+  const atrPct =
+    mq && typeof mq.atr14 === "number" && mq.atr14 > 0 && mq.price > 0
+      ? (mq.atr14 / mq.price) * 100
+      : null;
+  const fmtPct = (v: number | null | undefined) =>
+    typeof v === "number" ? `${v >= 0 ? "+" : ""}${v.toFixed(1)}%` : "n/a";
+  const volatilityBlock =
+    options?.version === "v2" && atrPct !== null
+      ? `\n\nRealized volatility for ${ticker} — size your magnitude band and FLAT threshold to THIS stock, not the generic table:\n` +
+        `- ATR(14): ${atrPct.toFixed(2)}% of price per day (a normal daily range).\n` +
+        `- Recent moves: 1d ${fmtPct(mq?.change1d)}, 5d ${fmtPct(mq?.change5d)}, 30d ${fmtPct(mq?.change30d)}.\n` +
+        `- Expected horizon noise ≈ ATR%·√${horizonDays} ≈ ${(atrPct * Math.sqrt(horizonDays)).toFixed(1)}%. A move within that band is NOISE: forecast FLAT unless you expect a move clearly beyond it. Set magnitudePct relative to this, not a fixed table.`
+      : "";
+
   const userMessage =
     `Ticker: ${ticker}\nCurrent price: $${currentPrice.toFixed(2)}\n` +
     `Target horizon: ${horizonDays} day${horizonDays === 1 ? "" : "s"}\n` +
     (sector ? `Sector: ${sector}\n` : "") +
     summarizeMacroForPrompt(macroSnapshot) +
     earningsHint +
+    volatilityBlock +
     `\nSession verdicts:\n${verdictsBlock}` +
     (tickerContext ? `\n\nTicker Knowledge:\n${tickerContext.slice(0, 400)}` : "") +
     calibrationBlock +

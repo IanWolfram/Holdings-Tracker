@@ -28,6 +28,20 @@ export async function register() {
     }
   });
 
+  // Daily prediction resolution — resolve every user's eligible predictions
+  // against the horizon-date close so horizons stay accurate and nothing sits
+  // pending until the user happens to run a sweep. 22:00 UTC is after the US
+  // close; on days with no new bar the resolver is a harmless no-op.
+  cron.schedule("0 22 * * *", async () => {
+    try {
+      const { resolveAllUsersPending } = await import("./world-brain/resolve-all");
+      const { users, resolved } = await resolveAllUsersPending();
+      console.info(`[resolve-cron] Resolved ${resolved} prediction(s) across ${users} user(s)`);
+    } catch (err) {
+      console.error("[resolve-cron] Failed:", (err as Error).message);
+    }
+  });
+
   globalState._recalibrateCronScheduled = true;
-  console.info("[recalibrate-cron] Scheduled: 2am on the 1st of each month (single-user mode)");
+  console.info("[recalibrate-cron] Scheduled: monthly recalibration (2am UTC, 1st) + daily prediction resolution (22:00 UTC)");
 }

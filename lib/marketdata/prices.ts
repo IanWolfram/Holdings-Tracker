@@ -1,7 +1,6 @@
 import { getBasicQuote } from "../market-data";
 import { fetchOHLCPolygon } from "../polygon";
 import {
-  YAHOO_HEADERS,
   FINNHUB_BASE_URL,
   API_TIMEOUT_MS,
 } from "../constants";
@@ -54,13 +53,6 @@ function sliceRecent<T>(arr: T[], count: number): T[] {
   return arr.slice(arr.length - count);
 }
 
-function yahooRangeForDays(days: number): string {
-  if (days <= 90) return "6mo";
-  if (days <= 180) return "1y";
-  if (days <= 365) return "2y";
-  return "5y";
-}
-
 function dedupeAndSortBars(bars: DailyBar[]): DailyBar[] {
   const byDate = new Map<string, DailyBar>();
   for (const bar of bars) {
@@ -69,101 +61,6 @@ function dedupeAndSortBars(bars: DailyBar[]): DailyBar[] {
   return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
 }
 
-async function fetchYahooDailyBars(ticker: string, days: number): Promise<DailyBar[]> {
-  const range = yahooRangeForDays(days);
-  // query1 is heavily rate-limited; query2 typically stays available. Try both.
-  const hosts = ["query2.finance.yahoo.com", "query1.finance.yahoo.com"];
-
-  let lastError: Error | null = null;
-  let res: Response | null = null;
-  for (const host of hosts) {
-    const url =
-      `https://${host}/v8/finance/chart/${encodeURIComponent(ticker)}` +
-      `?interval=1d&range=${range}`;
-    try {
-      const attempt = await fetch(url, {
-        headers: YAHOO_HEADERS,
-        signal: AbortSignal.timeout(12_000),
-      });
-      if (attempt.ok) {
-        res = attempt;
-        break;
-      }
-      lastError = new Error(`Yahoo chart HTTP ${attempt.status} (${host})`);
-    } catch (err) {
-      lastError = err as Error;
-    }
-  }
-  if (!res) {
-    throw lastError ?? new Error("Yahoo chart unreachable");
-  }
-
-  const json = (await res.json()) as {
-    chart: {
-      result:
-        | Array<{
-            timestamp?: number[];
-            indicators?: {
-              quote?: Array<{
-                open?: Array<number | null>;
-                high?: Array<number | null>;
-                low?: Array<number | null>;
-                close?: Array<number | null>;
-                volume?: Array<number | null>;
-              }>;
-            };
-          }>
-        | null;
-      error?: { code?: string; description?: string } | null;
-    };
-  };
-
-  if (json.chart.error) {
-    throw new Error(json.chart.error.description ?? "Unknown Yahoo chart error");
-  }
-
-  const first = json.chart.result?.[0];
-  const ts = first?.timestamp ?? [];
-  const quote = first?.indicators?.quote?.[0];
-  const open = quote?.open ?? [];
-  const high = quote?.high ?? [];
-  const low = quote?.low ?? [];
-  const close = quote?.close ?? [];
-  const volume = quote?.volume ?? [];
-
-  const bars: DailyBar[] = [];
-  for (let i = 0; i < ts.length; i++) {
-    const o = open[i];
-    const h = high[i];
-    const l = low[i];
-    const c = close[i];
-    if (
-      typeof o !== "number" ||
-      typeof h !== "number" ||
-      typeof l !== "number" ||
-      typeof c !== "number"
-    ) {
-      continue;
-    }
-    if (!Number.isFinite(o) || !Number.isFinite(h) || !Number.isFinite(l) || !Number.isFinite(c)) {
-      continue;
-    }
-    bars.push({
-      date: new Date(ts[i] * 1000).toISOString().slice(0, 10),
-      open: o,
-      high: h,
-      low: l,
-      close: c,
-      volume: typeof volume[i] === "number" && Number.isFinite(volume[i]) ? Number(volume[i]) : 0,
-    });
-  }
-
-  if (bars.length === 0) {
-    throw new Error(`No Yahoo bars for ${ticker}`);
-  }
-
-  return dedupeAndSortBars(bars);
-}
 
 async function fetchFinnhubDailyBars(ticker: string, days: number): Promise<DailyBar[]> {
   const apiKey = process.env.FINNHUB_API_KEY;
@@ -251,7 +148,7 @@ function computeRsi14(closes: number[]): number | null {
   return round(100 - 100 / (1 + rs), 2);
 }
 
-function computeAtr14(bars: DailyBar[]): number | null {
+export function computeAtr14(bars: DailyBar[]): number | null {
   if (bars.length < 15) return null;
 
   const trValues: number[] = [];
@@ -288,14 +185,7 @@ async function fetchPolygonDailyBars(ticker: string, days: number): Promise<Dail
 async function fetchBarsFromSource(ticker: string, days: number): Promise<DailyBar[]> {
   let firstErr: Error | null = null;
 
-  // Primary: Yahoo (Free, reasonably high limits)
-  try {
-    return await fetchYahooDailyBars(ticker, days);
-  } catch (err) {
-    firstErr = err as Error;
-  }
-
-  // Secondary: Finnhub (60 calls/min free)
+  // Primary: Finnhub (60 calls/min free)
   try {
     return await fetchFinnhubDailyBars(ticker, days);
   } catch (err) {

@@ -28,6 +28,10 @@ export default function WorldPage() {
   const { proposedEntries } = useProposedPositions(heldTickers);
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
   const [hoveredTicker, setHoveredTicker] = useState<string | null>(null);
+  // Ticker hovered from inside the country focus panel's logo row. Kept
+  // separate from globe-driven `hoveredTicker` so panel hover and map hover
+  // never feed back into each other; it highlights the marker's octahedron.
+  const [panelHoveredTicker, setPanelHoveredTicker] = useState<string | null>(null);
   const [focusTarget, setFocusTarget] = useState<GlobeFocusTarget>(null);
   const [navigatePos, setNavigatePos] = useState<{ lat: number; lon: number } | null>(null);
   const focusTargetRef = useRef<GlobeFocusTarget>(null);
@@ -253,59 +257,71 @@ export default function WorldPage() {
     return Object.values(worldData.profiles).sort((a, b) => a.ticker.localeCompare(b.ticker));
   }, [worldData]);
 
-  // Fit-to-positions camera override for the focused country: instead of
-  // framing the whole country (centroid skews far from where the user
-  // actually holds positions — e.g. US centroid is in Kansas, leaving the
-  // camera too zoomed out), build the smallest circle around the user's
-  // in-country positions and frame that. Falls back to default country
-  // framing if the user has no positions in the focused country.
-  const countryFocusOverride = useMemo(() => {
-    if (!worldData || focusTarget?.type !== "country") return null;
-    const code = focusTarget.code;
-    const pts: { lat: number; lon: number }[] = [];
+  // Fit-to-positions camera overrides, keyed by country code. Instead of
+  // framing a whole country (its centroid skews far from where the user
+  // actually holds positions — e.g. the US polygon spans Alaska→Hawaii→Maine,
+  // so full-territory framing zooms the camera out to hemisphere scale), build
+  // the smallest circle around the user's in-country positions and frame that.
+  //
+  // Computed for EVERY held country, independent of the current focus, so the
+  // value is already populated in the globe's ref when `focusCountry` reads it
+  // synchronously on click. (Gating this on the current `focusTarget` created a
+  // chicken-and-egg: the first click fell through to full-territory framing
+  // because the override hadn't been recomputed yet.) Countries with no held
+  // positions are absent from the map and fall back to default geo framing.
+  const countryFocusOverrides = useMemo(() => {
+    if (!worldData) return null;
+
+    const byCountry = new Map<string, { lat: number; lon: number }[]>();
     for (const p of positions) {
       if (p.isProposed) continue;
       const profile = worldData.profiles[p.ticker];
-      if (!profile || profile.countryCode !== code) continue;
+      if (!profile) continue;
       if (!Number.isFinite(profile.lat) || !Number.isFinite(profile.lon)) continue;
-      pts.push({ lat: profile.lat, lon: profile.lon });
+      const arr = byCountry.get(profile.countryCode);
+      if (arr) arr.push({ lat: profile.lat, lon: profile.lon });
+      else byCountry.set(profile.countryCode, [{ lat: profile.lat, lon: profile.lon }]);
     }
-    if (pts.length === 0) return null;
+    if (byCountry.size === 0) return null;
 
-    // Great-circle centroid via averaged unit vectors (handles antimeridian
-    // and high-latitude wrap correctly, unlike a naive lat/lon mean).
-    let cx = 0, cy = 0, cz = 0;
-    for (const { lat, lon } of pts) {
-      const phi = (lat * Math.PI) / 180;
-      const lam = (lon * Math.PI) / 180;
-      cx += Math.cos(phi) * Math.cos(lam);
-      cy += Math.cos(phi) * Math.sin(lam);
-      cz += Math.sin(phi);
-    }
-    const norm = Math.hypot(cx, cy, cz);
-    cx /= norm; cy /= norm; cz /= norm;
-    const centerLat = (Math.asin(cz) * 180) / Math.PI;
-    const centerLon = (Math.atan2(cy, cx) * 180) / Math.PI;
+    const overrides: Record<string, { lat: number; lon: number; angularRadius: number }> = {};
+    for (const [code, pts] of byCountry) {
+      // Great-circle centroid via averaged unit vectors (handles antimeridian
+      // and high-latitude wrap correctly, unlike a naive lat/lon mean).
+      let cx = 0, cy = 0, cz = 0;
+      for (const { lat, lon } of pts) {
+        const phi = (lat * Math.PI) / 180;
+        const lam = (lon * Math.PI) / 180;
+        cx += Math.cos(phi) * Math.cos(lam);
+        cy += Math.cos(phi) * Math.sin(lam);
+        cz += Math.sin(phi);
+      }
+      const norm = Math.hypot(cx, cy, cz);
+      cx /= norm; cy /= norm; cz /= norm;
+      const centerLat = (Math.asin(cz) * 180) / Math.PI;
+      const centerLon = (Math.atan2(cy, cx) * 180) / Math.PI;
 
-    // Max angular distance from centroid to any position (radians).
-    let maxAngle = 0;
-    for (const { lat, lon } of pts) {
-      const phi = (lat * Math.PI) / 180;
-      const lam = (lon * Math.PI) / 180;
-      const x = Math.cos(phi) * Math.cos(lam);
-      const y = Math.cos(phi) * Math.sin(lam);
-      const z = Math.sin(phi);
-      const dot = Math.max(-1, Math.min(1, x * cx + y * cy + z * cz));
-      const a = Math.acos(dot);
-      if (a > maxAngle) maxAngle = a;
+      // Max angular distance from centroid to any position (radians).
+      let maxAngle = 0;
+      for (const { lat, lon } of pts) {
+        const phi = (lat * Math.PI) / 180;
+        const lam = (lon * Math.PI) / 180;
+        const x = Math.cos(phi) * Math.cos(lam);
+        const y = Math.cos(phi) * Math.sin(lam);
+        const z = Math.sin(phi);
+        const dot = Math.max(-1, Math.min(1, x * cx + y * cy + z * cz));
+        const a = Math.acos(dot);
+        if (a > maxAngle) maxAngle = a;
+      }
+      // Floor so the camera doesn't pinhole onto a single city; ceiling so
+      // even a globe-spanning portfolio doesn't blow past the country view.
+      // No extra margin — `zoomForAngularRadius` in `useGlobeScene` already
+      // applies a small padding factor on top of this for the override path.
+      const angularRadius = Math.min(0.6, Math.max(0.08, maxAngle));
+      overrides[code] = { lat: centerLat, lon: centerLon, angularRadius };
     }
-    // Floor so the camera doesn't pinhole onto a single city; ceiling so
-    // even a globe-spanning portfolio doesn't blow past the country view.
-    // No extra margin — `zoomForAngularRadius` in `useGlobeScene` already
-    // applies a small padding factor on top of this for the override path.
-    const angularRadius = Math.min(0.6, Math.max(0.08, maxAngle));
-    return { code, lat: centerLat, lon: centerLon, angularRadius };
-  }, [worldData, focusTarget, positions]);
+    return overrides;
+  }, [worldData, positions]);
 
   // Derive proposed marker data for the globe (resolve coordinates)
   const proposedMarkers: ProposedMarkerData[] = useMemo(() => {
@@ -365,7 +381,8 @@ export default function WorldPage() {
             }
             navigateTo={navigatePos}
             onRelevanceChange={setRelevanceThreshold}
-            countryFocusOverride={countryFocusOverride}
+            countryFocusOverrides={countryFocusOverrides}
+            externalHoveredTicker={panelHoveredTicker}
             proposedMarkers={proposedMarkers}
             showProposed={showProposed}
             onShowProposedChange={setShowProposed}
@@ -392,6 +409,7 @@ export default function WorldPage() {
           focusTarget={focusTarget}
           handleDismissFocus={handleDismissFocus}
           onStockSelect={handleStockSelect}
+          onStockHover={setPanelHoveredTicker}
           setHoveredTicker={setHoveredTicker}
           stockNavIndex={stockNavIndex}
           countryStocks={countryStocks}

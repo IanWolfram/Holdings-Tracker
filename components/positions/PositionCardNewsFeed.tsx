@@ -47,6 +47,17 @@ export default function PositionCardNewsFeed({
 }: PositionCardNewsFeedProps) {
   const [showPredictions, setShowPredictions] = useState(false);
 
+  // All analyzed (classified) source stories collapse into a single stack —
+  // polygon first, then finnhub, then any remaining sources — rather than one
+  // stack per source.
+  const analyzedSources = [
+    ...sourceOrder.filter((s) => storyGroups[s]?.length),
+    ...Object.keys(storyGroups).filter(
+      (s) => sourcePriority[s] === undefined && storyGroups[s]?.length,
+    ),
+  ];
+  const analyzedStories = analyzedSources.flatMap((s) => storyGroups[s] ?? []);
+
   return (
     <>
       <PredictionStrip
@@ -59,9 +70,14 @@ export default function PositionCardNewsFeed({
       {/* News region — always mounted so it anchors the card height; the
           prediction panel overlays it (rather than replacing it) so toggling
           predictions never changes the card's height. */}
-      <div className="relative flex-1">
-        <div className={showPredictions ? "invisible" : undefined} aria-hidden={showPredictions || undefined}>
-        <GlassContainer className={`flex-1 ${compact ? "p-2" : "p-3"} border-t border-white/[0.05]`}>
+      <div className="relative flex-1 min-h-0">
+        <div className={`h-full ${showPredictions ? "invisible" : ""}`} aria-hidden={showPredictions || undefined}>
+        <GlassContainer className={`h-full ${compact ? "p-2" : "p-3"} border-t border-white/[0.05]`}>
+          {/* Top-anchored feed that fills the card's fixed height: news expands
+              downward (the primary/polygon group at the top grows down, pushing the
+              groups below it down). The feed scrolls when content exceeds the fixed
+              height, so the card's overall height stays constant. */}
+          <div className="flex flex-col overflow-y-auto overflow-x-hidden h-full">
           {loading && !hasContent && (
             <EmptyState
               icon="progress_activity"
@@ -124,47 +140,28 @@ export default function PositionCardNewsFeed({
                 </NewsCollapsible>
               )}
 
-              {sourceOrder
-                .filter((source) => storyGroups[source]?.length)
-                .map((source) => {
-                  const group = storyGroups[source];
-                  return (
-                    <NewsCollapsible
-                      key={source}
-                      badge={<SourceBadge source={source} iconOnly />}
-                      count={group.length}
-                    >
-                      {group.map((story) => (
-                        <NewsCard
-                          key={`${story.ticker}-${story.source}-${story.datetime}-${story.url}`}
-                          story={story}
-                        />
+              {analyzedStories.length > 0 && (
+                <NewsCollapsible
+                  badge={
+                    <span className="flex items-center gap-1.5">
+                      {analyzedSources.map((source) => (
+                        <SourceBadge key={source} source={source} iconOnly />
                       ))}
-                    </NewsCollapsible>
-                  );
-                })}
-
-              {Object.keys(storyGroups)
-                .filter((source) => sourcePriority[source] === undefined)
-                .map((source) => {
-                  const group = storyGroups[source];
-                  return (
-                    <NewsCollapsible
-                      key={source}
-                      badge={<SourceBadge source={source} iconOnly />}
-                      count={group.length}
-                    >
-                      {group.map((story) => (
-                        <NewsCard
-                          key={`${story.ticker}-${story.source}-${story.datetime}-${story.url}`}
-                          story={story}
-                        />
-                      ))}
-                    </NewsCollapsible>
-                  );
-                })}
+                    </span>
+                  }
+                  count={analyzedStories.length}
+                >
+                  {analyzedStories.map((story) => (
+                    <NewsCard
+                      key={`${story.ticker}-${story.source}-${story.datetime}-${story.url}`}
+                      story={story}
+                    />
+                  ))}
+                </NewsCollapsible>
+              )}
             </div>
           )}
+          </div>
         </GlassContainer>
         </div>
         {showPredictions && (

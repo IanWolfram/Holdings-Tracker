@@ -6,6 +6,7 @@ import { resolveEligiblePredictions } from "../world-brain/predictions";
 import { updateCalibration } from "../world-brain/calibration";
 import { getServices } from "../src/registry";
 import { getBasicQuote } from "../lib/market-data";
+import { getDailyBars } from "../lib/marketdata/prices";
 import { WORLD_VAULT_PATH } from "../lib/constants";
 import { FsVaultStore } from "../lib/vault/store";
 
@@ -30,11 +31,14 @@ export async function resolvePredictions(): Promise<{ resolved: number }> {
   for (const pos of positions) {
     try {
       const quote = await getBasicQuote(pos.ticker);
+      const bars = await getDailyBars(pos.ticker).catch(() => []);
       const result = await resolveEligiblePredictions(
         store,
         pos.ticker,
         quote?.currentPrice ?? null,
-        Date.now()
+        Date.now(),
+        undefined,
+        bars
       );
       totalResolved += result.resolved;
     } catch {

@@ -9,6 +9,7 @@ import { SupabaseAccountInfoProvider } from "@/src/infrastructure/providers/Supa
 import { ClassifierService } from "@/src/services/ClassifierService";
 import { PortfolioService } from "@/src/services/PortfolioService";
 import { NewsService } from "@/src/services/NewsService";
+import { MAX_ANALYZED_AGE_DAYS } from "@/lib/analyzedAge";
 import type { INewsProvider } from "@/src/domain/interfaces/INewsProvider";
 import type { IAccountInfoProvider } from "@/src/domain/interfaces/IAccountInfoProvider";
 
@@ -170,7 +171,15 @@ async function buildServicesForUser(userId: string): Promise<Services> {
     ...(cfg.newsapi.apiKey ? { newsapi: new NewsAPIProvider(cfg.newsapi.apiKey) } : {}),
   };
 
-  const newsService = new NewsService(newsProviders, classifier, newsCache, userId);
+  // Cache the largest selectable analyzed-age window so /api/news can trim to
+  // each user's chosen age at response time without forcing a cache miss.
+  const newsService = new NewsService(
+    newsProviders,
+    classifier,
+    newsCache,
+    userId,
+    MAX_ANALYZED_AGE_DAYS,
+  );
 
   const accountInfo: IAccountInfoProvider = new SupabaseAccountInfoProvider();
 

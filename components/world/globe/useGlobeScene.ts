@@ -26,10 +26,14 @@ interface UseGlobeSceneParams {
   focusedTicker?: string | null;
   focusedCountryCode?: string | null;
   navigateTo?: { lat: number; lon: number } | null;
-  // Optional fit-to-positions override for a country focus. When the focused
-  // country code matches `code`, the camera frames `{ centroid, angularRadius }`
-  // instead of the country's full-territory geo data.
-  countryFocusOverride?: { code: string; lat: number; lon: number; angularRadius: number } | null;
+  // Fit-to-positions camera overrides keyed by country code. When a focused
+  // country has an entry, the camera frames `{ lat, lon, angularRadius }`
+  // (the user's in-country holdings) instead of the country's full-territory
+  // geo data. Countries absent from the map fall back to default framing.
+  countryFocusOverrides?: Record<string, { lat: number; lon: number; angularRadius: number }> | null;
+  // Ticker hovered from outside the canvas (the country panel's logo row).
+  // Highlights that marker's octahedron exactly like an on-globe hover.
+  externalHoveredTicker?: string | null;
   proposedMarkers?: ProposedMarkerData[];
   showProposed?: boolean;
 }
@@ -44,7 +48,8 @@ export function useGlobeScene({
   focusedTicker,
   focusedCountryCode,
   navigateTo,
-  countryFocusOverride,
+  countryFocusOverrides,
+  externalHoveredTicker,
   proposedMarkers,
   showProposed = true,
 }: UseGlobeSceneParams) {
@@ -83,7 +88,8 @@ export function useGlobeScene({
   const onCountryHoverRef = useSyncedRef(onCountryHover);
   const focusedTickerRef = useSyncedRef(focusedTicker ?? null);
   const focusedCountryRef = useSyncedRef(focusedCountryCode ?? null);
-  const countryFocusOverrideRef = useSyncedRef(countryFocusOverride ?? null);
+  const countryFocusOverridesRef = useSyncedRef(countryFocusOverrides ?? null);
+  const externalHoveredTickerRef = useSyncedRef(externalHoveredTicker ?? null);
 
   // -- Small local effects --------------------------------------------------
 
@@ -230,6 +236,7 @@ export function useGlobeScene({
     markerInstancesRef,
     selectedDiamondRef,
     hoveredMarkerTickerRef,
+    externalHoveredTickerRef,
     focusedTickerRef,
     focusedCountryRef,
     isFocusedRef,
@@ -259,7 +266,7 @@ export function useGlobeScene({
     onFocusClickRef,
     onStockHoverRef,
     onCountryHoverRef,
-    countryFocusOverrideRef,
+    countryFocusOverridesRef,
     trafficRef,
   });
 

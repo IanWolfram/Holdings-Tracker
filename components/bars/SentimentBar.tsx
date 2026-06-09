@@ -240,11 +240,6 @@ export default function SentimentBar({
         <LegendDot color="bg-positive" label="BUY" n={buy} compact={compact} />
         <LegendDot color="bg-slate-500" label="HOLD" n={hold} compact={compact} />
         <LegendDot color="bg-negative" label="SELL" n={sell} compact={compact} />
-        {typeof avgConfidence === "number" && (
-          <span className="ml-auto text-slate-500">
-            conf avg <span className="text-white font-bold">{Math.round(avgConfidence)}%</span>
-          </span>
-        )}
       </div>
     </div>
   );

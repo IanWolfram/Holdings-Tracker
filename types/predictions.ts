@@ -59,4 +59,9 @@ export interface TickerPrediction {
   priceAtResolution?: number;
   actualPct?: number;
   outcome?: PredictionOutcome;
+  /** Volatility-scaled FLAT band (percent) actually used to score this
+   *  prediction at resolution. Recorded for auditability — a move within this
+   *  band is treated as noise/FLAT rather than a directional outcome. Absent on
+   *  predictions resolved under the legacy fixed ±FLAT_BAND_PCT rule. */
+  flatBandPct?: number;
 }

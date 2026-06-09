@@ -38,12 +38,10 @@ interface UseGlobeInteractionParams {
   onFocusClickRef: MutableRefObject<(target: GlobeFocusTarget) => void>;
   onStockHoverRef: MutableRefObject<((ticker: string | null) => void) | undefined>;
   onCountryHoverRef: MutableRefObject<(code: string | null) => void>;
-  countryFocusOverrideRef: MutableRefObject<{
-    code: string;
-    lat: number;
-    lon: number;
-    angularRadius: number;
-  } | null>;
+  countryFocusOverridesRef: MutableRefObject<Record<
+    string,
+    { lat: number; lon: number; angularRadius: number }
+  > | null>;
   trafficRef: MutableRefObject<TrafficSystem | null>;
 }
 
@@ -78,7 +76,7 @@ export function useGlobeInteraction({
   onFocusClickRef,
   onStockHoverRef,
   onCountryHoverRef,
-  countryFocusOverrideRef,
+  countryFocusOverridesRef,
   trafficRef,
 }: UseGlobeInteractionParams) {
   useEffect(() => {
@@ -143,8 +141,8 @@ export function useGlobeInteraction({
       // territory — avoids being pinned to a country centroid that's far
       // from any actual holding (e.g. US centroid leaves the camera too
       // zoomed out when all positions cluster in a few cities).
-      const override = countryFocusOverrideRef.current;
-      if (override && override.code === code) {
+      const override = countryFocusOverridesRef.current?.[code];
+      if (override) {
         localHitRef.current = latLonToVector3(override.lat, override.lon, 1);
         targetQuatRef.current = new THREE.Quaternion().setFromUnitVectors(
           localHitRef.current.clone().normalize(),

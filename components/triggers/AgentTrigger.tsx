@@ -18,18 +18,23 @@ export default function AgentTrigger() {
   return (
     <button
       onClick={toggleRun}
-      className={`group relative flex items-center justify-center p-2 rounded-md transition-all duration-300 ${
+      className={`group relative flex items-center justify-center pr-2 self-stretch w-13 bg-black transition-all duration-200 ${
         isRunning
-          ? "bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 hover:border-red-500/40 text-red-500"
-          : "bg-positive/10 border border-positive/20 hover:bg-positive/20 hover:border-positive/40 text-positive"
+          ? "text-red-500 hover:bg-red-950/40"
+          : "text-positive hover:bg-[#050505] hover:shadow-[inset_0_0_16px_-6px_rgba(0,255,136,0.5)]"
       }`}
       title={
         isRunning
           ? "Cancel Agent Run"
           : "Start Stock Agent Deep Intelligence Sweep"
       }
+      aria-label="Run agent sweep"
     >
-      <span className={`material-symbols-outlined text-[18px] ${isRunning ? "animate-pulse" : "group-hover:scale-110"}`}>
+      <span
+        className={`material-symbols-outlined text-[18px] transition-transform ${
+          isRunning ? "animate-pulse" : "group-hover:scale-110"
+        }`}
+      >
         {isRunning ? "stop_circle" : "neurology"}
       </span>
     </button>

@@ -1,8 +1,4 @@
 import { fetchStooqQuote } from "./stooq";
-import {
-  fetchYahooHistory,
-  isYahooCrumbRateLimitedError,
-} from "./yahoo-finance";
 import { fetchCandlesPolygon } from "./polygon";
 import { NEWS_CACHE_TTL_MS, ACCOUNT_CACHE_TTL_MS, FINNHUB_BASE_URL, API_TIMEOUT_MS } from "./constants";
 import type { QuoteData, HistoryData } from "@/types/market-data.types";
@@ -10,8 +6,6 @@ import type { QuoteData, HistoryData } from "@/types/market-data.types";
 const quoteCache = new Map<string, { data: QuoteData; expiresAt: number }>();
 const historyCache = new Map<string, { data: HistoryData; expiresAt: number }>();
 const polygonInflight = new Map<string, Promise<HistoryData | null>>();
-const YAHOO_RATE_LIMIT_LOG_COOLDOWN_MS = 5 * 60 * 1000;
-let yahooRateLimitLoggedUntil = 0;
 // Short budget for the request-path await on Polygon. If the rate-limit queue
 // is backed up, we return null now and let the fetch continue in the background;
 // the next 5-min SWR poll will pick up the warmed cache.
@@ -100,32 +94,7 @@ export async function getHistory(
     return cached.data;
   }
 
-  // Primary: Yahoo Finance for fast, parallel history fetches.
-  try {
-    const data = await fetchYahooHistory(ticker);
-    historyCache.set(ticker, {
-      data,
-      expiresAt: Date.now() + ACCOUNT_CACHE_TTL_MS,
-    });
-    return data;
-  } catch (err) {
-    if (isYahooCrumbRateLimitedError(err)) {
-      const now = Date.now();
-      if (now >= yahooRateLimitLoggedUntil) {
-        console.warn(
-          "[market-data] Yahoo crumb is rate-limited; falling back to Finnhub/Polygon."
-        );
-        yahooRateLimitLoggedUntil = now + YAHOO_RATE_LIMIT_LOG_COOLDOWN_MS;
-      }
-    } else {
-      console.warn(
-        `[market-data] Yahoo history failed for ${ticker}:`,
-        (err as Error).message
-      );
-    }
-  }
-
-  // Secondary: Finnhub (60 calls/min, no daily cap)
+  // Primary: Finnhub (60 calls/min, no daily cap)
   const finnhubKey = process.env.FINNHUB_API_KEY;
   if (finnhubKey) {
     try {

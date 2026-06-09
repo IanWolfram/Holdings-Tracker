@@ -58,6 +58,20 @@ export function useAccountPanelLogic({ onClose }: AccountPanelLogicParams) {
     }
   }, [preferences, updatePreferences]);
 
+  const handleTimescaleChange = useCallback(
+    async (next: string) => {
+      await updatePreferences({ defaultTimescale: next });
+    },
+    [updatePreferences],
+  );
+
+  const handleAnalyzedAgeChange = useCallback(
+    async (next: number) => {
+      await updatePreferences({ analyzedMaxAgeDays: next });
+    },
+    [updatePreferences],
+  );
+
   const handleReconnect = async () => {
     try {
       const res = await authedFetch("/api/etrade/auth");
@@ -154,6 +168,8 @@ export function useAccountPanelLogic({ onClose }: AccountPanelLogicParams) {
     positionsCache,
     setPositionsCache,
     handleCronToggle,
+    handleTimescaleChange,
+    handleAnalyzedAgeChange,
     handleReconnect,
     handleDisconnect,
     handleSignOut,

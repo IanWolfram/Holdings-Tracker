@@ -12,6 +12,7 @@ interface UseGlobeAnimationParams {
   markerInstancesRef: MutableRefObject<{ hitSpheres: THREE.InstancedMesh } | null>;
   selectedDiamondRef: MutableRefObject<THREE.Mesh | null>;
   hoveredMarkerTickerRef: MutableRefObject<string | null>;
+  externalHoveredTickerRef: MutableRefObject<string | null>;
   focusedTickerRef: MutableRefObject<string | null>;
   focusedCountryRef: MutableRefObject<string | null>;
   isFocusedRef: MutableRefObject<boolean>;
@@ -35,6 +36,7 @@ export function useGlobeAnimation({
   markerInstancesRef,
   selectedDiamondRef,
   hoveredMarkerTickerRef,
+  externalHoveredTickerRef,
   focusedTickerRef,
   focusedCountryRef,
   isFocusedRef,
@@ -58,7 +60,9 @@ export function useGlobeAnimation({
         hqMarkersRef.current,
         markerInstancesRef.current,
         selectedDiamondRef.current,
-        hoveredMarkerTickerRef.current,
+        // On-globe hover wins; otherwise fall back to a ticker hovered from the
+        // country panel so its octahedron highlights identically.
+        hoveredMarkerTickerRef.current ?? externalHoveredTickerRef.current,
         focusedTickerRef.current,
         focusedCountryRef.current,
         isFocusedRef.current,

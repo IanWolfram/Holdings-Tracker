@@ -1,10 +1,11 @@
 "use client";
 
+import AccountIconDiv from "@/components/layout/AccountIconDiv";
 import AccountPanel from "@/components/layout/AccountPanel";
 import AccountSummary from "@/components/layout/AccountSummary";
 import ConnectionControls from "@/components/layout/ConnectionControls";
-import TopBarDivider from "@/components/layout/TopBarDivider";
 import TopBarNavItem from "@/components/layout/TopBarNavItem";
+import AgentTrigger from "@/components/triggers/AgentTrigger";
 import { useCalibrationStatus } from "@/hooks/useCalibrationStatus";
 import { useCongressTrades } from "@/hooks/useCongressTrades";
 import { useMarketStatus } from "@/hooks/useMarketStatus";
@@ -51,9 +52,9 @@ interface Props {
 }
 
 export default function TopBar({
-  lastUpdated,
+  lastUpdated: _lastUpdated,
   refreshing,
-  onRefresh,
+  onRefresh: _onRefresh,
   totalValue,
   totalCostBasis,
   totalGainLoss,
@@ -66,18 +67,33 @@ export default function TopBar({
   const pathname = usePathname() ?? "/";
   const [successVisible, setSuccessVisible] = useState(false);
 
-  const timeStr = lastUpdated
-    ? lastUpdated.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
-    : null;
-
   const badgeCount = useCongressTrades(pathname);
   const market = useMarketStatus();
   const calibration = useCalibrationStatus();
+
+  // Live clock, ticking to the second, shown under the market state.
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    setNow(new Date());
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const nowStr = now
+    ? now.toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      })
+    : "";
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [accountPanelOpen, setAccountPanelOpen] = useState(false);
 
   const closeAccountPanel = useCallback(() => setAccountPanelOpen(false), []);
+  const openAccountPanel = useCallback(() => setAccountPanelOpen(true), []);
 
   const isTerminal = pathname === "/terminal" || pathname === "/";
   const isWorld = pathname === "/world";
@@ -113,32 +129,33 @@ export default function TopBar({
 
   return (
     <>
-    <header className="bg-[#1e2023] border-b border-white/5 sticky top-0 z-50">
+    <header className="nav-shell sticky top-0 z-50 h-[68px]">
       <Suspense fallback={null}>
         <SearchParamsWatcher pathname={pathname} setSuccessVisible={setSuccessVisible} />
       </Suspense>
-      <div className="flex justify-between items-center w-full px-6 py-0">
+      <div className="flex justify-between items-center w-full h-full px-5">
         {/* Brand + Nav */}
-        <div className="flex items-center gap-12">
-          <div className="py-4">
-            <h1 className="font-['Space_Grotesk'] font-black text-white text-xl leading-none">
+        <div className="flex items-center gap-9 h-full">
+          <div className="flex flex-col justify-center">
+            <h1 className="font-['Space_Grotesk'] font-bold text-white text-[21px] leading-none tracking-[-0.02em]">
               Pulse
             </h1>
-            <p className="text-slate-500 text-[9px] uppercase tracking-widest mt-0.5">
+            <p className="font-mono text-ink-dimmer text-[9px] font-medium uppercase tracking-[0.26em] mt-[3px]">
               Precision Ledger
             </p>
           </div>
-          <nav className="flex h-16 items-center">
-            <TopBarNavItem href="/terminal" icon="dashboard" label="Terminal" active={isTerminal} />
-            <TopBarNavItem href="/world" icon="public" label="World" active={isWorld} />
+          <nav className="flex h-full items-stretch" aria-label="Primary">
+            <TopBarNavItem href="/terminal" icon="dashboard" label="Terminal" active={isTerminal} accent="green" />
+            <TopBarNavItem href="/world" icon="public" label="World" active={isWorld} accent="blue" />
             <TopBarNavItem
               href="/hot"
               icon="local_fire_department"
               label="Hot"
               active={isHot}
               badge={badgeCount}
+              accent="red"
             />
-            <TopBarNavItem href="/agent" icon="neurology" label="Agent" active={isAgent} />
+            <TopBarNavItem href="/agent" icon="neurology" label="Agent" active={isAgent} accent="orange" />
           </nav>
         </div>
 
@@ -151,39 +168,44 @@ export default function TopBar({
           />
         )}
 
-        {/* ── Segmented market cluster + Account icon ── */}
-        <div className="flex items-center rounded-md overflow-hidden bg-white/[0.03] border border-white/[0.07] h-14">
-          {/* State */}
-          <div className="flex items-center gap-2 px-3 py-1.5">
-            <span
-              className={`w-1.5 h-1.5 rounded-full ${MARKET_STATE_DOT[market.state]} ${
-                market.state === "open" ? "animate-pulse shadow-[0_0_8px_var(--color-positive)]" : ""
-              }`}
-            />
-            <span className="font-mono text-[11px] font-bold text-white tracking-[0.04em]">
-              {refreshing ? "REFRESHING…" : MARKET_STATE_LABEL[market.state]}
+        {/* ── Unified status rail ── */}
+        <div className="nav-rail flex items-stretch h-full rounded-[14px] overflow-hidden border border-white/10">
+          {/* agent sweep — base layer */}
+          <AgentTrigger />
+
+          {/* market status + live clock */}
+          <div className="relative z-10 -ml-3 flex flex-col justify-center gap-0.75 pl-3.5 pr-5 rounded-l-[14px] border-l border-white/10 bg-[#131316]">
+            <div className="flex items-center gap-2">
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${MARKET_STATE_DOT[market.state]} ${
+                  market.state === "open" ? "animate-pulse shadow-[0_0_8px_var(--color-positive)]" : ""
+                }`}
+              />
+              <span className="font-mono text-[10.5px] font-bold text-white tracking-[0.04em] uppercase">
+                {refreshing ? "REFRESHING…" : MARKET_STATE_LABEL[market.state]}
+              </span>
+            </div>
+            <span className="font-mono text-[10px] text-slate-400 tabular-nums tracking-tight" suppressHydrationWarning>
+              {nowStr}
             </span>
           </div>
 
-          <TopBarDivider />
-
-          {/* Countdown */}
-          <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5">
-            <span className="font-mono text-[10px] text-slate-400" suppressHydrationWarning>{market.verb}</span>
-            <span className="font-mono text-[11px] font-bold text-white" suppressHydrationWarning>{market.countdown}</span>
+          {/* broker connection */}
+          <div className="relative z-20 -ml-3 flex items-stretch rounded-l-[14px] border-l border-white/10 bg-[#131316] overflow-hidden">
+            <ConnectionControls
+              successVisible={successVisible}
+              isConnected={isConnected}
+              isConnecting={isConnecting}
+              setIsConnecting={setIsConnecting}
+            />
           </div>
 
-          <ConnectionControls
-            successVisible={successVisible}
-            isConnected={isConnected}
-            isConnecting={isConnecting}
-            setIsConnecting={setIsConnecting}
-            timeStr={timeStr}
-            onRefresh={onRefresh}
-            refreshing={refreshing}
-            accountPanelOpen={accountPanelOpen}
-            setAccountPanelOpen={setAccountPanelOpen}
-          />
+          {/* settings / account orbit */}
+          <div className="relative z-30 -ml-3 flex items-stretch rounded-l-[14px] border-l border-white/10 bg-[#26262a]">
+            <div className="my-1.5 ml-1.5 mr-1.5 flex items-stretch rounded-[15px] border border-white/10 overflow-hidden">
+              <AccountIconDiv onClick={openAccountPanel} isOpen={accountPanelOpen} />
+            </div>
+          </div>
         </div>
       </div>
 
