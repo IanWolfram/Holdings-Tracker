@@ -166,7 +166,7 @@ A self-scoring directional-forecast loop. The agent emits dated predictions, the
 - **Supabase** — Auth (email + password + confirmation), Postgres (RLS-protected), `app_secrets` config table.
 - **DeepSeek API** — `https://api.deepseek.com/v1`, model `deepseek-chat` (override `DEEPSEEK_MODEL`). Requires `DEEPSEEK_API_KEY`. OpenAI is a supported alternate base URL in `brain.ts`.
 - **E\*TRADE OAuth 1.0a** — tokens expire daily at midnight ET. Re-authorize via `/api/etrade/auth` in the browser, or `npm run etrade:auth` from the CLI.
-- **News/market**: Finnhub, Polygon, NewsAPI. Extra signal sources: Congress trades and insider activity (`lib/insiders.ts` → `/api/congress`). Congress data comes from our own **official-source ingester** (`lib/congress/`: House Clerk PTRs + Senate eFD → parse → `@unitedstates/congress-legislators` roster join → Supabase `congress_trades`), refreshed by a daily cron and the `npm run congress:ingest` CLI. `lib/pelositracker.ts` is the legacy fallback (`CONGRESS_SOURCE=pelosi`); excess return is computed locally vs SPY. See `docs/congress-official-scraper-plan.md`. OCR for scanned/paper PTRs is deferred.
+- **News/market**: Finnhub, Polygon, NewsAPI. Extra signal sources: Congress trades and insider activity (`lib/insiders.ts` → `/api/congress`). Congress data comes from our own **official-source ingester** (`lib/congress/`: House Clerk PTRs + Senate eFD → parse → `@unitedstates/congress-legislators` roster join → Supabase `congress_trades`), refreshed by a daily cron and the `npm run congress:ingest` CLI. Excess return is computed locally vs SPY. See `docs/congress-official-scraper-plan.md`. OCR for scanned/paper PTRs is deferred.
 - **Cloudflare Turnstile** — bot protection on `/signup`.
 
 ## Database Schema (Supabase)

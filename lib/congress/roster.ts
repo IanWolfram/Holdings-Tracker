@@ -5,8 +5,7 @@
  * canonical open dataset of every member with bioguide id, party, chamber,
  * state, and district. We index it and resolve each filing's member by the
  * **stable seat identifier** (House: state+district; Senate: state) with a
- * last-name fallback — keying on the seat avoids the name-variant misses that
- * plagued the pelositracker slug-alias approach.
+ * last-name fallback — keying on the seat avoids name-variant misses.
  *
  * House PTRs carry `StateDst` (e.g. "AL04") in the XML index; Senate search
  * rows carry only the member name, so Senate resolves by name (+ chamber).

@@ -39,7 +39,6 @@
     "cheerio": "^1.2.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
-    "devalue": "^5.8.1",
     "fast-xml-parser": "^5.8.0",
     "fflate": "^0.8.3",
     "framer-motion": "^12.38.0",

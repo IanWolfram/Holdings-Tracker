@@ -62,8 +62,5 @@ It's **incremental** — re-running is safe and skips filings it already has.
 - **What we skip.** Rows with no stock ticker (treasury bills, municipal bonds,
   real estate) and "exchange" transactions are intentionally dropped — the feed
   is about stock buys and sells.
-- **Switching sources.** The app uses our own data by default. Setting the env
-  var `CONGRESS_SOURCE=pelosi` flips back to the old pelositracker source, which
-  we keep around as a fallback / sanity check.
 - **Excess return** is computed locally (stock return minus SPY return since the
   trade date), since the official filings don't include it.

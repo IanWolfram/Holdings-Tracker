@@ -1,8 +1,7 @@
 /**
  * Read seam — turns ingested `congress_trades` rows into the UI-facing
- * `CongressTrade` shape. This is the **only** part of the app that changes when
- * swapping pelositracker for the official-source pipeline: same type, same
- * consumers (`getHotTrades` → `/api/congress` → CongressTradeCard).
+ * `CongressTrade` shape consumed by `getHotTrades` → `/api/congress` →
+ * CongressTradeCard.
  *
  * The DB stores ISO dates + raw House asset codes; here we convert to the unix
  * seconds + readable strings the card expects, and derive `isCompliant` from the
