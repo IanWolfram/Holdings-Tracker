@@ -88,14 +88,14 @@ export default function HotPage() {
           <section className="flex flex-col lg:min-h-0 lg:w-[340px] shrink-0">
             <button
               onClick={() => setInsidersCollapsed((v) => !v)}
-              className="flex items-center gap-3 mb-4 w-full group text-left"
+              className="flex items-center gap-2.5 mb-4 w-full group text-left"
             >
-              <span className="material-symbols-outlined text-[20px] group-hover:scale-110 transition-transform" style={{ color: "#b45309" }}>gavel</span>
-              <h2 className="font-['Space_Grotesk'] text-[18px] font-black text-white tracking-tight">
-                Insider & Political Intelligence
+              <span className="material-symbols-outlined text-[20px] shrink-0 group-hover:scale-110 transition-transform" style={{ color: "#b45309" }}>gavel</span>
+              <h2 className="font-['Space_Grotesk'] text-[18px] font-black text-white tracking-tight whitespace-nowrap shrink-0">
+                Political Intelligence
               </h2>
               {newCongressCount > 0 && (
-                <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 uppercase tracking-wider animate-pulse">
+                <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 uppercase tracking-wider animate-pulse shrink-0">
                   {newCongressCount} NEW
                 </span>
               )}
