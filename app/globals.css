@@ -71,19 +71,27 @@ body {
   --header-h: 56px;
 }
 
-@keyframes etrade-gradient-shift {
+@keyframes brokerage-gradient-shift {
   0%   { background-position: 0% 50%; }
   50%  { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
-.text-etrade-gradient {
-  background: linear-gradient(90deg, #8b3fc4, #2196f3, #8b3fc4, #2196f3);
+/* Animated brand-colored "connected" label. The brokerage the user linked
+   (via SnapTrade) drives the modifier class; `--default` is the neutral
+   fallback for any brokerage we haven't hand-tuned. */
+.broker-gradient {
   background-size: 300% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: etrade-gradient-shift 6s ease infinite;
+  animation: brokerage-gradient-shift 6s ease infinite;
 }
+.broker-gradient--etrade     { background-image: linear-gradient(90deg, #7b4ae0, #2196f3, #7b4ae0, #2196f3); }
+.broker-gradient--schwab     { background-image: linear-gradient(90deg, #00a0df, #006bb6, #00a0df, #006bb6); }
+.broker-gradient--robinhood  { background-image: linear-gradient(90deg, #00c805, #1ce783, #00c805, #1ce783); }
+.broker-gradient--fidelity   { background-image: linear-gradient(90deg, #6cc24a, #368727, #6cc24a, #368727); }
+.broker-gradient--webull     { background-image: linear-gradient(90deg, #1c6cff, #5b9dff, #1c6cff, #5b9dff); }
+.broker-gradient--default    { background-image: linear-gradient(90deg, #52c4c2, #7dd3fc, #52c4c2, #7dd3fc); }
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -452,6 +460,23 @@ body {
   --glass-edge-bevel-dark: rgba(0, 0, 0, 0.55);
   --glass-edge-rim-top: rgba(255, 255, 255, 0.4);
   --glass-edge-rim-bottom: rgba(255, 255, 255, 0.08);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Congress — matches the dark muted brown CongressTradeCard fill
+   (rgba(38,26,14,0.55) over the dark backdrop). Warm brown rims pick up the
+   card's amber corner brackets so the fanned stack reads as the same family. */
+.glass-edge-congress.glass-edge-opaque {
+  --glass-edge-tint-top: rgb(58, 43, 26);
+  --glass-edge-tint-mid: rgb(48, 35, 21);
+  --glass-edge-tint-bot: rgb(38, 27, 16);
+  --glass-edge-base: rgb(46, 33, 20);
+  --glass-edge-blur: 0px;
+  --glass-edge-bevel-light: rgba(255, 224, 178, 0.10);
+  --glass-edge-bevel-dark: rgba(0, 0, 0, 0.6);
+  --glass-edge-rim-top: rgba(138, 90, 43, 0.55);
+  --glass-edge-rim-bottom: rgba(138, 90, 43, 0.14);
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }

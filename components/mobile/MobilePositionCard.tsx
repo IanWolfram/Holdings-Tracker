@@ -4,7 +4,7 @@ import React from "react";
 import { formatCurrency, formatGainLoss, formatPercent } from "@/lib/utils/format";
 import { FALLBACK_CONFIDENCE } from "@/lib/constants";
 import type { Position } from "@/types/position.types";
-import type { ClassifiedStory } from "@/types/news.types";
+import { type ClassifiedStory, VERDICT_LABEL } from "@/types/news.types";
 import GlassContainer from "../ui/LiquidGlass/GlassContainer";
 import GlassView from "../ui/LiquidGlass/GlassView";
 
@@ -107,7 +107,7 @@ export default function MobilePositionCard({ position, stories }: MobilePosition
                     <div className="relative z-10">
                       <div className="flex justify-between items-center mb-3">
                         <span className={`text-[9px] font-black uppercase px-2 py-0.5 ${storyBg} rounded-sm tracking-widest`}>
-                          {story.verdict === 'BUY' ? 'Buy Signal' : story.verdict === 'SELL' ? 'Sell Signal' : 'Hold'}
+                          {VERDICT_LABEL[story.verdict]}
                         </span>
                         <div className="flex items-center gap-1 opacity-70 text-[9px] font-mono font-bold uppercase">
                           <span className="text-white/40">Conf</span>

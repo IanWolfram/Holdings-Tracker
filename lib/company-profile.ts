@@ -2,6 +2,7 @@ import { lookupCountry, lookupCountryByCode } from "./country-coords";
 import { TICKER_COORDS } from "./ticker-coords";
 import { resolveCoordinates } from "./geo-lookup";
 import { FINNHUB_BASE_URL, API_TIMEOUT_MS } from "./constants";
+import { enqueuePolygon } from "./polygon";
 import type { CompanyProfile } from "@/types/geo.types";
 
 // Static company data used as fallback when no API key is configured
@@ -69,8 +70,16 @@ const AUTOMATED_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 // Public API
 // ---------------------------------------------------------------------------
 
+/**
+ * @param resolveHqCoords  When true, fall back to a Polygon lookup to discover
+ *   precise HQ coordinates for tickers missing from TICKER_COORDS. This is
+ *   GLOBE-only enrichment and goes through Polygon's shared rate-limit queue,
+ *   so callers that only need the company name (positions, news) must leave it
+ *   false to keep Polygon off their hot path.
+ */
 export async function fetchCompanyProfile(
-  ticker: string
+  ticker: string,
+  { resolveHqCoords = false }: { resolveHqCoords?: boolean } = {}
 ): Promise<CompanyProfile | null> {
   const cached = profileCache.get(ticker);
   if (cached && Date.now() < cached.expiresAt) return cached.data;
@@ -124,17 +133,22 @@ export async function fetchCompanyProfile(
   // Use company-specific HQ coords when available (more precise than country centroid)
   let hqCoords = TICKER_COORDS[ticker];
 
-  // If missing from TickerCoords, try automated lookup via Polygon.io + Local Geo DB
-  if (!hqCoords) {
+  // If missing from TickerCoords, try automated lookup via Polygon.io + Local Geo DB.
+  // Skipped unless the caller explicitly wants HQ coords (globe only) — the
+  // Polygon call goes through the shared rate-limit queue and must never block
+  // the positions/news hot paths, which only need the company name.
+  if (!hqCoords && resolveHqCoords) {
     const polyKey = process.env.POLYGON_API_KEY;
     const cachedAuto = automatedProfileCache.get(ticker);
-    
+
     if (cachedAuto && Date.now() < cachedAuto.expiresAt) {
       hqCoords = { lat: cachedAuto.data.lat, lon: cachedAuto.data.lon };
     } else if (polyKey) {
       try {
         const polyUrl = `https://api.polygon.io/v3/reference/tickers/${ticker}?apiKey=${polyKey}`;
-        const polyRes = await fetch(polyUrl, { signal: AbortSignal.timeout(API_TIMEOUT_MS) });
+        const polyRes = await enqueuePolygon(() =>
+          fetch(polyUrl, { signal: AbortSignal.timeout(API_TIMEOUT_MS) })
+        );
         if (polyRes.ok) {
           const polyData = (await polyRes.json()) as PolygonTickerDetails;
           const address = polyData.results?.address;

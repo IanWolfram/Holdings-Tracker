@@ -8,9 +8,6 @@ export default apiHandler(["GET"], async (req, res: NextApiResponse) => {
   if (!user) return;
 
   return res.status(200).json({
-    etrade: {
-      env: process.env.ETRADE_ENV ?? "live",
-    },
     ai: {
       activeModel: "DeepSeek",
       activeProvider: "deepseek",

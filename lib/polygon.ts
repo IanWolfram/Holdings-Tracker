@@ -11,7 +11,7 @@ let polygonQueue: Promise<void> = Promise.resolve();
 let lastPolygonCallAt = 0;
 const POLYGON_RATE_MS = Number(process.env.POLYGON_RATE_MS) || 13_000;
 
-function enqueuePolygon<T>(fn: () => Promise<T>): Promise<T> {
+export function enqueuePolygon<T>(fn: () => Promise<T>): Promise<T> {
   const result = polygonQueue.then(async () => {
     const wait = POLYGON_RATE_MS - (Date.now() - lastPolygonCallAt);
     if (wait > 0) await new Promise((r) => setTimeout(r, wait));
@@ -22,14 +22,28 @@ function enqueuePolygon<T>(fn: () => Promise<T>): Promise<T> {
   return result;
 }
 
-// AbortSignal is created fresh inside the queue so the 15s timeout only
-// starts counting once the request is actually about to fire.
+// AbortSignal is created fresh inside the queue so the timeout only starts
+// counting once the request is actually about to fire.
+//
+// IMPORTANT: this runs *inside* the serial enqueuePolygon slot, so any sleep
+// here blocks every other Polygon consumer (news, sweep, globe). A long
+// exponential backoff therefore turns a single 429 into a multi-second stall
+// of the whole app. We do at most ONE short retry, honoring the server's
+// Retry-After hint but capping it, so a 429 can never freeze the queue for
+// more than POLYGON_429_MAX_BACKOFF_MS.
+const POLYGON_429_MAX_BACKOFF_MS = 5_000;
+
 async function fetchWithRetry(url: string): Promise<Response> {
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < 2; attempt++) {
     const res = await fetch(url, { signal: AbortSignal.timeout(SLOW_API_TIMEOUT_MS) });
     if (res.status !== 429) return res;
-    const backoff = 15_000 * (attempt + 1);
-    console.warn(`[polygon] 429 on attempt ${attempt + 1}, retrying in ${backoff / 1000}s`);
+    if (attempt === 1) break; // already retried once — don't hold the slot longer
+    const retryAfterSec = Number(res.headers.get("retry-after"));
+    const backoff = Math.min(
+      Number.isFinite(retryAfterSec) && retryAfterSec > 0 ? retryAfterSec * 1000 : 2_000,
+      POLYGON_429_MAX_BACKOFF_MS
+    );
+    console.warn(`[polygon] 429, retrying once in ${backoff / 1000}s`);
     await new Promise((r) => setTimeout(r, backoff));
   }
   throw new Error("Polygon HTTP 429 after retries");

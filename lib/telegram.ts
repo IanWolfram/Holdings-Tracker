@@ -1,4 +1,4 @@
-import type { ClassifiedStory } from "@/types/news.types";
+import { type ClassifiedStory, VERDICT_LABEL } from "@/types/news.types";
 
 export interface TickerDigest {
   ticker: string;
@@ -39,7 +39,7 @@ export function buildDigestMessage(
   const lines: string[] = [`📊 *Daily Stock Digest — ${date}*\n`];
 
   for (const d of digests) {
-    lines.push(`*${d.ticker}*: ${d.buy} BUY · ${d.sell} SELL · ${d.hold} HOLD`);
+    lines.push(`*${d.ticker}*: ${d.buy} ${VERDICT_LABEL.BUY} · ${d.hold} ${VERDICT_LABEL.HOLD} · ${d.sell} ${VERDICT_LABEL.SELL}`);
   }
 
   const topSignals = digests.flatMap((d) => [d.topBuy, d.topSell]).filter(Boolean) as ClassifiedStory[];

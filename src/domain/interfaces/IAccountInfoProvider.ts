@@ -23,7 +23,4 @@ export interface IAccountInfoProvider {
     userId: string,
     patch: Partial<UserPreferences>,
   ): Promise<UserPreferences>;
-  getEtradeTokenExpiry(
-    userId: string,
-  ): Promise<{ expiresAt: string | null }>;
 }

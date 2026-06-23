@@ -9,10 +9,9 @@ export default apiHandler(["GET"], async (req, res: NextApiResponse) => {
 
   const services = await getServicesForUser(user.id);
 
-  const [account, preferences, etradeExpiry] = await Promise.all([
+  const [account, preferences] = await Promise.all([
     services.accountInfo.getAccountInfo(user.id),
     services.accountInfo.getPreferences(user.id),
-    services.accountInfo.getEtradeTokenExpiry(user.id),
   ]);
 
   return res.status(200).json({
@@ -29,10 +28,6 @@ export default apiHandler(["GET"], async (req, res: NextApiResponse) => {
       vaultEnabled: preferences.vaultEnabled,
       defaultTimescale: preferences.defaultTimescale,
       analyzedMaxAgeDays: preferences.analyzedMaxAgeDays,
-    },
-    etrade: {
-      env: process.env.ETRADE_ENV ?? "live",
-      expiresAt: etradeExpiry.expiresAt,
     },
   });
 }, "api/account/me");

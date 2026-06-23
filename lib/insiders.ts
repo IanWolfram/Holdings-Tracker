@@ -1,12 +1,21 @@
 import type { CongressTrade } from "@/types/news.types";
 
-import { fetchCongressTrades } from "./congress";
+import { fetchCongressTrades, fetchRecentCongressTrades } from "./congress";
 
 /**
- * Entry point for the Hot Trades feed — congressional trades from our
- * official-source pipeline (House Clerk PTRs + Senate eFD → `congress_trades`).
- * Reads by ticker from the DB; see `lib/congress/`.
+ * Ticker-scoped congressional trades — overlap with specific holdings/watchlist
+ * tickers, from our official-source pipeline (House Clerk PTRs + Senate eFD →
+ * `congress_trades`). See `lib/congress/`.
  */
 export async function getHotTrades(portfolioTickers: string[] = []): Promise<CongressTrade[]> {
   return fetchCongressTrades(portfolioTickers);
+}
+
+/**
+ * General congressional-trade feed — most-recent trades across all tickers,
+ * independent of holdings. Powers the Hot tab discovery feed and the nav badge,
+ * which must not go empty just because the portfolio doesn't overlap filings.
+ */
+export async function getRecentHotTrades(limit?: number): Promise<CongressTrade[]> {
+  return fetchRecentCongressTrades(limit);
 }

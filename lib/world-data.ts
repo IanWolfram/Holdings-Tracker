@@ -81,7 +81,9 @@ async function refreshWorldData(
   // ── 1. Fetch all company profiles in parallel (24h cached, fast) ─────────
   const profileEntries = await Promise.all(
     positions.map(async (p) => {
-      const prof = await fetchCompanyProfile(p.ticker).catch(() => null);
+      // Globe needs precise HQ coordinates, so opt into the Polygon lookup
+      // (rate-limited via the shared queue).
+      const prof = await fetchCompanyProfile(p.ticker, { resolveHqCoords: true }).catch(() => null);
       return prof ? ([p.ticker, prof] as [string, CompanyProfile]) : null;
     })
   );

@@ -2,10 +2,19 @@
 // like reading secrets from Supabase — must be gated behind the nodejs runtime
 // check and dynamically imported so it never ends up in the Edge bundle.
 export async function register() {
-  if (process.env.NEXT_RUNTIME !== "nodejs") return;
-
-  // Hydrate secrets from Supabase `app_secrets` into process.env before any
-  // request is served, so call-time reads of process.env.X see real values.
-  const { hydrateSecrets } = await import("../lib/secrets");
-  await hydrateSecrets();
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    // Hydrate secrets from Supabase `app_secrets` into process.env before any
+    // request is served, so call-time reads of process.env.X see real values.
+    const { hydrateSecrets } = await import("../lib/secrets");
+    await hydrateSecrets();
+    // Init Sentry AFTER hydration so a SENTRY_DSN stored in app_secrets is live.
+    await import("../sentry.server.config");
+  } else if (process.env.NEXT_RUNTIME === "edge") {
+    await import("../sentry.edge.config");
+  }
 }
+
+// Capture errors thrown in nested React Server Components / route handlers and
+// forward them to Sentry (Next.js 15+ instrumentation hook). No-op until a DSN
+// is configured.
+export { captureRequestError as onRequestError } from "@sentry/nextjs";

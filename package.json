@@ -10,8 +10,6 @@
     "electron:dev": "concurrently \"next dev -p 3571\" \"wait-on http://localhost:3571 && electron .\"",
     "electron:build": "next build && electron-builder -c electron-builder.config.js",
     "lint": "eslint . --max-warnings=50",
-    "etrade:auth": "node scripts/etrade-auth.mjs",
-    "eta": "npm run etrade:auth",
     "world:refresh": "node scripts/world-refresh.mjs",
     "agent": "npx tsx scripts/agent.ts",
     "backfill": "npx tsx scripts/backfill-calibration.ts",
@@ -27,6 +25,7 @@
     "pm2:status": "pm2 status"
   },
   "dependencies": {
+    "@sentry/nextjs": "^10.57.0",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.105.3",
     "@tailwindcss/postcss": "^4.2.2",
@@ -49,6 +48,7 @@
     "postcss": "^8.5.9",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
+    "snaptrade-typescript-sdk": "^10.0.9",
     "swr": "^2.4.1",
     "tailwindcss": "^4.2.2",
     "three": "^0.183.2",

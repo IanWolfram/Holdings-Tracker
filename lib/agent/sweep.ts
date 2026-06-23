@@ -33,9 +33,10 @@ import {
 import { runAlertsPass } from "../../world-brain/alerts";
 import { appendVaultLog, regenerateVaultIndex } from "../../world-brain/vault-meta";
 import type { CompanyProfile, GeoStory, WorldData } from "@/types/geo.types";
-import type { ClassifiedStory } from "@/types/news.types";
+import { type ClassifiedStory, VERDICT_LABEL } from "@/types/news.types";
 import type { AgentRunResult, TickerResult } from "./types";
 import { fetchUserPositions } from "./utils";
+import { SWEEP_MAX_TICKERS } from "@/lib/rate-limit";
 import {
   getCurrentProgress,
   setCurrentProgress,
@@ -44,6 +45,7 @@ import {
 } from "./progress";
 import { runForecast } from "./forecast";
 import { buildMarketContextDigest } from "./market-context";
+import { emitSignals, qualifiesAsSignal, type SignalCandidate } from "./signals";
 
 export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
   const uid = userId ?? "__system";
@@ -63,7 +65,14 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
   try {
     // 1. Fetch live positions
     debug("agent", "Starting Deep Intelligence Sweep...");
-    const positions = await fetchUserPositions(userId);
+    const allPositions = await fetchUserPositions(userId);
+    // Cap tickers per sweep — each ticker drives news + a DeepSeek forecast per
+    // horizon, so this bounds spend for an account with a huge holding list.
+    const positions =
+      allPositions.length > SWEEP_MAX_TICKERS ? allPositions.slice(0, SWEEP_MAX_TICKERS) : allPositions;
+    if (allPositions.length > SWEEP_MAX_TICKERS) {
+      debug("agent", `Capping sweep at ${SWEEP_MAX_TICKERS}/${allPositions.length} tickers.`);
+    }
     const holdingTickers = positions.map((p) => p.ticker);
     debug("agent", `Identified ${positions.length} active positions.`);
 
@@ -141,6 +150,7 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
 
     const tickerResults: TickerResult[] = [];
     const allGeoStories: GeoStory[] = [];
+    const signalCandidates: SignalCandidate[] = [];
     let totalBuys = 0;
     let totalSells = 0;
     let totalHolds = 0;
@@ -424,9 +434,21 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
                   "agent",
                   `${horizon}d forecast for ${pos.ticker}: ${prediction.direction} +/-${prediction.magnitudePct}% (conf ${Math.round(prediction.confidence * 100)}%)`
                 );
+                if (qualifiesAsSignal(prediction)) {
+                  signalCandidates.push({
+                    ticker: pos.ticker,
+                    direction: prediction.direction as "UP" | "DOWN",
+                    magnitudePct: prediction.magnitudePct,
+                    confidence: prediction.confidence,
+                    horizonDays: prediction.horizonDays,
+                    reasoning: prediction.reasoning,
+                  });
+                }
               }
-              // v2 shadow: hidden from UI/calibration, evaluated against the same
-              // resolution price. Promotion criterion lives in scripts/compare-forecaster-versions.ts.
+              // v3 shadow: hidden from UI/calibration, evaluated against the same
+              // resolution price. v3 reframes price momentum as a directional
+              // signal so it can call DOWN without bearish news (the diagnosed v1
+              // failure). Promotion criterion: scripts/compare-forecaster-versions.ts.
               const shadowPrediction = await runForecast(
                 pos.ticker,
                 currentPrice,
@@ -438,13 +460,13 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
                 macroSnapshot,
                 horizon,
                 daysUntilEarnings,
-                { version: "v2", shadow: true, marketQuote: tickerMarketQuote }
+                { version: "v3", shadow: true, marketQuote: tickerMarketQuote }
               ).catch(() => null);
               if (shadowPrediction) {
                 await appendPrediction(userVaultStore, shadowPrediction);
                 debug(
                   "agent",
-                  `${horizon}d SHADOW v2 forecast for ${pos.ticker}: ${shadowPrediction.direction} +/-${shadowPrediction.magnitudePct}% (conf ${Math.round(shadowPrediction.confidence * 100)}%)`
+                  `${horizon}d SHADOW v3 forecast for ${pos.ticker}: ${shadowPrediction.direction} +/-${shadowPrediction.magnitudePct}% (conf ${Math.round(shadowPrediction.confidence * 100)}%)`
                 );
               }
             }
@@ -503,12 +525,21 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
       console.error("[agent] Alerts pass failed (non-fatal):", err);
     }
 
+    // Surface strong directional forecasts to the user as notifications + chat
+    // messages. Per-user only (skips system runs); dedup keeps manual + scheduled
+    // sweeps from double-notifying.
+    try {
+      await emitSignals(userId, signalCandidates);
+    } catch (err) {
+      console.error("[agent] Signal emission failed (non-fatal):", err);
+    }
+
     try {
       const tickers = result.tickerResults.map((t) => t.ticker).join(", ");
       await appendVaultLog(vaultStore, {
         type: "lint",
         title: `Agent run complete for ${runDate}`,
-        details: `Tickers: ${tickers}. ${result.totalBuys} BUY / ${result.totalSells} SELL / ${result.totalHolds} HOLD.`,
+        details: `Tickers: ${tickers}. ${result.totalBuys} ${VERDICT_LABEL.BUY} / ${result.totalHolds} ${VERDICT_LABEL.HOLD} / ${result.totalSells} ${VERDICT_LABEL.SELL}.`,
       });
       await regenerateVaultIndex(vaultStore);
     } catch (err) {

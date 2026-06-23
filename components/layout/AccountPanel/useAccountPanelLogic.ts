@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { authedFetch } from "@/lib/api/client-fetch";
 import { useAccountSettings } from "@/hooks/useAccountSettings";
 import { useAccount } from "@/hooks/useAccount";
-import { CACHE_STEPS, formatCountdown } from "./primitives";
+import { CACHE_STEPS } from "./primitives";
 
 interface AccountPanelLogicParams {
   onClose: () => void;
@@ -15,7 +15,6 @@ export function useAccountPanelLogic({ onClose }: AccountPanelLogicParams) {
   const {
     account,
     preferences,
-    etradeExpiry,
     updatePreferences,
     signOut,
     loading: accountLoading,
@@ -25,6 +24,31 @@ export function useAccountPanelLogic({ onClose }: AccountPanelLogicParams) {
   const [uiMode, setUiMode] = useState("compact");
   const [newsCache, setNewsCache] = useState(5);
   const [positionsCache, setPositionsCache] = useState(60);
+
+  interface SnapTradeAccount {
+    id?: string;
+    name?: string | null;
+    number?: string | null;
+    type?: string | null;
+    balance?: number | null;
+  }
+  interface SnapTradeConnection {
+    id?: string;
+    name: string;
+    slug?: string | null;
+    logo?: string | null;
+    disabled: boolean;
+    accounts: SnapTradeAccount[];
+    totalBalance: number | null;
+  }
+  interface SnapTradeStatus {
+    configured: boolean;
+    registered: boolean;
+    connected: boolean;
+    connections: SnapTradeConnection[];
+  }
+  const [snapTradeStatus, setSnapTradeStatus] = useState<SnapTradeStatus | null>(null);
+  const [snapTradeConnecting, setSnapTradeConnecting] = useState(false);
 
   const isDev = account ? account.id === "dev-user-id" : false;
 
@@ -72,35 +96,84 @@ export function useAccountPanelLogic({ onClose }: AccountPanelLogicParams) {
     [updatePreferences],
   );
 
-  const handleReconnect = async () => {
+  const refreshSnapTradeStatus = useCallback(async () => {
     try {
-      const res = await authedFetch("/api/etrade/auth");
-      const data = await res.json();
-      if (res.ok && data.authUrl) {
-        window.open(data.authUrl, "_blank", "noopener,noreferrer");
-        window.location.href = "/etrade-verify";
-      }
+      const res = await authedFetch("/api/snaptrade/status");
+      if (res.ok) setSnapTradeStatus(await res.json());
     } catch {
       /* ignore */
     }
-  };
+  }, []);
 
-  const handleDisconnect = async () => {
-    if (!confirm("Disconnect E*TRADE? You'll need to re-authorize to reconnect.")) return;
+  useEffect(() => {
+    refreshSnapTradeStatus();
+  }, [refreshSnapTradeStatus]);
+
+  const handleConnectSnapTrade = useCallback(async () => {
+    setSnapTradeConnecting(true);
     try {
-      const res = await fetch("/api/etrade/disconnect", { method: "POST" });
+      const res = await authedFetch("/api/snaptrade/connect", { method: "POST" });
+      const data = await res.json();
+      if (res.ok && data.redirectURI) {
+        // Open the SnapTrade connection portal; refresh status when the user
+        // returns to the app (portal opens in a new tab).
+        const win = window.open(data.redirectURI, "_blank", "noopener,noreferrer");
+        window.addEventListener("focus", () => refreshSnapTradeStatus(), { once: true });
+        if (!win) window.location.href = data.redirectURI;
+      } else {
+        window.alert(data.error ?? "Could not start SnapTrade connection.");
+      }
+    } catch {
+      window.alert("Could not start SnapTrade connection.");
+    } finally {
+      setSnapTradeConnecting(false);
+    }
+  }, [refreshSnapTradeStatus]);
+
+  const handleDisconnectSnapTrade = useCallback(async () => {
+    if (!confirm("Disconnect SnapTrade? This removes all linked brokerage connections.")) return;
+    try {
+      const res = await authedFetch("/api/snaptrade/disconnect", { method: "POST" });
       if (res.ok) {
+        await refreshSnapTradeStatus();
         window.location.reload();
       }
     } catch {
       /* ignore */
     }
-  };
+  }, [refreshSnapTradeStatus]);
 
   const handleSignOut = useCallback(async () => {
     await signOut();
     window.location.href = "/login";
   }, [signOut]);
+
+  const handleDeleteAccount = useCallback(async () => {
+    const email = account?.email;
+    if (!email) return;
+    const typed = window.prompt(
+      `This permanently deletes your account and all data. This cannot be undone.\n\nType your email (${email}) to confirm:`,
+    );
+    if (!typed || typed.trim().toLowerCase() !== email.toLowerCase()) {
+      if (typed !== null) window.alert("Email did not match — account not deleted.");
+      return;
+    }
+    try {
+      const res = await fetch("/api/account/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmEmail: typed.trim() }),
+      });
+      if (res.ok) {
+        window.location.href = "/login";
+      } else {
+        const data = await res.json().catch(() => ({}));
+        window.alert(data.error ?? "Failed to delete account. Please try again.");
+      }
+    } catch {
+      window.alert("Failed to delete account. Please try again.");
+    }
+  }, [account?.email]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -129,8 +202,6 @@ export function useAccountPanelLogic({ onClose }: AccountPanelLogicParams) {
       ? account.email[0].toUpperCase()
       : "?";
 
-  const countdown = formatCountdown(etradeExpiry?.expiresAt ?? null);
-
   const dataSources = settings
     ? [
         { name: "Finnhub", configured: settings.dataSources.finnhub },
@@ -151,11 +222,9 @@ export function useAccountPanelLogic({ onClose }: AccountPanelLogicParams) {
   return {
     account,
     preferences,
-    etradeExpiry,
     settings,
     isDev,
     initials,
-    countdown,
     dataSources,
     activeCount,
     formatDate,
@@ -170,9 +239,12 @@ export function useAccountPanelLogic({ onClose }: AccountPanelLogicParams) {
     handleCronToggle,
     handleTimescaleChange,
     handleAnalyzedAgeChange,
-    handleReconnect,
-    handleDisconnect,
     handleSignOut,
+    handleDeleteAccount,
+    snapTradeStatus,
+    snapTradeConnecting,
+    handleConnectSnapTrade,
+    handleDisconnectSnapTrade,
   };
 }
 

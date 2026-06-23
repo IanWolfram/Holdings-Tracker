@@ -8,6 +8,7 @@ import TopBar from "@/components/layout/TopBar";
 import AgentTopBar from "@/components/agent/AgentTopBar";
 import EmptyState from "@/components/agent/EmptyState";
 import ChatThread from "@/components/agent/ChatThread";
+import SignalsList from "@/components/agent/SignalsList";
 import Composer from "@/components/agent/Composer";
 import HistoryDrawer from "@/components/agent/HistoryDrawer";
 import { SCAN_DEFINITIONS, type QuickAction } from "@/components/agent/constants";
@@ -20,7 +21,10 @@ function loadLocalConversations(): Conversation[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     const convs: Conversation[] = raw ? JSON.parse(raw) : [];
-    for (const conv of convs) for (const msg of conv.messages) if (!msg.id) msg.id = crypto.randomUUID();
+    for (const conv of convs) {
+      conv.messages = conv.messages ?? [];
+      for (const msg of conv.messages) if (!msg.id) msg.id = crypto.randomUUID();
+    }
     return convs;
   } catch {
     return [];
@@ -49,7 +53,7 @@ async function fetchServerConversations(): Promise<Conversation[]> {
     const res = await authedFetch("/api/account/conversations");
     if (!res.ok) return [];
     const data = await res.json();
-    return (data.conversations ?? []) as Conversation[];
+    return ((data.conversations ?? []) as Conversation[]).map((c) => ({ ...c, messages: c.messages ?? [] }));
   } catch {
     return [];
   }
@@ -58,7 +62,8 @@ async function fetchServerConversation(id: string): Promise<Conversation | null>
   try {
     const res = await authedFetch(`/api/account/conversations?id=${encodeURIComponent(id)}`);
     if (!res.ok) return null;
-    return await res.json();
+    const conv = (await res.json()) as Conversation;
+    return { ...conv, messages: conv.messages ?? [] };
   } catch {
     return null;
   }
@@ -131,9 +136,15 @@ export default function AgentDashboard() {
       const merged = mergeConversations(serverList, localList);
       saveLocalConversations(merged);
       setConversations(merged);
+      // A `?conv=<id>` param (e.g. from clicking the TopBar signal bubble) takes
+      // precedence over the last-active conversation.
+      const convParam = new URLSearchParams(window.location.search).get("conv");
       const lastActiveId = localStorage.getItem(ACTIVE_KEY) ?? "";
-      const match = merged.find((c) => c.id === lastActiveId);
-      setActiveId(match ? match.id : merged[0]?.id ?? "");
+      const target =
+        (convParam && merged.find((c) => c.id === convParam)) ||
+        merged.find((c) => c.id === lastActiveId) ||
+        merged[0];
+      setActiveId(target?.id ?? "");
       setSynced(true);
     })();
   }, [synced]);
@@ -166,7 +177,9 @@ export default function AgentDashboard() {
   useEffect(() => {
     if (!synced) return;
     const active = conversations.find((c) => c.id === activeId);
-    if (active) syncConversationToServer(active);
+    // The signals conversation is system-managed + read-only; syncing it back
+    // would bump updated_at on every open and reset its pinned timestamp.
+    if (active && active.kind !== "signals") syncConversationToServer(active);
   }, [conversations, synced, activeId]);
 
   // ---- Load overview stats + scheduled jobs (refreshable) ----
@@ -192,6 +205,7 @@ export default function AgentDashboard() {
   const activeConv = conversations.find((c) => c.id === activeId);
   const messages = activeConv?.messages ?? [];
   const hasMessages = messages.length > 0;
+  const isSignals = activeConv?.kind === "signals";
 
   const ensureConversation = useCallback(async (): Promise<string> => {
     if (activeId && conversations.some((c) => c.id === activeId)) return activeId;
@@ -297,6 +311,24 @@ export default function AgentDashboard() {
     else startAgent();
   }, [agentState.status, startAgent, cancelAgent]);
 
+  const handleScanToggle = useCallback(
+    async (kind: string, enabled: boolean) => {
+      // Optimistic flip; the PATCH endpoint computes next_run_at.
+      setScans((prev) => prev.map((s) => (s.kind === kind ? { ...s, enabled } : s)));
+      try {
+        await authedFetch("/api/agent/jobs", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ kind, enabled }),
+        });
+      } catch {
+        // ignore — refresh reconciles
+      }
+      refreshOverview();
+    },
+    [refreshOverview],
+  );
+
   const onQuickAction = useCallback(
     (action: QuickAction) => {
       // "Run risk scan" kicks off the real portfolio analysis sweep (the pill
@@ -316,28 +348,32 @@ export default function AgentDashboard() {
       <AgentTopBar onHamburger={() => setDrawerOpen(true)} agentState={agentState} onPillClick={onPillClick} brandHref="/" />
 
       <main style={{ flex: 1, overflow: "auto", position: "relative" }}>
-        {hasMessages ? (
+        {isSignals ? (
+          <SignalsList messages={messages} />
+        ) : hasMessages ? (
           <ChatThread messages={messages} pending={pending} />
         ) : (
-          <EmptyState onPick={submitText} onQuickAction={onQuickAction} stats={stats} scans={scans} />
+          <EmptyState onPick={submitText} onQuickAction={onQuickAction} stats={stats} scans={scans} onScanToggle={handleScanToggle} />
         )}
       </main>
 
-      <div
-        style={{
-          position: "absolute",
-          left: 0,
-          right: 0,
-          bottom: 0,
-          padding: "40px 0 28px",
-          background: "linear-gradient(to top, rgba(26,27,29,0.97) 30%, rgba(26,27,29,0.7) 70%, transparent 100%)",
-          pointerEvents: "none",
-        }}
-      >
-        <div style={{ pointerEvents: "auto" }}>
-          <Composer onSubmit={submitText} disabled={loading} />
+      {!isSignals && (
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            padding: "40px 0 28px",
+            background: "linear-gradient(to top, rgba(26,27,29,0.97) 30%, rgba(26,27,29,0.7) 70%, transparent 100%)",
+            pointerEvents: "none",
+          }}
+        >
+          <div style={{ pointerEvents: "auto" }}>
+            <Composer onSubmit={submitText} disabled={loading} />
+          </div>
         </div>
-      </div>
+      )}
 
       <HistoryDrawer
         open={drawerOpen}

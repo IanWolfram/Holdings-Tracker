@@ -3,7 +3,6 @@ import type { ICache } from "@/src/domain/interfaces/ICache";
 import type { Position } from "@/types/position.types";
 
 export interface PortfolioServiceConfig {
-  etradeEnv: string;
   hasOAuthTokens: boolean;
   newsTtlMs: number;
   accountTtlMs: number;
@@ -48,21 +47,21 @@ export class PortfolioService {
       const tokenRejected = msg.includes("401") || msg.includes("403") || msg.includes("token_rejected");
       console.warn(
         tokenRejected
-          ? "[etrade] OAuth tokens expired — returning 0 balance."
-          : `[etrade] Balance fetch error (${msg}) — returning 0.`
+          ? "[broker] Brokerage access rejected — returning 0 balance."
+          : `[broker] Balance fetch error (${msg}) — returning 0.`
       );
       return 0;
     }
   }
 
-  /** Returns live positions from E*TRADE, or an empty array if not connected. */
+  /** Returns live positions from the linked brokerage, or an empty array if not connected. */
   async getPositionsSafe(forceRefresh = false): Promise<{ positions: Position[]; mock: boolean }> {
     if (forceRefresh) {
       this.clearCache();
     }
 
     if (!this.cfg.hasOAuthTokens) {
-      console.warn("[etrade] OAuth tokens not set — returning empty positions.");
+      console.warn("[broker] No linked brokerage — returning empty positions.");
       return { positions: [], mock: false };
     }
 
@@ -74,8 +73,8 @@ export class PortfolioService {
       const expired = msg.includes("401") || msg.includes("403");
       console.warn(
         expired
-          ? "[etrade] OAuth tokens expired — returning empty positions."
-          : `[etrade] API error (${msg}) — returning empty positions.`
+          ? "[broker] Brokerage access rejected — returning empty positions."
+          : `[broker] API error (${msg}) — returning empty positions.`
       );
       return { positions: [], mock: false };
     }

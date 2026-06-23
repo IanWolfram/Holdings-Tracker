@@ -35,10 +35,11 @@ const TRADE_COLOR: Record<string, string> = {
   sell_option: "#f97316",
 };
 
-/** Color an excess-return string by sign: green up, red down, slate when N/A. */
-function returnColor(ret?: string): string {
-  if (!ret || ret === "N/A") return "#64748b";
-  return ret.trim().startsWith("-") ? "#FF4444" : "#00FF88";
+/** Whole days between the trade and its filing; null when a date is missing. */
+function disclosureDelayDays(trade: CongressTrade): number | null {
+  if (!trade.tradeDate || !trade.filedDate) return null;
+  const days = Math.round((trade.filedDate - trade.tradeDate) / 86_400);
+  return Number.isFinite(days) ? Math.max(0, days) : null;
 }
 
 /** Format a unix-seconds timestamp as a short date, or an em dash when missing. */
@@ -97,8 +98,18 @@ function CongressDetailPanel({
   tradeColor: string;
   compact: boolean;
 }) {
-  const retColor = returnColor(trade.excessReturn);
   const compliant = trade.isCompliant;
+  const delayDays = disclosureDelayDays(trade);
+  // Tie the figure's colour to STOCK Act compliance: green within the window,
+  // amber when late, slate when the dates are unknown.
+  const delayColor =
+    compliant === undefined ? "#64748b" : compliant ? "#00FF88" : CONGRESS_COLOR;
+  const delayText =
+    delayDays === null
+      ? "—"
+      : delayDays === 0
+        ? "same day"
+        : `${delayDays} day${delayDays === 1 ? "" : "s"} after trade`;
 
   return (
     <AnimatePresence initial={false}>
@@ -122,7 +133,7 @@ function CongressDetailPanel({
               }}
             >
               {/* Header: label + STOCK Act compliance flag */}
-              <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center justify-between mb-2.5">
                 <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">
                   Disclosure
                 </span>
@@ -140,19 +151,19 @@ function CongressDetailPanel({
                 )}
               </div>
 
-              {/* Excess return — the congress card's headline metric */}
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-[9px] text-slate-500">Excess return</span>
+              {/* Disclosure delay — how long after the trade it was filed */}
+              <div className="flex justify-between items-center gap-2 mb-2.5">
+                <span className="text-[9px] text-slate-500 shrink-0">Disclosed</span>
                 <span
-                  className="text-[10px] font-mono px-1.5 py-0.5 rounded"
-                  style={{ color: retColor, background: `${retColor}14` }}
+                  className="text-[10px] font-mono px-1.5 py-0.5 rounded truncate"
+                  style={{ color: delayColor, background: `${delayColor}14` }}
                 >
-                  {trade.excessReturn ?? "N/A"}
+                  {delayText}
                 </span>
               </div>
 
               {/* Disclosure facts */}
-              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+              <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
                 <DetailItem label="Traded" value={shortDate(trade.tradeDate)} />
                 <DetailItem label="Filed" value={shortDate(trade.filedDate)} />
                 <DetailItem label="Asset" value={trade.assetType || "—"} />
@@ -172,6 +183,9 @@ interface Props {
   /** Kept so the collapsed stack can pin the top card open (matches NewsCard). */
   pinned?: boolean;
   compact?: boolean;
+  /** Show the traded company's full name. Used on the HOT page's mixed-ticker
+   *  list; off on the terminal where the card already sits under its ticker. */
+  showCompany?: boolean;
 }
 
 export default function CongressTradeCard({
@@ -179,6 +193,7 @@ export default function CongressTradeCard({
   isNew = false,
   pinned = false,
   compact = process.env.NEXT_PUBLIC_UI_MODE === "compact",
+  showCompany = false,
 }: Props) {
   const rawId = useId();
   const id = rawId.replace(/:/g, "");
@@ -233,7 +248,7 @@ export default function CongressTradeCard({
       onClick={() => window.open(trade.url, "_blank")}
     >
       <div
-        className={`${compact ? "px-[7px] py-[5px]" : "p-2"} relative rounded-[8px]`}
+        className={`${compact ? "px-[7px] py-[6px]" : "px-2.5 py-2.5"} relative rounded-[8px]`}
         style={{ backgroundColor: CARD_BG }}
         data-hovered={hovered ? "true" : undefined}
         data-expanded={expanded ? "true" : undefined}
@@ -262,15 +277,15 @@ export default function CongressTradeCard({
 
         <div className="relative" style={{ zIndex: 2 }}>
           {/* Primary line: gavel + party + politician (the "headline") */}
-          <div className="flex items-center gap-1.5 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
             <span
-              className="material-symbols-outlined text-[14px] shrink-0"
+              className="material-symbols-outlined text-[15px] shrink-0"
               style={{ color: CONGRESS_COLOR }}
             >
               gavel
             </span>
             <span
-              className="text-[9px] font-black px-1 py-0.5 rounded-sm leading-none shrink-0"
+              className="text-[9px] font-black px-1 py-0.5 rounded-sm leading-none shrink-0 tracking-wide"
               style={{
                 backgroundColor: partyColor + "33",
                 color: partyColor,
@@ -279,7 +294,7 @@ export default function CongressTradeCard({
             >
               {trade.party}
             </span>
-            <span className={`${compact ? "text-[12px]" : "text-[13px]"} font-semibold text-white leading-snug truncate`}>
+            <span className={`${compact ? "text-[12px]" : "text-[13px]"} font-semibold text-white leading-snug truncate tracking-[-0.01em]`}>
               {trade.politician}
             </span>
             {isNew && (
@@ -289,10 +304,26 @@ export default function CongressTradeCard({
             )}
           </div>
 
+          {/* Company line — only where the list spans multiple tickers (HOT page) */}
+          {showCompany && (trade.companyName || trade.ticker) && (
+            <div className={`${compact ? "mt-1" : "mt-1.5"} flex items-center gap-1.5 min-w-0`}>
+              <span className="font-mono text-[9px] font-bold text-slate-400 shrink-0 tracking-wide">
+                {trade.ticker}
+              </span>
+              {/* Skip when the name fell back to the ticker (unparseable / prose
+                  leak) so we don't render "HOLX HOLX". */}
+              {trade.companyName && trade.companyName !== trade.ticker && (
+                <span className="text-[10px] text-slate-400/90 truncate leading-snug">
+                  {trade.companyName}
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Meta line: action pill + ticker + amount … time + arrow */}
-          <div className={`${compact ? "mt-1" : "mt-1.5"} flex items-center gap-2 text-[11px] text-slate-500`}>
+          <div className={`${compact ? "mt-1.5" : "mt-2.5"} flex items-center gap-2 text-[11px] text-slate-400`}>
             <span
-              className="text-[9px] font-black px-1 py-0.5 rounded-sm leading-none shrink-0"
+              className="text-[9px] font-black px-1.5 py-0.5 rounded-sm leading-none shrink-0 tracking-wide"
               style={{
                 color: tradeColor,
                 backgroundColor: tradeColor + "22",
@@ -301,10 +332,9 @@ export default function CongressTradeCard({
             >
               {tradeLabel}
             </span>
-            <span className="font-mono text-[12px] font-black text-white shrink-0">{trade.ticker}</span>
-            <span className="truncate">{trade.amount}</span>
+            <span className="truncate font-mono text-[10.5px] text-slate-300/90">{trade.amount}</span>
             <div className="ml-auto flex items-center gap-1.5 shrink-0">
-              <span className="tabular-nums">{timeAgo}</span>
+              <span className="tabular-nums text-[10px] text-slate-500">{timeAgo}</span>
               <NavArrowIcon hovered={hovered} color={tradeColor} />
             </div>
           </div>

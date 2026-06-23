@@ -1,8 +1,4 @@
-export function Footer({
-  env,
-}: {
-  env?: string;
-}) {
+export function Footer() {
   return (
     <div
       style={{
@@ -31,7 +27,7 @@ export function Footer({
             color: "var(--color-ink-dim)",
           }}
         >
-          {env === "mock" ? "Mock" : "Cloud"}
+          Cloud
         </span>
         <span
           style={{

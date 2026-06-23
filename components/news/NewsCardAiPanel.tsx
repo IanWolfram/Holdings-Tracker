@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { REVEAL_EASE } from "@/lib/utils/newsCardAnimations";
+import { type Verdict, VERDICT_LABEL } from "@/types/news.types";
 
 interface NewsCardAiPanelProps {
   hovered: boolean;
@@ -87,7 +88,7 @@ export default function NewsCardAiPanel({
                     className="text-[9px] font-mono px-1.5 py-0.5 rounded"
                     style={{ background: verdictBg, color }}
                   >
-                    {activeVerdict}
+                    {VERDICT_LABEL[activeVerdict as Verdict] ?? activeVerdict}
                   </span>
                 </div>
 

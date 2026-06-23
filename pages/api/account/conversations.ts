@@ -9,6 +9,17 @@ export default apiHandler(["GET", "POST", "PATCH", "DELETE"], async (req, res: N
 
   const supabase = createServiceClient();
 
+  // The user's dedicated, system-managed "Agent Signals" conversation is pinned
+  // in the UI and rendered as a signals list — identify it by id, not title.
+  async function getSignalsConvId(): Promise<string | null> {
+    const { data } = await supabase
+      .from("user_preferences")
+      .select("signals_conversation_id")
+      .eq("user_id", user!.id)
+      .maybeSingle();
+    return (data as { signals_conversation_id?: string } | null)?.signals_conversation_id ?? null;
+  }
+
   if (req.method === "GET") {
     const id = req.query.id as string | undefined;
 
@@ -28,14 +39,17 @@ export default apiHandler(["GET", "POST", "PATCH", "DELETE"], async (req, res: N
         .eq("conversation_id", id)
         .order("created_at", { ascending: true });
 
+      const signalsConvId = await getSignalsConvId();
       return res.status(200).json({
         id: conv.id,
         title: conv.title,
+        kind: conv.id === signalsConvId ? "signals" : "chat",
         updatedAt: new Date(conv.updated_at).getTime(),
         messages: (msgs ?? []).map((m) => ({
           id: m.id,
           role: m.role,
           content: m.content,
+          createdAt: new Date(m.created_at).getTime(),
         })),
       });
     }
@@ -48,10 +62,12 @@ export default apiHandler(["GET", "POST", "PATCH", "DELETE"], async (req, res: N
       .order("updated_at", { ascending: false });
 
     if (error) return res.status(500).json({ error: error.message });
+    const signalsConvId = await getSignalsConvId();
     return res.status(200).json({
       conversations: data.map((c) => ({
         id: c.id,
         title: c.title,
+        kind: c.id === signalsConvId ? "signals" : "chat",
         updatedAt: new Date(c.updated_at).getTime(),
       })),
     });

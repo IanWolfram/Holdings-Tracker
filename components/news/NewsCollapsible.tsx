@@ -20,7 +20,7 @@ const GHOST_HEIGHT = 60;
 // exactly at the top card's bottom edge, so ghosts never bleed through.
 const STACK_FAN_REVEAL = 24;
 
-type StackVariant = "default" | "pending" | "queued";
+type StackVariant = "default" | "pending" | "queued" | "congress";
 
 interface Props {
   badge: React.ReactNode;
@@ -31,6 +31,10 @@ interface Props {
   /** Tints the bottom ghost stack to match the visible top card variant
    *  (e.g. `pending` for `Run Agent` cards, `queued` for `In Queue` cards). */
   stackVariant?: StackVariant;
+  /** Click handler for the stack. When provided (PositionCard feed), opening is
+   *  delegated to the parent, which renders the full list as an overlay so the
+   *  card height never changes. When omitted, falls back to internal expand. */
+  onOpen?: () => void;
   children: React.ReactNode[];
 }
 
@@ -38,6 +42,7 @@ const STACK_VARIANT_CLASS: Record<StackVariant, string> = {
   default: "",
   pending: "glass-edge-pending",
   queued: "glass-edge-queued",
+  congress: "glass-edge-congress",
 };
 
 export default function NewsCollapsible({
@@ -47,6 +52,7 @@ export default function NewsCollapsible({
   defaultExpanded = false,
   fullyCollapsible = false,
   stackVariant = "default",
+  onOpen,
   children,
 }: Props) {
   const [expanded, setExpanded] = useState(
@@ -238,13 +244,13 @@ export default function NewsCollapsible({
             role="button"
             tabIndex={0}
             aria-label={`Expand ${count} stories`}
-            onClick={() => setExpanded(true)}
+            onClick={() => onOpen?.()}
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
-                setExpanded(true);
+                onOpen?.();
               }
             }}
             className="absolute left-0 right-0 cursor-pointer"
@@ -256,70 +262,6 @@ export default function NewsCollapsible({
           />
         )}
       </div>
-
-      {/* Expanded: all children in a scrollbox — 3 cards visible, rest scroll. */}
-      <AnimatePresence initial={false}>
-        {expanded && (
-          <motion.div
-            key="list"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.32, ease: EASE }}
-            className="overflow-hidden"
-          >
-            <div className="relative">
-              {/* Scrollbox — content fades out at the top/bottom via mask-image
-                  so cards scroll away smoothly instead of being hard-cut. */}
-              <div
-                className="overflow-y-auto overscroll-contain [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
-                style={{
-                  maxHeight: 256,
-                  msOverflowStyle: "none",
-                  maskImage:
-                    "linear-gradient(to bottom, transparent 0, black 28px, black calc(100% - 16px), transparent 100%)",
-                  WebkitMaskImage:
-                    "linear-gradient(to bottom, transparent 0, black 28px, black calc(100% - 16px), transparent 100%)",
-                }}
-              >
-                <div className="space-y-2 pt-7 pb-4">{children}</div>
-              </div>
-
-              {/* Glass header — contains collapse arrow; cards fade behind it */}
-              <button
-                onClick={() => setExpanded(false)}
-                aria-label="Collapse stack"
-                className="absolute top-0 left-0 right-0 h-6 flex items-center justify-center rounded-t-[8px] z-10 group/col transition-colors hover:bg-white/[0.04]"
-                style={{
-                  backdropFilter: "blur(14px) saturate(160%)",
-                  WebkitBackdropFilter: "blur(14px) saturate(160%)",
-                  background:
-                    "linear-gradient(to bottom, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)",
-                  boxShadow:
-                    "inset 0 -1px 0 0 rgba(255,255,255,0.06)",
-                }}
-              >
-                <span className="material-symbols-outlined text-[14px] text-slate-500 group-hover/col:text-slate-300 transition-colors">
-                  expand_less
-                </span>
-              </button>
-
-              {/* Glass footer — purely decorative; mirrors the header */}
-              <div
-                className="absolute bottom-0 left-0 right-0 h-4 pointer-events-none rounded-b-[8px] z-10"
-                style={{
-                  backdropFilter: "blur(10px) saturate(160%)",
-                  WebkitBackdropFilter: "blur(10px) saturate(160%)",
-                  background:
-                    "linear-gradient(to top, rgba(255,255,255,0.03) 0%, transparent 100%)",
-                  boxShadow:
-                    "inset 0 1px 0 0 rgba(255,255,255,0.05)",
-                }}
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

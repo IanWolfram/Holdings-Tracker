@@ -1,4 +1,6 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
 import Link from "next/link";
 
 type Accent = "green" | "blue" | "red" | "orange";
@@ -28,11 +30,14 @@ export default function TopBarNavItem({
   accent = "green",
 }: TopBarNavItemProps) {
   const { color, glow } = ACCENTS[accent];
+  const [hover, setHover] = useState(false);
 
   return (
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
       className={`relative px-4 h-full flex items-center gap-2 transition-colors ${
         active ? "text-white" : "text-slate-400 hover:text-white"
       }`}
@@ -40,8 +45,9 @@ export default function TopBarNavItem({
       <span
         className="material-symbols-outlined text-[19px]"
         style={{
-          color: active ? color : undefined,
+          color: active || hover ? color : undefined,
           fontVariationSettings: "'FILL' 0",
+          transition: "color .15s ease",
         }}
       >
         {icon}

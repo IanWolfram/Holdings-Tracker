@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { FALLBACK_CONFIDENCE } from "../lib/constants";
+import { VERDICT_LABEL } from "../types/news.types";
 import { debug } from "../lib/debug";
 import { callLlm, invalidateSystemPromptCache } from "./brain";
 import { getRecentResolvedPredictions } from "./predictions";
@@ -347,7 +348,7 @@ export async function runMetaReflection(
   await appendVaultLog(store, {
     type: "insight",
     title: `Session insights synthesized for ${today}`,
-    details: `Tickers: ${tickers}. Totals: ${sessionResult.totalBuys} BUY / ${sessionResult.totalSells} SELL / ${sessionResult.totalHolds} HOLD.`,
+    details: `Tickers: ${tickers}. Totals: ${sessionResult.totalBuys} ${VERDICT_LABEL.BUY} / ${sessionResult.totalHolds} ${VERDICT_LABEL.HOLD} / ${sessionResult.totalSells} ${VERDICT_LABEL.SELL}.`,
   });
 
   invalidateSystemPromptCache();

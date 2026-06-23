@@ -87,7 +87,6 @@ export default function PositionCard({
   const sell = stories.filter((s) => s.verdict === "SELL").length;
   const hold = stories.filter((s) => s.verdict === "HOLD").length;
   const sentimentMetrics = useMemo(() => calculateSentimentMetrics(stories), [stories]);
-  const avgConfidence = sentimentMetrics.avgConfidence;
 
   const gainPositive = gainLoss >= 0;
   const gainPct = pricePaid > 0 ? ((currentPrice - pricePaid) / pricePaid) * 100 : 0;
@@ -134,7 +133,7 @@ export default function PositionCard({
       layout
       layoutId={ticker}
       cornerRadius={POSITION_R}
-      className={`relative flex flex-col group shadow-2xl transition-all duration-300 ${compact ? "h-[440px]" : "h-[520px]"}${isProposed ? " glass-edge-proposed" : ""}`}
+      className={`relative flex flex-col group shadow-2xl transition-all duration-300 ${compact ? "min-h-[440px]" : "min-h-[520px]"}${isProposed ? " glass-edge-proposed" : ""}`}
       style={{
         backgroundColor: frosted ? "rgba(8, 13, 9, 0.92)" : "rgba(0, 0, 0, 0.6)",
         backdropFilter: frosted
@@ -162,7 +161,7 @@ export default function PositionCard({
       />
       <div
         ref={articleRef}
-        className="relative flex flex-col h-full min-h-0"
+        className="relative flex flex-col h-full"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
@@ -194,7 +193,6 @@ export default function PositionCard({
           buy={buy}
           hold={hold}
           sell={sell}
-          avgConfidence={avgConfidence}
           sentimentScore={sentimentMetrics.score}
           sentimentDirection={sentimentMetrics.direction}
           glowClass={effectiveGlowClass}

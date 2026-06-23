@@ -1,4 +1,4 @@
-import type { Verdict } from "@/types/news.types";
+import { type Verdict, VERDICT_LABEL } from "@/types/news.types";
 
 interface Props {
   verdict: Verdict;
@@ -18,7 +18,7 @@ export default function VerdictBadge({ verdict, confidence, count }: Props) {
   return (
     <div className="flex items-center gap-1.5">
       <span className={`${s.badge} text-[9px] px-1.5 py-[3px] rounded font-bold uppercase tracking-wider leading-none`}>
-        {count !== undefined ? `${count} ${verdict}` : verdict}
+        {count !== undefined ? `${count} ${VERDICT_LABEL[verdict]}` : VERDICT_LABEL[verdict]}
       </span>
       {confidence > 0 && (
         <span className={`${s.conf} font-mono text-[10px] leading-none tracking-wide`}>{pct}% CONF</span>

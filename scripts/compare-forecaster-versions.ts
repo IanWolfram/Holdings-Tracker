@@ -24,14 +24,21 @@ import { hydrateSecrets } from "../lib/secrets";
 import { directionalStats, type DirectionalStats } from "../world-brain/forecaster-metrics";
 
 const MIN_PAIRS = 10; // promotion gate: need at least this many matched pairs.
-const PROMOTE_MARGIN = 0.05; // v2 must beat v1 directional accuracy by ≥5pp.
+const PROMOTE_MARGIN = 0.05; // candidate must beat v1 directional accuracy by ≥5pp.
+// The current shadow candidate. Bump this when a new shadow forecaster ships so
+// the A/B isolates IT and ignores stale earlier candidates (e.g. the retired v2,
+// whose framing differed). The "v2" bucket label below means "the candidate".
+const CANDIDATE_VERSION = "v3";
 
 function dateKey(ms: number): string {
   return new Date(ms).toISOString().slice(0, 10);
 }
 
-function versionOf(p: TickerPrediction): "v1" | "v2" {
-  return p.shadow || p.version === "v2" ? "v2" : "v1";
+// "v1" = production; "v2" bucket = the current shadow candidate (CANDIDATE_VERSION);
+// null = legacy shadow from a retired candidate, excluded so the A/B stays clean.
+function versionOf(p: TickerPrediction): "v1" | "v2" | null {
+  if (!p.shadow) return p.version === undefined || p.version === "v1" ? "v1" : null;
+  return p.version === CANDIDATE_VERSION ? "v2" : null;
 }
 
 interface Scored {
@@ -148,6 +155,8 @@ async function main(): Promise<void> {
   const noBarsTickers = new Set<string>();
   for (const p of all) {
     if (typeof p.priceAtPrediction !== "number" || !p.runAt || !p.horizonDays) continue;
+    const ver = versionOf(p);
+    if (ver === null) continue; // legacy shadow candidate — excluded from the clean A/B
     let bars = barCache.get(p.ticker);
     if (!bars) {
       bars = await getDailyBars(p.ticker, 730).catch(() => []);
@@ -169,7 +178,7 @@ async function main(): Promise<void> {
     const outcome = computePredictionOutcome(p.direction, p.magnitudePct, actualPct, band);
     scored.push({
       key: `${p.ticker}|${p.horizonDays}|${p.runAt}`,
-      version: versionOf(p),
+      version: ver,
       ticker: p.ticker,
       horizonDays: p.horizonDays,
       direction: p.direction,

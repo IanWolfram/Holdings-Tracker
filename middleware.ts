@@ -9,6 +9,13 @@ const PUBLIC_PATHS = [
   "/reset",
   "/check-email",
   "/auth/callback",
+  "/terms",
+  "/privacy",
+  "/disclaimer",
+  // NOTE: "/track-record" is intentionally NOT public yet. The page is built, but
+  // current self-scored numbers (~37% directional, miscalibrated confidence on a
+  // ~60 sample) would hurt more than help as public marketing. Re-add here to make
+  // it public once the forecaster's track record is worth showing.
 ];
 
 export async function middleware(req: NextRequest) {
@@ -37,15 +44,18 @@ export async function middleware(req: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = req.nextUrl.pathname;
-  const isPublic = PUBLIC_PATHS.some((p) => path.startsWith(p));
+  // The root path is the public marketing landing. Match it exactly (a
+  // startsWith("/") check would make every route public).
+  const isRoot = path === "/";
+  const isPublic = isRoot || PUBLIC_PATHS.some((p) => path.startsWith(p));
 
   // Unauthenticated: only allow public paths
   if (!user && !isPublic) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // Authenticated: redirect away from login/signup to dashboard
-  if (user && (path === "/login" || path === "/signup")) {
+  // Authenticated: skip login/signup/landing and go straight to the dashboard.
+  if (user && (path === "/login" || path === "/signup" || isRoot)) {
     return NextResponse.redirect(new URL("/terminal", req.url));
   }
 

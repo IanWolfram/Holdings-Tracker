@@ -5,7 +5,6 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -17,7 +16,6 @@ import { createClient } from "@/lib/supabase/browser";
 interface UserAccountState {
   account: MeResponse["account"] | null;
   preferences: UserPreferences | null;
-  etradeExpiry: { env: string; expiresAt: string | null } | null;
   refresh: () => Promise<void>;
   updatePreferences: (patch: Partial<UserPreferences>) => Promise<void>;
   signOut: () => Promise<void>;
@@ -43,10 +41,6 @@ export function UserAccountProvider({
 
   const [account, setAccount] = useState<MeResponse["account"] | null>(null);
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
-  const [etradeExpiry, setEtradeExpiry] = useState<{
-    env: string;
-    expiresAt: string | null;
-  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,7 +51,6 @@ export function UserAccountProvider({
       const data = await client.getMe();
       setAccount(data.account);
       setPreferences(data.preferences);
-      setEtradeExpiry(data.etrade);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load account");
     } finally {
@@ -76,7 +69,6 @@ export function UserAccountProvider({
       if (event === "SIGNED_OUT") {
         setAccount(null);
         setPreferences(null);
-        setEtradeExpiry(null);
         window.location.href = "/login";
       }
     });
@@ -112,7 +104,6 @@ export function UserAccountProvider({
       value={{
         account,
         preferences,
-        etradeExpiry,
         refresh,
         updatePreferences: handleUpdatePreferences,
         signOut: handleSignOut,

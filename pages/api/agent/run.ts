@@ -3,6 +3,12 @@ import { runStockAgent, getAgentProgress, cancelStockAgent } from "../../../lib/
 import { requirePremiumAccess } from "@/lib/license";
 import { requireUser } from "@/lib/auth/requireUser";
 import { apiHandler } from "@/lib/api-handler";
+import { SWEEP_COOLDOWN_MS } from "@/lib/rate-limit";
+import { log } from "@/lib/logger";
+
+// Per-user time of the last sweep we started. In-memory is fine for a single
+// pm2 process; it resets on restart (worst case: one extra sweep after deploy).
+const lastSweepAt = new Map<string, number>();
 
 export default apiHandler(["GET", "DELETE", "POST"], async (req, res: NextApiResponse) => {
   const user = await requireUser(req, res);
@@ -31,6 +37,19 @@ export default apiHandler(["GET", "DELETE", "POST"], async (req, res: NextApiRes
     if (progress.status === "running") {
       return res.status(409).json({ error: "An agent run is already in progress." });
     }
+
+    // Cooldown: a sweep calls DeepSeek per ticker per horizon, so cap how often
+    // one user can trigger it (on top of the single-flight 409 above).
+    const last = lastSweepAt.get(user.id);
+    if (last && Date.now() - last < SWEEP_COOLDOWN_MS) {
+      const waitS = Math.ceil((SWEEP_COOLDOWN_MS - (Date.now() - last)) / 1000);
+      res.setHeader("Retry-After", waitS);
+      return res.status(429).json({
+        error: `Sweep on cooldown. Try again in ${waitS}s.`,
+      });
+    }
+    lastSweepAt.set(user.id, Date.now());
+    log.info("api/agent/run", `sweep started user=${user.id}`);
 
     // Fire and forget (it updates global state)
     // We don't await it here so we can return "Started" immediately

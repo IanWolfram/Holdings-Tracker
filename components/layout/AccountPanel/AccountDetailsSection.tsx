@@ -4,6 +4,7 @@ export function AccountDetailsSection({
   account,
   formatDate,
   onSignOut,
+  onDeleteAccount,
 }: {
   account: {
     email: string | null;
@@ -12,6 +13,7 @@ export function AccountDetailsSection({
   };
   formatDate: (iso: string) => string;
   onSignOut: () => void;
+  onDeleteAccount: () => void;
 }) {
   return (
     <div style={{ padding: "18px 18px 22px", borderBottom: "1px solid var(--color-rule)" }}>
@@ -106,6 +108,15 @@ export function AccountDetailsSection({
           Change password
         </a>
         <GhostButton icon="logout" label="Sign out" onClick={onSignOut} danger />
+      </div>
+      <div className="flex" style={{ gap: 6, marginTop: 6 }}>
+        <GhostButton
+          icon="delete_forever"
+          label="Delete account"
+          onClick={onDeleteAccount}
+          danger
+          flex
+        />
       </div>
     </div>
   );

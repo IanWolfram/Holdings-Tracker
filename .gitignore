@@ -9,6 +9,9 @@ out/
 .env.local
 .env*.local
 
+# Sentry build plugin (source-map upload auth token)
+.env.sentry-build-plugin
+
 # Build
 dist/
 

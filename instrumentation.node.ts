@@ -58,6 +58,19 @@ export async function register() {
     }
   });
 
+  // Per-user scheduled agent jobs (the `agent_jobs` table behind the "Watching
+  // for you" scan toggles). Ticks every 5 minutes; runDueJobs() runs only jobs
+  // whose next_run_at has arrived, so this is a cheap no-op most ticks.
+  cron.schedule("*/5 * * * *", async () => {
+    try {
+      const { runDueJobs } = await import("./lib/agent/job-runner");
+      const ran = await runDueJobs();
+      if (ran > 0) console.info(`[jobs-cron] Ran ${ran} due agent job(s)`);
+    } catch (err) {
+      console.error("[jobs-cron] Failed:", (err as Error).message);
+    }
+  });
+
   globalState._recalibrateCronScheduled = true;
-  console.info("[recalibrate-cron] Scheduled: monthly recalibration (2am UTC, 1st) + daily prediction resolution (22:00 UTC) + daily congress ingest (03:00 UTC)");
+  console.info("[recalibrate-cron] Scheduled: monthly recalibration (2am UTC, 1st) + daily prediction resolution (22:00 UTC) + daily congress ingest (03:00 UTC) + per-user agent jobs (every 5 min)");
 }

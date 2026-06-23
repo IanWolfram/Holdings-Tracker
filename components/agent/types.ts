@@ -2,6 +2,8 @@ export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
+  /** Epoch ms — present for server-sourced messages (used by the signals list). */
+  createdAt?: number;
 }
 
 export interface Conversation {
@@ -9,6 +11,8 @@ export interface Conversation {
   title: string;
   messages: ChatMessage[];
   updatedAt: number;
+  /** "signals" is the pinned, system-managed Agent Signals conversation. */
+  kind?: "chat" | "signals";
 }
 
 export interface OverviewStats {

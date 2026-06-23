@@ -10,6 +10,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [accepted, setAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -24,6 +25,11 @@ export default function SignupPage() {
 
     if (password.length < 10) {
       setError("Password must be at least 10 characters");
+      return;
+    }
+
+    if (!accepted) {
+      setError("Please accept the Terms and Disclaimer to continue");
       return;
     }
 
@@ -101,13 +107,34 @@ export default function SignupPage() {
             />
           </div>
 
+          <label className="flex items-start gap-2 text-xs text-[var(--color-on-surface-variant)] cursor-pointer">
+            <input
+              type="checkbox"
+              checked={accepted}
+              onChange={(e) => setAccepted(e.target.checked)}
+              className="mt-0.5 accent-[var(--color-positive)]"
+            />
+            <span>
+              I understand Pulse provides informational market intelligence only and is not
+              investment advice, and I agree to the{" "}
+              <Link href="/terms" target="_blank" className="text-[var(--color-positive)] hover:underline">
+                Terms
+              </Link>{" "}
+              and{" "}
+              <Link href="/disclaimer" target="_blank" className="text-[var(--color-positive)] hover:underline">
+                Disclaimer
+              </Link>
+              .
+            </span>
+          </label>
+
           {error && (
             <p className="text-sm text-[var(--color-negative)]">{error}</p>
           )}
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !accepted}
             className="w-full py-2.5 rounded-lg bg-[var(--color-positive)] text-[#080808] font-semibold hover:brightness-110 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Creating account…" : "Sign up"}

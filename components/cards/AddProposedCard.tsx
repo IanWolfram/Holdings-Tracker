@@ -124,7 +124,7 @@ export default function AddProposedCard({
   return (
     <GlassView
       cornerRadius={12}
-      className="glass-edge-proposed relative flex flex-col group shadow-2xl transition-all duration-300"
+      className="glass-edge-proposed self-start relative flex flex-col group shadow-2xl transition-all duration-300"
       style={{
         backgroundColor: "rgba(0, 0, 0, 0.4)",
         overflow: "hidden",

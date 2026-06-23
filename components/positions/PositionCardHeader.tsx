@@ -212,7 +212,6 @@ interface PositionCardHeaderProps {
   buy: number;
   hold: number;
   sell: number;
-  avgConfidence?: number;
   sentimentScore?: number;
   sentimentDirection?: SentimentDirection;
   glowClass: string;
@@ -286,7 +285,6 @@ export default function PositionCardHeader({
   buy,
   hold,
   sell,
-  avgConfidence,
   sentimentScore,
   sentimentDirection,
   glowClass,
@@ -299,6 +297,7 @@ export default function PositionCardHeader({
   isTickerAnalyzing,
   onRemoveProposed,
 }: PositionCardHeaderProps) {
+  const { preferences } = useAccount();
   const historyData = history ?? [];
 
   return (
@@ -456,19 +455,19 @@ export default function PositionCardHeader({
       {/* ---------- SENTIMENT BAR ---------- */}
       <div
         className={`${
-          compact ? "px-[9px] py-[5px]" : "px-3 py-2"
-        } border-t border-white/[0.05] bg-black/[0.35]`}
+          compact ? "px-[9px] py-[5px]" : "px-4 py-2"
+        } border-t-2 border-white/30 bg-black/[0.35]`} 
       >
         <SentimentBar
           buy={buy}
           hold={hold}
           sell={sell}
-          avgConfidence={avgConfidence}
           sentimentScore={sentimentScore}
           sentimentDirection={sentimentDirection}
           compact={compact}
           onAnalyze={onAnalyzeTicker}
           isAnalyzing={isTickerAnalyzing}
+          windowDays={preferences?.analyzedMaxAgeDays}
         />
       </div>
     </div>

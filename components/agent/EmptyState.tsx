@@ -187,7 +187,42 @@ const STATUS_MAP: Record<ScanCard["last"]["status"], { color: string; label: str
   err: { color: "var(--negative)", label: "ERROR" },
 };
 
-function ScheduledScanCard({ scan }: { scan: ScanCard }) {
+function ToggleSwitch({ on, onClick }: { on: boolean; onClick: () => void }) {
+  return (
+    <button
+      role="switch"
+      aria-checked={on}
+      onClick={onClick}
+      style={{
+        flexShrink: 0,
+        width: 30,
+        height: 17,
+        borderRadius: 999,
+        border: `1px solid ${on ? `${ACCENT}88` : "rgba(255,255,255,0.14)"}`,
+        background: on ? `${ACCENT}33` : "rgba(255,255,255,0.04)",
+        position: "relative",
+        cursor: "pointer",
+        transition: "all .15s",
+        padding: 0,
+      }}
+    >
+      <span
+        style={{
+          position: "absolute",
+          top: 1,
+          left: on ? 14 : 1,
+          width: 13,
+          height: 13,
+          borderRadius: "50%",
+          background: on ? ACCENT : "var(--ink-dim)",
+          transition: "all .15s",
+        }}
+      />
+    </button>
+  );
+}
+
+function ScheduledScanCard({ scan, onToggle }: { scan: ScanCard; onToggle: (kind: string, enabled: boolean) => void }) {
   const [hover, setHover] = useState(false);
   const s = STATUS_MAP[scan.last.status] || STATUS_MAP.ok;
   return (
@@ -210,7 +245,10 @@ function ScheduledScanCard({ scan }: { scan: ScanCard }) {
           <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.color, boxShadow: scan.last.status === "warn" ? `0 0 6px ${s.color}` : "none", flexShrink: 0 }} />
           <div style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600, color: "white", letterSpacing: "-0.005em" }}>{scan.name}</div>
         </div>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, letterSpacing: "0.18em", color: s.color }}>{scan.enabled ? s.label : "OFF"}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, letterSpacing: "0.18em", color: s.color }}>{scan.enabled ? s.label : "OFF"}</span>
+          <ToggleSwitch on={scan.enabled} onClick={() => onToggle(scan.kind, !scan.enabled)} />
+        </div>
       </div>
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--ink-dim)", marginBottom: 12, letterSpacing: "0.02em" }}>
@@ -232,11 +270,13 @@ export default function EmptyState({
   onQuickAction,
   stats,
   scans,
+  onScanToggle,
 }: {
   onPick: (text: string) => void;
   onQuickAction: (action: QuickAction) => void;
   stats: OverviewStats | null;
   scans: ScanCard[];
+  onScanToggle: (kind: string, enabled: boolean) => void;
 }) {
   return (
     <div style={{ maxWidth: 1240, margin: "0 auto", padding: "0 40px 220px" }}>
@@ -271,7 +311,7 @@ export default function EmptyState({
           </MicroLabel>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             {scans.map((s) => (
-              <ScheduledScanCard key={s.kind} scan={s} />
+              <ScheduledScanCard key={s.kind} scan={s} onToggle={onScanToggle} />
             ))}
           </div>
         </div>

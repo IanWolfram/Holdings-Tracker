@@ -11,7 +11,7 @@ This project has a graphify knowledge graph at `graphify-out/graph.json` (868 no
 Before reading source files to understand architecture or find connections, query the graph first:
 
 - **`query_graph`** — "What connects to X?" Broad context. Use `mode="bfs"`, `depth=2-3`, `token_budget=1500`.
-- **`get_node`** — "What is ETradeProvider?" Single node detail with source file and type.
+- **`get_node`** — "What is SnapTradeProvider?" Single node detail with source file and type.
 - **`get_neighbors`** — "What does X import/call?" Direct connections of one node.
 - **`get_community`** — "Show me the whole Auth cluster." All nodes in a community.
 - **`shortest_path`** — "How does auth reach the dashboard?" Trace a dependency path.
@@ -31,7 +31,7 @@ This file guides Claude Code (claude.ai/code) when working in this repository. K
 
 ## Project Overview
 
-**Pulse** (Holdings Tracker) — a real-time, multi-tenant financial portfolio dashboard. It aggregates E\*TRADE positions, fetches news from Finnhub, Polygon, and NewsAPI, classifies sentiment with the DeepSeek API, and runs a self-calibrating **directional forecasting** engine that scores its own past predictions. Built with Next.js 16 (App Router + Pages Router), React 19, Tailwind CSS 4, SWR, Framer Motion, and three.js (3D globe). Auth and storage are Supabase. There is **no single-user / offline mode** — every request is scoped to an authenticated Supabase user.
+**Pulse** (Holdings Tracker) — a real-time, multi-tenant financial portfolio dashboard. It aggregates brokerage positions via **SnapTrade** (multi-broker aggregation; E\*TRADE, Schwab, etc.), fetches news from Finnhub, Polygon, and NewsAPI, classifies sentiment with the DeepSeek API, and runs a self-calibrating **directional forecasting** engine that scores its own past predictions. Built with Next.js 16 (App Router + Pages Router), React 19, Tailwind CSS 4, SWR, Framer Motion, and three.js (3D globe). Auth and storage are Supabase. There is **no single-user / offline mode** — every request is scoped to an authenticated Supabase user.
 
 ## Commands
 
@@ -39,7 +39,6 @@ This file guides Claude Code (claude.ai/code) when working in this repository. K
 npm run dev               # Next.js dev server (localhost:3000)
 npm run build             # Production build
 npm run lint              # ESLint (max-warnings 50)
-npm run etrade:auth       # CLI OAuth flow for E*TRADE (alias: npm run eta)
 npm run agent             # CLI: full portfolio intelligence sweep (scripts/agent.ts)
 npm run world:refresh     # CLI: force a 3D globe intelligence update
 npm run world:graph       # CLI: rebuild the world knowledge graph
@@ -53,19 +52,17 @@ No test framework is configured. There are no test commands.
 
 ## Configuration & Secrets
 
-Secrets (API keys, E\*TRADE consumer credentials, etc.) live in the Supabase **`app_secrets`** table — one source of truth across environments. `lib/secrets.ts` `hydrateSecrets()` reads them at server boot (from `src/instrumentation.ts`, Node runtime only) and copies them into `process.env`, so the rest of the app keeps reading `process.env.X`. **An explicitly-set env var (e.g. from `.env.local`) always wins** — hydration only fills keys that are unset.
+Secrets (API keys, SnapTrade client credentials, etc.) live in the Supabase **`app_secrets`** table — one source of truth across environments. `lib/secrets.ts` `hydrateSecrets()` reads them at server boot (from `src/instrumentation.ts`, Node runtime only) and copies them into `process.env`, so the rest of the app keeps reading `process.env.X`. **An explicitly-set env var (e.g. from `.env.local`) always wins** — hydration only fills keys that are unset.
 
 CLI entry points (`scripts/agent.ts`, `world-refresh`) bypass instrumentation and must call `hydrateSecrets()` themselves. The Supabase connection vars (`NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`) must stay in the real environment — they're needed to read `app_secrets` and so can't be sourced from it. Application/script code reads `process.env`; it must **not** parse `.env.local` itself. Let the runtime load it (e.g. `npx tsx --env-file=.env.local …`) so `process.env` is the single interface.
 
 **Inspect the secrets:** `npx tsx --env-file=.env.local scripts/list-secrets.ts` lists every key in `app_secrets` (values masked; add `--reveal` to print them in full).
 
-## E\*TRADE Environment (`ETRADE_ENV`)
+## Brokerage Connections (SnapTrade)
 
-- `mock` — hardcoded positions and news, no API calls
-- `sandbox` — E\*TRADE sandbox API (requires OAuth tokens)
-- `live` — E\*TRADE production API (requires OAuth tokens)
+Brokerage linking runs entirely through **SnapTrade** (the legacy E\*TRADE OAuth 1.0a flow and its token tables have been removed). The user connects a brokerage via the SnapTrade connection portal (`pages/api/snaptrade/*`); per-user `(snapTradeUserId, userSecret)` is stored in the `snaptrade_users` table with the `userSecret` AES-256-GCM-sealed (`lib/crypto/bytea.ts` `sealSecret` → `tokenCipher`, key `ETRADE_TOKEN_ENC_KEY` — kept as the generic secret-encryption key). When a user has no linked brokerage, the position path returns an empty portfolio (`NullBrokerProvider`) — there is no mock mode.
 
-When OAuth tokens are missing or expired, the position path falls back to mock data with a console warning. Access tokens expire daily at midnight ET.
+- **TopBar rail** (`components/layout/ConnectionControls.tsx`) shows the user's *actual* linked brokerage (logo + animated brand gradient via `lib/brokerages/brand.ts`); SnapTrade's own branding lives only in the Account panel's `BrokerageCard`.
 
 ## Architecture
 
@@ -78,27 +75,27 @@ Supabase Auth ──→ middleware.ts (Edge) ──→ redirects unauthenticated
               lib/auth/requireUser.ts ──→ pages/api/* handlers get user.id
                        │
                        ▼
-              src/registry.ts ──→ getServicesForUser(userId) ──→ per-user ETradeProvider + scoped caches
+              src/registry.ts ──→ getServicesForUser(userId) ──→ per-user SnapTradeProvider (or NullBrokerProvider) + scoped caches
 ```
 
 - **`middleware.ts`** — Edge middleware. Redirects unauthenticated users to `/login`. Public paths: `/login`, `/signup`, `/forgot-password`, `/reset`, `/check-email`, `/auth/callback`.
 - **`lib/auth/requireUser.ts`** — API-route helper. Returns `User` or sends 401.
 - **`lib/supabase/server.ts`** — server client (cookies via Pages-Router `req.headers`) + `createServiceClient()` for service-role access.
 - **`lib/supabase/browser.ts`** — browser client (localStorage, persisted in Electron userData).
-- **`app/(auth)/`** — login, signup, forgot-password, reset, check-email, etrade-verify. Signup uses Cloudflare Turnstile.
+- **`app/(auth)/`** — login, signup, forgot-password, reset, check-email. Signup uses Cloudflare Turnstile.
 - **`app/auth/callback/route.ts`** — exchanges `code` for a session; validates `next` to block open redirects.
 
 ### Clean-architecture layering (`src/`)
 
 - **`src/domain/interfaces/`** — ports: `IBrokerProvider`, `INewsProvider`, `IClassifier`, `ICache`, `IAccountInfoProvider`.
-- **`src/infrastructure/providers/`** — adapters: `ETradeProvider`, `FinnhubProvider`, `PolygonProvider`, `NewsAPIProvider`, `SupabaseAccountInfoProvider`.
+- **`src/infrastructure/providers/`** — adapters: `SnapTradeProvider`, `NullBrokerProvider` (empty portfolio when unlinked), `FinnhubProvider`, `PolygonProvider`, `NewsAPIProvider`, `SupabaseAccountInfoProvider`.
 - **`src/services/`** — `PortfolioService`, `NewsService`, `ClassifierService` compose providers behind the interfaces.
-- **`src/registry.ts`** — `getServicesForUser(userId)` builds per-user services with E\*TRADE tokens from Supabase and **key-prefixed** caches (`u:<userId>:`). `getServices()` is a legacy singleton for CLI/cron use only.
+- **`src/registry.ts`** — `getServicesForUser(userId)` builds per-user services with the SnapTrade broker (when linked) and **key-prefixed** caches (`u:<userId>:`). `getServices()` is a legacy singleton for CLI/cron use only (carries a `NullBrokerProvider`).
 
 ### Data Flow
 
 ```
-E*TRADE API ──→ ETradeProvider ──→ /api/positions ──→ Dashboard (SWR polling)
+SnapTrade API ──→ SnapTradeProvider ──→ /api/positions ──→ Dashboard (SWR polling)
                                         │
 Finnhub / Polygon / NewsAPI ──→ NewsService ──→ /api/news?ticker=X ──→ PositionCard → NewsCard
                                         │
@@ -127,15 +124,15 @@ A self-scoring directional-forecast loop. The agent emits dated predictions, the
 - **`lib/agent/forecast.ts`** — `runForecast()` synthesizes a ticker's news verdicts + macro + recent resolved outcomes into a directional prediction, using the `world-brain/agents/FORECASTER.md` prompt. Supports a **shadow v2** forecaster that records predictions without affecting production scoring (A/B promotion via `scripts/compare-forecaster-versions.ts`).
 - **`world-brain/predictions.ts`** — load/save/append predictions (stored as `predictions/<TICKER>-<H>d.json` in the user's vault) and `resolveEligiblePredictions()` (scores pending predictions whose horizon close has arrived).
 - **`world-brain/calibration.ts`** — `updateCalibration()` aggregates resolved outcomes into `calibration.json`; drives confidence/sector adjustments.
-- **`world-brain/resolve-all.ts`** — multi-tenant batch resolution; resolves every user's eligible predictions from their prediction files (works even without live E\*TRADE tokens).
+- **`world-brain/resolve-all.ts`** — multi-tenant batch resolution; resolves every user's eligible predictions from their prediction files (works even without a linked brokerage).
 - **`lib/agent/sweep.ts`** — `runStockAgent()` orchestrates a full sweep: resolve prior predictions → analyze news → forecast each ticker across all horizons.
 - **`instrumentation.node.ts`** — two crons: **daily prediction resolution** (22:00 UTC, after US close) and **monthly recalibration** (02:00 UTC on the 1st, then runs `scripts/recalibrate.ts --apply`).
 - Surfaced via `pages/api/predictions.ts` and `pages/api/calibration-status.ts`.
 
-### E\*TRADE token storage
+### SnapTrade secret storage
 
-- Tokens encrypted with AES-256-GCM (`lib/crypto/tokenCipher.ts`) and stored per-user in the `etrade_tokens` table. `key_version` supports future key rotation.
-- **`lib/etrade/tokens.ts`** — `loadUserTokens(userId)` / `saveUserTokens(userId, tok)` via the service-role client.
+- Per-user `(snapTradeUserId, userSecret)` stored in the `snaptrade_users` table; `userSecret` is AES-256-GCM-sealed via `lib/crypto/bytea.ts` `sealSecret`/`unsealSecret` (backed by `lib/crypto/tokenCipher.ts`, key `ETRADE_TOKEN_ENC_KEY` / `…_KEYS`, `key_version` for rotation).
+- **`lib/snaptrade/users.ts`** — `loadSnapTradeUser(userId)` / register-and-store via the service-role client. **`lib/snaptrade/client.ts`** — shared SDK client + `isSnapTradeConfigured()`.
 
 ### Vault storage
 
@@ -158,14 +155,14 @@ A self-scoring directional-forecast loop. The agent emits dated predictions, the
 - **Dual routing**: App Router (`app/`) for UI/auth, Pages Router (`pages/api/`) for API.
 - **Tailwind CSS 4** with `@theme` tokens in `app/globals.css`.
 - **Per-user cache scoping** via key prefixes, not separate cache instances (avoids memory-leak risk).
-- **App-layer encryption** for E\*TRADE tokens (AES-256-GCM, `ETRADE_TOKEN_ENC_KEY`), not Supabase Vault — simpler, portable, `key_version` enables rotation.
+- **App-layer encryption** for SnapTrade user secrets (AES-256-GCM, `ETRADE_TOKEN_ENC_KEY`), not Supabase Vault — simpler, portable, `key_version` enables rotation. (The env key keeps its historical `ETRADE_` name but is now the generic secret-encryption key.)
 - **Forecaster A/B via shadow predictions** — a candidate version writes predictions that are scored but never shown, so promotion is data-driven.
 
 ## External Dependencies
 
 - **Supabase** — Auth (email + password + confirmation), Postgres (RLS-protected), `app_secrets` config table.
 - **DeepSeek API** — `https://api.deepseek.com/v1`, model `deepseek-chat` (override `DEEPSEEK_MODEL`). Requires `DEEPSEEK_API_KEY`. OpenAI is a supported alternate base URL in `brain.ts`.
-- **E\*TRADE OAuth 1.0a** — tokens expire daily at midnight ET. Re-authorize via `/api/etrade/auth` in the browser, or `npm run etrade:auth` from the CLI.
+- **SnapTrade** — brokerage aggregation (E\*TRADE, Schwab, etc.). Users link a brokerage through the SnapTrade connection portal (`pages/api/snaptrade/connect` → `redirectURI`); positions/balances flow through `SnapTradeProvider`. Requires SnapTrade client credentials in `app_secrets`.
 - **News/market**: Finnhub, Polygon, NewsAPI. Extra signal sources: Congress trades and insider activity (`lib/insiders.ts` → `/api/congress`). Congress data comes from our own **official-source ingester** (`lib/congress/`: House Clerk PTRs + Senate eFD → parse → `@unitedstates/congress-legislators` roster join → Supabase `congress_trades`), refreshed by a daily cron and the `npm run congress:ingest` CLI. Excess return is computed locally vs SPY. See `docs/congress-official-scraper-plan.md`. OCR for scanned/paper PTRs is deferred.
 - **Cloudflare Turnstile** — bot protection on `/signup`.
 
@@ -173,8 +170,7 @@ A self-scoring directional-forecast loop. The agent emits dated predictions, the
 
 Key tables (RLS-protected, `auth.uid() = user_id` unless system-scoped):
 
-- `etrade_tokens` — per-user encrypted OAuth tokens (`key_version` for rotation).
-- `etrade_request_tokens` — short-lived OAuth request secrets (10-min TTL).
+- `snaptrade_users` — per-user SnapTrade `(snapTradeUserId, userSecret)`; `userSecret` AES-256-GCM-sealed.
 - `user_preferences` — `ai_model_id`, default timescale, vault enabled, cron opt-in.
 - `vault_notes` — markdown body + JSONB frontmatter, unique on `(user_id, path)`.
 - `user_activity` — last-seen / last-refresh timestamps.

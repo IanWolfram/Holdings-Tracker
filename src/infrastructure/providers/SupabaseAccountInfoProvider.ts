@@ -66,18 +66,4 @@ export class SupabaseAccountInfoProvider implements IAccountInfoProvider {
 
     return this.getPreferences(userId);
   }
-
-  async getEtradeTokenExpiry(
-    userId: string,
-  ): Promise<{ expiresAt: string | null }> {
-    const supabase = createServiceClient();
-
-    const { data } = await supabase
-      .from("etrade_tokens")
-      .select("expires_at")
-      .eq("user_id", userId)
-      .single();
-
-    return { expiresAt: data?.expires_at ?? null };
-  }
 }

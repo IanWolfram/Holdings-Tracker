@@ -3,11 +3,20 @@ import type { ClassifiedStory } from "@/types/news.types";
 import { getServicesForUser } from "@/src/registry";
 import { requireUser } from "@/lib/auth/requireUser";
 import { apiHandler } from "@/lib/api-handler";
+import { rateLimit, NEWS_LIMIT } from "@/lib/rate-limit";
 import { coerceAnalyzedAge, filterByAnalyzedAge } from "@/lib/analyzedAge";
 
 export default apiHandler(["GET"], async (req, res: NextApiResponse<ClassifiedStory[] | { error: string }>) => {
   const user = await requireUser(req, res);
   if (!user) return;
+
+  // Per-user limit: news fans out one request per held ticker each refresh, so
+  // key on the user (not IP) and keep it generous (see NEWS_LIMIT).
+  const rl = rateLimit(`news:${user.id}`, NEWS_LIMIT);
+  if (!rl.allowed) {
+    res.setHeader("Retry-After", Math.ceil(rl.retryAfterMs / 1000));
+    return res.status(429).json({ error: "Too many news requests. Please slow down." });
+  }
 
   const ticker = typeof req.query.ticker === "string" ? req.query.ticker.toUpperCase() : "";
   if (!ticker) {

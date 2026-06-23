@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { POLL_INTERVAL_MS } from "@/lib/constants";
+import { useAccount } from "@/components/providers/UserAccountProvider";
 import { usePositionsData } from "./usePositionsData";
 import { useNews } from "./useNews";
 import { useCongress } from "./useCongress";
@@ -19,6 +20,9 @@ export function useDashboardData() {
     heldTickersRef,
     fetchPositions,
   } = usePositionsData();
+
+  const { preferences } = useAccount();
+  const analyzedAge = preferences?.analyzedMaxAgeDays;
 
   const { news, setNews, loadingNews, fetchNews } = useNews();
   const { congressTrades, fetchCongress } = useCongress();
@@ -42,6 +46,11 @@ export function useDashboardData() {
   // ── Polling intervals ──────────────────────────────────────────────────
   const mainIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const congressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Latest watchlist tickers, read at fire-time by the analyzed-age effect
+  // (proposedTickers' array reference is unstable; a ref keeps the effect deps clean).
+  const proposedTickersRef = useRef<string[]>(proposedTickers);
+  proposedTickersRef.current = proposedTickers;
 
   const refresh = useCallback(async () => {
     const tickers = await fetchPositions();
@@ -92,6 +101,20 @@ export function useDashboardData() {
     fetchCongress(proposedTickers);
     fetchPredictions();
   }, [proposedTickers, fetchNews, fetchCongress, fetchPredictions]);
+
+  // When the "analyzed news age" preference changes, silently re-fetch news for
+  // all visible tickers so PositionCards update immediately instead of waiting
+  // for the next poll or a page reload. The server trims to the new age on a
+  // cache hit, so this is cheap; `silent` avoids flashing the cards' loading glow.
+  const prevAnalyzedAgeRef = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (analyzedAge === undefined) return;
+    const prev = prevAnalyzedAgeRef.current;
+    prevAnalyzedAgeRef.current = analyzedAge;
+    if (prev === undefined || prev === analyzedAge) return; // first load / no-op
+    const tickers = [...heldTickersRef.current, ...proposedTickersRef.current];
+    if (tickers.length > 0) fetchNews(tickers, { silent: true });
+  }, [analyzedAge, fetchNews, heldTickersRef]);
 
   // ── Public API (unchanged) ─────────────────────────────────────────────
 

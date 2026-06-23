@@ -130,7 +130,11 @@ const TX_RE =
 // Ticker + asset-type code, e.g. "(BRK.B) [OP]", "(GSK) [ST]". Codes are 2+ caps.
 const TICKER_RE = /\(([A-Za-z0-9.\-]{1,8})\)\s*\[([A-Z]{2,})\]/g;
 // Trailer / metadata lines that are not part of an asset name.
-const TRAILER_RE = /^(F\s+S\s*:|S\s+O\s*:|D\s*:|L\s*:|ID\b|Type$|Date\b|Amount\b|Gains|\$200|Owner Asset|Notification|Filing ID|--\s*\d+\s*of\s*\d+\s*--|Clerk of the House|\* For the complete|Name:|Status:|State\/District:|I CERTIFY|Digitally Signed|Yes No)/i;
+// Metadata / boilerplate lines that are never part of an asset name. "D:"
+// (description) and "C:" (comment) are per-transaction prose markers; filtering
+// the marker line keeps its first line out of the next row's company name (the
+// owner-code anchor in companyFromBuffer handles wrapped continuations).
+const TRAILER_RE = /^(F\s+S\s*:|S\s+O\s*:|D\s*:|C\s*:|L\s*:|ID\b|Type$|Date\b|Amount\b|Gains|\$200|Owner Asset|Notification|Filing ID|--\s*\d+\s*of\s*\d+\s*--|Clerk of the House|\* For the complete|Name:|Status:|State\/District:|I CERTIFY|Digitally Signed|Yes No)/i;
 // Letterspaced section headings collapse to single caps after NUL strip, e.g.
 // "P T R" (Periodic Transaction Report), "F I" (Filing Information), "T".
 const HEADING_RE = /^[A-Z]( +[A-Z])*$/;
@@ -158,11 +162,28 @@ function normalizeAmount(raw: string, nextLine: string | undefined): { amount: s
   return { amount: amt, consumedNext: false };
 }
 
+// Owner codes that prefix every asset row: JT (joint), SP (spouse), DC (dependent
+// child). Case-sensitive — "DC" is also a prose token ("Washington, DC").
+const OWNER_CODE_G = /\b(JT|SP|DC)\b/g;
+// A prior asset's "(TICKER) [TYPE]" that wrapped/page-broke into this buffer.
+const TICKER_BRACKET_G = /\([A-Za-z0-9.\-]{1,8}\)\s*\[[A-Z]{2,}\]/g;
+
 function companyFromBuffer(tickerMatchIndex: number, joined: string): string | null {
-  // Text up to the ticker is the asset name; strip the owner-code prefix.
-  const name = joined
-    .slice(0, tickerMatchIndex)
-    .replace(/^(JT|SP|DC)\b\s*/i, "")
+  const pre = joined.slice(0, tickerMatchIndex);
+  // The issuer name begins after anything belonging to a PRIOR asset or to
+  // leaked D:/C: comment prose. Both are reliably marked by the last owner code
+  // (this row's "JT/SP/DC") or the last prior "(TICKER) [TYPE]" bracket — take
+  // whichever ends later, then keep the text after it. Falls back to the raw
+  // pre-ticker text (leading owner code stripped) when neither is present.
+  let cut = 0;
+  for (const re of [OWNER_CODE_G, TICKER_BRACKET_G]) {
+    re.lastIndex = 0;
+    for (let m = re.exec(pre); m; m = re.exec(pre)) cut = Math.max(cut, m.index + m[0].length);
+  }
+  const name = pre
+    .slice(cut)
+    .replace(/^(JT|SP|DC)\b\s*/, "") // leading owner code when nothing was cut
+    .replace(/^\$[\d,]+(?:\s*-\s*\$?[\d,]+)?\s*/, "") // stray leading amount range
     .replace(/\s+/g, " ")
     .trim();
   return name.length ? name : null;

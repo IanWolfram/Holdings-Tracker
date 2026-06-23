@@ -2,6 +2,7 @@
 
 import DesktopDashboard from "@/components/layout/DesktopDashboard";
 import MobileDashboard from "@/components/mobile/MobileDashboard";
+import FirstRunOnboarding from "@/components/onboarding/FirstRunOnboarding";
 import { useDashboardData } from "@/hooks/useDashboardData";
 
 export default function Dashboard() {
@@ -28,6 +29,7 @@ export default function Dashboard() {
 
   return (
     <>
+      <FirstRunOnboarding />
       <div className="hidden md:block">
         <DesktopDashboard
           positions={positions}

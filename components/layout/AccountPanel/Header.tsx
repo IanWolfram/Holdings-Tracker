@@ -1,13 +1,11 @@
 export function Header({
   initials,
   account,
-  settingsEnv,
   onClose,
   onSignOut,
 }: {
   initials: string;
-  account: { email: string | null; displayName: string | null };
-  settingsEnv?: string;
+  account: { email: string | null; displayName: string | null } | null;
   onClose: () => void;
   onSignOut: () => void;
 }) {
@@ -164,7 +162,7 @@ export function Header({
               whiteSpace: "nowrap",
             }}
           >
-            {account.email}
+            {account?.email ?? ""}
           </div>
           <div
             style={{
@@ -188,7 +186,7 @@ export function Header({
                 display: "inline-block",
               }}
             />
-            <span>{settingsEnv === "mock" ? "Mock" : "Cloud"}</span>
+            <span>Cloud</span>
             <span
               style={{
                 width: 2,

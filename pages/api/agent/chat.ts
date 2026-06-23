@@ -4,6 +4,7 @@ import { getVaultStore, type VaultStore } from "@/lib/vault/store";
 import { requireUser } from "@/lib/auth/requireUser";
 import { getServicesForUser } from "@/src/registry";
 import { apiHandler } from "@/lib/api-handler";
+import { type Verdict, VERDICT_LABEL } from "@/types/news.types";
 
 // ---------------------------------------------------------------------------
 // Vault context helpers (async, VaultStore-based)
@@ -71,17 +72,18 @@ async function readRecentVaultNews(store: VaultStore, limit = 12): Promise<strin
         const headlineMatch = content.match(/^# (.+)$/m);
         const headline = headlineMatch?.[1] ?? file;
         const verdict = fm.verdict ?? "HOLD";
+        const sentiment = VERDICT_LABEL[verdict as Verdict] ?? verdict;
         const conf = fm.confidence ? `${Math.round(parseFloat(fm.confidence) * 100)}%` : "?%";
         const ticker = fm.ticker ?? "?";
         const date = fm.date ?? "?";
-        lines.push(`- [${date}] ${ticker} → **${verdict}** (${conf}): ${headline.slice(0, 90)}`);
+        lines.push(`- [${date}] ${ticker} → **${sentiment}** (${conf}): ${headline.slice(0, 90)}`);
       } catch {
         continue;
       }
     }
 
     if (lines.length === 0) return "";
-    return `## Recent Vault News Verdicts (last ${lines.length})\n${lines.join("\n")}`;
+    return `## Recent Vault News Sentiment (last ${lines.length})\n${lines.join("\n")}`;
   } catch {
     return "";
   }

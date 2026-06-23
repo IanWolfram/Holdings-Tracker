@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { authedFetch } from "@/lib/api/client-fetch";
+import { fetchCongressTrades } from "@/lib/api/congress-client";
 import type { CongressTrade, ClassifiedStory } from "@/types/news.types";
 import type { HotTicker } from "@/types/market-data.types";
 
@@ -39,14 +40,9 @@ export function useHotTickers() {
   }, []);
 
   const fetchCongress = useCallback(async () => {
-    try {
-      const res = await authedFetch("/api/congress");
-      if (!res.ok) return;
-      const { trades }: { trades: CongressTrade[] } = await res.json();
-      setCongressTrades(trades);
-    } catch {
-      // ignore
-    }
+    // Coalesced + short-TTL cached, so overlapping polls across hooks share one
+    // request instead of stacking (see lib/api/congress-client).
+    setCongressTrades(await fetchCongressTrades());
   }, []);
 
   useEffect(() => {

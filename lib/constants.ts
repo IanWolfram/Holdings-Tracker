@@ -67,15 +67,3 @@ export const GLASS_SPRING_CONFIG = {
   stiffness: 100,
   damping: 20,
 };
-
-// ── E*Trade API Environments ────────────────────────────────────────────────
-
-export const ETRADE_BASE_URL =
-  process.env.ETRADE_ENV === "sandbox"
-    ? "https://apisb.etrade.com"
-    : "https://api.etrade.com";
-
-export const ETRADE_AUTH_BASE_URL =
-  process.env.ETRADE_ENV === "sandbox"
-    ? "https://apisb.etrade.com"
-    : "https://api.etrade.com";

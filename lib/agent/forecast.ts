@@ -88,12 +88,33 @@ export async function runForecast(
       : null;
   const fmtPct = (v: number | null | undefined) =>
     typeof v === "number" ? `${v >= 0 ? "+" : ""}${v.toFixed(1)}%` : "n/a";
+  const wantsVolatility = options?.version === "v2" || options?.version === "v3";
   const volatilityBlock =
-    options?.version === "v2" && atrPct !== null
+    wantsVolatility && atrPct !== null
       ? `\n\nRealized volatility for ${ticker} — size your magnitude band and FLAT threshold to THIS stock, not the generic table:\n` +
         `- ATR(14): ${atrPct.toFixed(2)}% of price per day (a normal daily range).\n` +
         `- Recent moves: 1d ${fmtPct(mq?.change1d)}, 5d ${fmtPct(mq?.change5d)}, 30d ${fmtPct(mq?.change30d)}.\n` +
         `- Expected horizon noise ≈ ATR%·√${horizonDays} ≈ ${(atrPct * Math.sqrt(horizonDays)).toFixed(1)}%. A move within that band is NOISE: forecast FLAT unless you expect a move clearly beyond it. Set magnitudePct relative to this, not a fixed table.`
+      : "";
+
+  // v3 directional policy — the fix for the diagnosed failure mode: production
+  // (v1) predicts FLAT ~73% of the time and DOWN ~never, because its UP/DOWN gate
+  // requires a 2+ same-direction NEWS cluster and the news feed is ~6:1 bullish
+  // (18 of 20 realized-down moves arrived with zero bearish headlines). This block
+  // frees v3 to commit to a direction (incl. DOWN) from price/macro alone and to
+  // stop defaulting to FLAT. NOTE: a momentum backtest (n=10) found realized-DOWN
+  // moves were mostly reversals (post-uptrend), not downtrends — so v3 deliberately
+  // does NOT hardcode trend-following; it lets the model weigh continuation vs
+  // reversal. This is a hypothesis: validate via the shadow A/B (compare-
+  // forecaster-versions.ts) before promoting to production. See scripts/diagnose-forecaster.ts.
+  const directionalPolicyBlock =
+    options?.version === "v3"
+      ? `\n\nDIRECTIONAL POLICY (overrides any "FLAT by default / require a news cluster" guidance above):\n` +
+        `- Most real moves arrive with NO confirming news. Sparse, mixed, or absent news is the common case — not a reason to forecast FLAT.\n` +
+        `- You may commit to a direction from price action, technicals, or macro ALONE — a directional call does NOT require a supporting news cluster.\n` +
+        `- Forecast DOWN as readily as UP. Downside is ~half of all moves; do NOT require bearish headlines to call DOWN. Weigh both regimes from the recent price path above: a steady advance can persist (UP), while a sharp, stretched run-up is also a pullback/reversal risk (DOWN). Decide which the move size and recent path imply.\n` +
+        `- Reserve FLAT for when no input — news, price, or macro — points anywhere AND the expected move is inside the noise band. FLAT should be a minority of your calls, not a fallback.\n` +
+        `- Ground confidence in evidence strength: one weak signal is ~0.55–0.65, not 0.80. Reserve 0.80+ for multiple aligned signals.`
       : "";
 
   const userMessage =
@@ -103,6 +124,7 @@ export async function runForecast(
     summarizeMacroForPrompt(macroSnapshot) +
     earningsHint +
     volatilityBlock +
+    directionalPolicyBlock +
     `\nSession verdicts:\n${verdictsBlock}` +
     (tickerContext ? `\n\nTicker Knowledge:\n${tickerContext.slice(0, 400)}` : "") +
     calibrationBlock +

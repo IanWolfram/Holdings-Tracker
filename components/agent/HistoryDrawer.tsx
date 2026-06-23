@@ -20,7 +20,7 @@ function bucketFor(ts: number): "Today" | "This week" | "Earlier" {
   return "Earlier";
 }
 
-function DrawerThread({ conv, active, onClick, onDelete }: { conv: Conversation; active: boolean; onClick: () => void; onDelete: () => void }) {
+function DrawerThread({ conv, active, pinned, onClick, onDelete }: { conv: Conversation; active: boolean; pinned?: boolean; onClick: () => void; onDelete: () => void }) {
   const [hover, setHover] = useState(false);
   return (
     <div
@@ -42,10 +42,13 @@ function DrawerThread({ conv, active, onClick, onDelete }: { conv: Conversation;
     >
       {(hover || active) && <span style={{ position: "absolute", top: 8, bottom: 8, left: 0, width: 2, background: ACCENT, borderRadius: 2 }} />}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-        <span style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 500, color: active ? "white" : "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{conv.title}</span>
+        <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+          {pinned && <Icon name="push_pin" style={{ fontSize: 13, color: ACCENT, flexShrink: 0, transform: "rotate(45deg)" }} />}
+          <span style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: pinned ? 600 : 500, color: active ? "white" : "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{conv.title}</span>
+        </span>
         <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
           <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-dimmer)", letterSpacing: "0.1em" }}>{relativeTime(conv.updatedAt)}</span>
-          {hover && (
+          {hover && !pinned && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -93,8 +96,12 @@ export default function HistoryDrawer({
 }) {
   const [query, setQuery] = useState("");
 
+  // The Agent Signals conversation is pinned to the top, outside the date
+  // buckets, and stays visible regardless of the search query.
+  const pinnedConv = conversations.find((c) => c.kind === "signals");
+
   const filtered = conversations
-    .filter((c) => c.title.toLowerCase().includes(query.toLowerCase()))
+    .filter((c) => c.kind !== "signals" && c.title.toLowerCase().includes(query.toLowerCase()))
     .sort((a, b) => b.updatedAt - a.updatedAt);
 
   const groups: Record<string, Conversation[]> = { Today: [], "This week": [], Earlier: [] };
@@ -159,7 +166,12 @@ export default function HistoryDrawer({
         </div>
 
         <div style={{ overflow: "auto", flex: 1, padding: "8px 8px 24px" }}>
-          {filtered.length === 0 && (
+          {pinnedConv && (
+            <DrawerGroup label="Pinned">
+              <DrawerThread conv={pinnedConv} active={pinnedConv.id === activeId} pinned onClick={() => onPick(pinnedConv.id)} onDelete={() => {}} />
+            </DrawerGroup>
+          )}
+          {filtered.length === 0 && !pinnedConv && (
             <div style={{ padding: "24px 12px", fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ink-dimmer)", textAlign: "center" }}>
               {conversations.length === 0 ? "No conversations yet." : "No matches."}
             </div>

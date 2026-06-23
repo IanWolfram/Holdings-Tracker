@@ -2,6 +2,21 @@ import type { CatalystType } from "./predictions";
 
 export type Verdict = "BUY" | "SELL" | "HOLD";
 
+/**
+ * User-facing labels for the internal verdict enum. We classify the SENTIMENT of
+ * news about a ticker — we do NOT issue trade instructions. The internal type
+ * stays BUY/SELL/HOLD (data model + classifier contract), but every string a
+ * user sees must route through this map so the surface reads as impersonal
+ * sentiment ("Positive") rather than an imperative recommendation ("BUY").
+ * Note: this is presentation framing pending securities-counsel review — it is
+ * not, by itself, a determination that the product is outside adviser regulation.
+ */
+export const VERDICT_LABEL: Record<Verdict, string> = {
+  BUY: "Positive",
+  HOLD: "Neutral",
+  SELL: "Negative",
+};
+
 export function computeConfidenceBucket(confidence: number, analysisFailed?: boolean): "high" | "medium" | "low" | "failed" {
   if (analysisFailed) return "failed";
   if (confidence >= 0.75) return "high";
@@ -52,6 +67,5 @@ export interface CongressTrade {
   tradeDate: number;   // unix timestamp (seconds)
   filedDate: number;   // unix timestamp (seconds)
   url: string;
-  excessReturn?: string; // performance vs market since the trade, e.g. "+0.89%", "-10.46%", "N/A"
   isCompliant?: boolean; // filed within the STOCK Act 45-day disclosure window
 }

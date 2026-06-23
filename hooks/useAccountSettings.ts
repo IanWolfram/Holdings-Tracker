@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import { authedFetch } from "@/lib/api/client-fetch";
 
 export interface AccountSettings {
-  etrade: { env: string };
   ai: { activeModel: string; activeProvider: string; hasKey: boolean };
   dataSources: { finnhub: boolean; polygon: boolean; newsapi: boolean; fred: boolean };
   telegram: { configured: boolean };

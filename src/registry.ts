@@ -1,7 +1,7 @@
 import { buildConfig } from "@/src/config";
 import { MapCache } from "@/src/infrastructure/cache/MapCache";
 import { DiskCache } from "@/src/infrastructure/cache/DiskCache";
-import { ETradeProvider } from "@/src/infrastructure/providers/ETradeProvider";
+import { NullBrokerProvider } from "@/src/infrastructure/providers/NullBrokerProvider";
 import { FinnhubProvider } from "@/src/infrastructure/providers/FinnhubProvider";
 import { PolygonProvider } from "@/src/infrastructure/providers/PolygonProvider";
 import { NewsAPIProvider } from "@/src/infrastructure/providers/NewsAPIProvider";
@@ -12,6 +12,7 @@ import { NewsService } from "@/src/services/NewsService";
 import { MAX_ANALYZED_AGE_DAYS } from "@/lib/analyzedAge";
 import type { INewsProvider } from "@/src/domain/interfaces/INewsProvider";
 import type { IAccountInfoProvider } from "@/src/domain/interfaces/IAccountInfoProvider";
+import type { IBrokerProvider } from "@/src/domain/interfaces/IBrokerProvider";
 
 export type Services = {
   portfolioService: PortfolioService;
@@ -31,11 +32,10 @@ function wire(): Services {
   // every dev-server reload sends users back through the cold-fetch path.
   const newsCache = new DiskCache("news");
 
-  const etradeProvider = new ETradeProvider(cfg.etrade);
-
-  const portfolioService = new PortfolioService(etradeProvider, portfolioCache, {
-    etradeEnv: cfg.etrade.env,
-    hasOAuthTokens: !!cfg.etrade.oauthToken && !!cfg.etrade.oauthTokenSecret,
+  // The global singleton has no per-user SnapTrade context, so it carries an
+  // empty portfolio. Per-user broker data is wired in buildServicesForUser().
+  const portfolioService = new PortfolioService(new NullBrokerProvider(), portfolioCache, {
+    hasOAuthTokens: false,
     newsTtlMs: cfg.cache.newsTtlMs,
     accountTtlMs: cfg.cache.accountTtlMs,
   });
@@ -61,8 +61,8 @@ export function getServices(): Services {
 }
 
 // ── Per-user services ──
-// In multi-tenant mode each user gets their own ETradeProvider (with their own tokens)
-// but shares global news providers and classifier. Caches are scoped by key prefix.
+// In multi-tenant mode each user gets their own broker provider (SnapTrade when
+// linked) but shares global news providers and classifier. Caches are scoped by key prefix.
 
 /**
  * LRU-capped per-user services map. The Map keeps insertion order and we
@@ -76,7 +76,7 @@ const _userServices = new Map<string, Services>();
 // and N redundant Supabase reads per dashboard refresh).
 const _userServicesPending = new Map<string, Promise<Services>>();
 
-/** Call this after saving new E*TRADE tokens so the next request rebuilds with fresh credentials. */
+/** Call this after a user's brokerage link changes so the next request rebuilds with fresh credentials. */
 export function invalidateUserServices(userId: string): void {
   _userServices.delete(userId);
   _userServicesPending.delete(userId);
@@ -94,7 +94,7 @@ function touchUserServices(userId: string, services: Services): void {
 
 /**
  * Build (or return cached) services for a specific user.
- * - E*TRADE tokens are loaded from Supabase (encrypted) and injected into a per-user provider.
+ * - Brokerage data is sourced from SnapTrade when the user has a linked broker.
  * - Caches are scoped with `u:<userId>:` prefix to avoid cross-user data leaks.
  * - News providers and classifier are shared globally (they have no per-user state).
  */
@@ -121,43 +121,49 @@ export async function getServicesForUser(userId: string): Promise<Services> {
 async function buildServicesForUser(userId: string): Promise<Services> {
   const cfg = buildConfig();
 
-  // Try to load per-user E*TRADE tokens from Supabase.
-  // In single-user mode this import is dead code, but we keep it dynamic
-  // so the module loads without SUPABASE_URL in that mode.
-  let oauthToken = cfg.etrade.oauthToken;
-  let oauthTokenSecret = cfg.etrade.oauthTokenSecret;
-
-  // Dynamic import avoids requiring Supabase env vars in single-user mode
-  const { loadUserTokens } = await import("@/lib/etrade/tokens");
-  const tokens = await loadUserTokens(userId);
-  if (tokens) {
-    oauthToken = tokens.oauthToken;
-    oauthTokenSecret = tokens.oauthTokenSecret;
-    console.log("[registry] using per-user E*TRADE tokens", {
-      userId,
-      env: tokens.env,
-      hasTokens: true,
-      expiresAt: tokens.expiresAt,
-    });
-  } else {
-    console.warn("[registry] no per-user E*TRADE tokens — falling back to env vars", {
-      userId,
-      env_token_present: !!cfg.etrade.oauthToken,
-    });
-  }
-
   const portfolioCache = new MapCache(); // per-user cache
   const newsCache = new DiskCache(`news-${userId}`);
 
-  const etradeProvider = new ETradeProvider({
-    ...cfg.etrade,
-    oauthToken,
-    oauthTokenSecret,
-  });
+  // Brokerage data comes from SnapTrade when the user has a *linked* brokerage;
+  // otherwise the portfolio is empty (NullBrokerProvider). SnapTrade modules are
+  // imported dynamically so they load only when configured.
+  let brokerProvider: IBrokerProvider = new NullBrokerProvider();
+  let hasBrokerTokens = false;
 
-  const portfolioService = new PortfolioService(etradeProvider, portfolioCache, {
-    etradeEnv: tokens?.env ?? cfg.etrade.env,
-    hasOAuthTokens: !!oauthToken && !!oauthTokenSecret,
+  try {
+    const { isSnapTradeConfigured, getSnapTradeClient } = await import("@/lib/snaptrade/client");
+    if (isSnapTradeConfigured()) {
+      const { loadSnapTradeUser } = await import("@/lib/snaptrade/users");
+      const st = await loadSnapTradeUser(userId);
+      if (st) {
+        // Timeout-guarded: this runs on every cache-miss build for a SnapTrade
+        // user — even for unrelated (e.g. news) requests — so a slow SnapTrade
+        // must not stall service construction. NOTE: revisit before ~256 active
+        // users (shares SnapTrade's 250 req/min limit with real broker traffic).
+        const accts = await getSnapTradeClient().accountInformation.listUserAccounts(
+          { userId: st.snapTradeUserId, userSecret: st.userSecret },
+          { timeout: 4000 },
+        );
+        if ((accts.data ?? []).length > 0) {
+          const { SnapTradeProvider } = await import("@/src/infrastructure/providers/SnapTradeProvider");
+          brokerProvider = new SnapTradeProvider({
+            snapTradeUserId: st.snapTradeUserId,
+            userSecret: st.userSecret,
+          });
+          hasBrokerTokens = true;
+          console.info("[registry] using SnapTrade broker provider", {
+            userId,
+            accounts: accts.data?.length ?? 0,
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("[registry] SnapTrade provider selection failed — empty portfolio:", err);
+  }
+
+  const portfolioService = new PortfolioService(brokerProvider, portfolioCache, {
+    hasOAuthTokens: hasBrokerTokens,
     newsTtlMs: cfg.cache.newsTtlMs,
     accountTtlMs: cfg.cache.accountTtlMs,
   });

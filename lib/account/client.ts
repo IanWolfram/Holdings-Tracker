@@ -4,7 +4,6 @@ import { authedFetch } from "@/lib/api/client-fetch";
 export interface MeResponse {
   account: AccountInfo;
   preferences: UserPreferences;
-  etrade: { env: string; expiresAt: string | null };
 }
 
 export interface IAccountClient {

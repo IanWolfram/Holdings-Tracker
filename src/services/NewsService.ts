@@ -96,37 +96,16 @@ export class NewsService {
     const totalRealStories = finnhubItems.length + newsapiItems.length;
 
     if (totalRealStories === 0) {
-      // Don't cache an empty result — that poisons the cache for 5 min and
-      // leaves position cards blank. Instead, await Polygon synchronously on
-      // this request so the card gets stories on first load.
-      const polygonItems = this.providers.polygon
-        ? await this.providers.polygon.fetchNews(ticker, companyName).catch((err) => {
-            console.error(`[news] Polygon sync fetch error for ${ticker}:`, err);
-            return [] as Awaited<ReturnType<INewsProvider["fetchNews"]>>;
-          })
-        : [];
-
-      if (polygonItems.length === 0) {
-        // Genuinely no news anywhere — cache empty with a short TTL so we retry sooner.
-        this.cache.set(ticker, [], NEWS_CACHE_TTL_MS / 6);
-        return [];
-      }
-
-      const cutoff = Math.floor(Date.now() / 1000) - NEWS_WINDOW_S;
-      const polygonRaw = polygonItems
-        .map((a) => ({ ticker, ...a, source: "polygon" as const }))
-        .filter((s) => s.datetime >= cutoff);
-
-      const polygonClassified: ClassifiedStory[] = [];
-      for (const s of polygonRaw) {
-        const cls = await this.classifier.classify(s.ticker, s.headline, s.summary ?? "", s.url);
-        polygonClassified.push({ ...s, ...cls });
-      }
-
+      // Finnhub + NewsAPI came back empty. Polygon often has stories the others
+      // miss, but its free-tier queue can stall well past the API deadline, so
+      // we must keep it OFF the synchronous path (see note above). Return vault
+      // stories immediately and let Polygon enrich the cache in the background;
+      // the short TTL makes the next poll pick up whatever enrichment lands.
       const vaultStories = await getVaultStoriesForTicker(ticker, this.vaultWindowDays, this.userId);
-      const merged = dedupeStories([...polygonClassified, ...vaultStories], companyName);
-      const recent = withinWindow(merged, this._windowS).sort((a, b) => b.datetime - a.datetime);
-      this.cache.set(ticker, recent, NEWS_CACHE_TTL_MS);
+      const recent = withinWindow(dedupeStories(vaultStories, companyName), this._windowS)
+        .sort((a, b) => b.datetime - a.datetime);
+      this.cache.set(ticker, recent, NEWS_CACHE_TTL_MS / 6);
+      this.kickOffPolygonEnrichment(ticker, companyName);
       return recent;
     }
 
@@ -169,8 +148,11 @@ export class NewsService {
     });
     if (polygonItems.length === 0) return;
 
-    const cached = this.cache.get<ClassifiedStory[]>(ticker);
-    if (!cached) return;
+    // Tolerate an expired/missing entry: the synchronous path may have used a
+    // short TTL that lapsed while Polygon waited behind its rate-limit queue.
+    // Merging onto [] still surfaces the Polygon stories rather than dropping
+    // them; any Finnhub/NewsAPI/vault stories are re-added on the next fetch.
+    const cached = this.cache.get<ClassifiedStory[]>(ticker) ?? [];
 
     const cachedUrls = new Set(cached.map((s) => s.url));
     const cutoff = Math.floor(Date.now() / 1000) - NEWS_WINDOW_S;

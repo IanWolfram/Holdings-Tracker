@@ -6,8 +6,14 @@ export function useNews() {
   const [news, setNews] = useState<Record<string, ClassifiedStory[]>>({});
   const [loadingNews, setLoadingNews] = useState<Record<string, boolean>>({});
 
-  const fetchNews = useCallback(async (tickers: string[]) => {
-    setLoadingNews(Object.fromEntries(tickers.map((ticker) => [ticker, true])));
+  // `silent` re-fetches in the background without toggling loadingNews — used
+  // when the analyzed-age filter changes, so existing cards (and their glow)
+  // stay put instead of flashing a loading state on a cheap server cache hit.
+  const fetchNews = useCallback(async (tickers: string[], opts?: { silent?: boolean }) => {
+    const silent = opts?.silent ?? false;
+    if (!silent) {
+      setLoadingNews(Object.fromEntries(tickers.map((ticker) => [ticker, true])));
+    }
     await Promise.all(
       tickers.map(async (ticker) => {
         const controller = new AbortController();
@@ -21,7 +27,7 @@ export function useNews() {
           // includes AbortError
         } finally {
           clearTimeout(timer);
-          setLoadingNews((prev) => ({ ...prev, [ticker]: false }));
+          if (!silent) setLoadingNews((prev) => ({ ...prev, [ticker]: false }));
         }
       })
     );

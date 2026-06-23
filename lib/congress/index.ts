@@ -11,14 +11,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CongressTrade } from "@/types/news.types";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getDailyBars, type DailyBar } from "@/lib/marketdata/prices";
-import { findBarOnOrAfter } from "@/lib/marketdata/volatility";
 import type { CongressTradeRow, Party } from "./types";
 
 const COMPLIANCE_WINDOW_DAYS = 45;
 const DEFAULT_LIMIT = 250;
-const BENCHMARK = "SPY"; // excess return = trade return − SPY return over the same window
-const BARS_WINDOW_DAYS = 800; // ~2y, so older trades still resolve an entry bar
+// The general (unscoped) discovery feed is capped lower than the ticker-scoped
+// read — the Hot tab and nav badge only need the most recent activity.
+const RECENT_FEED_LIMIT = 60;
 
 // House filings use 2-letter asset codes; the Senate already supplies words.
 const HOUSE_ASSET_WORDS: Record<string, string> = {
@@ -55,6 +54,26 @@ function computeCompliant(tradedIso: string | null, filedIso: string | null): bo
   return days <= COMPLIANCE_WINDOW_DAYS;
 }
 
+// Trailing security-class descriptors ("Common Stock", "American Depositary
+// Shares", etc.), optionally qualified ("Class A", "New", "Series B"). Stored
+// verbatim from filings; trimmed here (read-side, non-destructive) so the UI
+// shows the issuer name, not the share class.
+const SECURITY_SUFFIX_RE =
+  /[\s,–-]+(?:(?:Class\s+[A-Z0-9]+|New|Series\s+[A-Z0-9]+)\s+)*(?:Common\s+Stock|Ordinary\s+Shares?|Preferred\s+Stock|American\s+Depositary\s+(?:Shares?|Receipts?))\s*$/i;
+
+// Tokens that never occur in a real issuer name but do in leaked PTR comment
+// prose (per-share sale ledgers, narrative footnotes). A name containing one is
+// unsalvageable — the caller falls back to the (always-correct) ticker.
+const PROSE_LEAK_RE =
+  /@|\/share|\bsold\b|\bpurchased those\b|insider trading|conjunction with|\bRSUs?\b|to be paid|\(CVR\)|this PTR|directed advisor|should be read/i;
+
+function normalizeCompanyName(name: string | null | undefined): string {
+  if (!name) return "";
+  if (PROSE_LEAK_RE.test(name)) return ""; // garbage → caller uses the ticker
+  const trimmed = name.replace(SECURITY_SUFFIX_RE, "").trim();
+  return trimmed.length ? trimmed : name.trim();
+}
+
 function rowToCongressTrade(row: CongressTradeRow): CongressTrade {
   return {
     id: row.id,
@@ -62,14 +81,13 @@ function rowToCongressTrade(row: CongressTradeRow): CongressTrade {
     party: (row.party ?? "I") as Party, // roster miss → Independent/unknown
     chamber: row.chamber,
     ticker: row.ticker,
-    companyName: row.company_name ?? row.ticker,
+    companyName: normalizeCompanyName(row.company_name) || row.ticker,
     tradeType: row.tx_type,
     assetType: readableAssetType(row),
     amount: row.amount_range ?? "unknown",
     tradeDate: isoToUnixSeconds(row.traded_date),
     filedDate: isoToUnixSeconds(row.filed_date),
     url: row.url,
-    // excessReturn is not in official filings — omitted for MVP (card shows N/A).
     isCompliant: computeCompliant(row.traded_date, row.filed_date),
   };
 }
@@ -98,68 +116,30 @@ export async function fetchCongressTrades(
     console.error("[congress/index] read failed:", error.message);
     return [];
   }
-  const trades = (data as CongressTradeRow[]).map(rowToCongressTrade);
-  await enrichExcessReturns(trades);
-  return trades;
-}
-
-// ── Excess return (trade return vs SPY since the trade date) ───────────────────
-
-/** Total return from the first bar on/after `fromIso` to the latest bar. */
-function returnSince(bars: DailyBar[], fromIso: string): number | null {
-  const entry = findBarOnOrAfter(bars, fromIso);
-  const latest = bars.at(-1);
-  if (!entry || !latest || entry.close <= 0) return null;
-  return latest.close / entry.close - 1;
+  return (data as CongressTradeRow[]).map(rowToCongressTrade);
 }
 
 /**
- * Fill `excessReturn` on each trade = (stock return since trade date) − (SPY
- * return over the same window), formatted like "+4.2%". Best-effort: any trade
- * whose bars are missing or older than our window stays "N/A". Never throws —
- * market-data failures must not break the Hot Trades feed.
+ * Read the most-recent congressional trades across ALL tickers (no ticker
+ * filter) — the general discovery feed for the Hot tab and the nav badge.
+ * Same degrade-to-empty contract as {@link fetchCongressTrades}.
  */
-async function enrichExcessReturns(trades: CongressTrade[]): Promise<void> {
-  if (trades.length === 0) return;
-  try {
-    const tickers = [...new Set(trades.map((t) => t.ticker))];
-    const bars = new Map<string, DailyBar[]>();
-    // Bounded concurrency over distinct tickers + the benchmark (bars are cached).
-    const targets = [...tickers, BENCHMARK];
-    const CONCURRENCY = 5;
-    let cursor = 0;
-    await Promise.all(
-      Array.from({ length: Math.min(CONCURRENCY, targets.length) }, async () => {
-        while (cursor < targets.length) {
-          const tk = targets[cursor++];
-          try {
-            bars.set(tk, await getDailyBars(tk, BARS_WINDOW_DAYS));
-          } catch {
-            bars.set(tk, []);
-          }
-        }
-      }),
-    );
+export async function fetchRecentCongressTrades(
+  limit = RECENT_FEED_LIMIT,
+  client?: SupabaseClient,
+): Promise<CongressTrade[]> {
+  const supabase = client ?? createServiceClient();
+  const { data, error } = await supabase
+    .from("congress_trades")
+    .select("*")
+    .order("traded_date", { ascending: false, nullsFirst: false })
+    .limit(limit);
 
-    const spy = bars.get(BENCHMARK) ?? [];
-    for (const t of trades) {
-      if (!t.tradeDate) {
-        t.excessReturn = "N/A";
-        continue;
-      }
-      const fromIso = new Date(t.tradeDate * 1000).toISOString().slice(0, 10);
-      const stock = returnSince(bars.get(t.ticker) ?? [], fromIso);
-      const bench = returnSince(spy, fromIso);
-      if (stock === null || bench === null) {
-        t.excessReturn = "N/A";
-        continue;
-      }
-      const excess = (stock - bench) * 100;
-      t.excessReturn = `${excess >= 0 ? "+" : ""}${excess.toFixed(1)}%`;
-    }
-  } catch (e) {
-    console.error("[congress/index] excess-return enrichment failed:", (e as Error).message);
+  if (error) {
+    console.error("[congress/index] recent read failed:", error.message);
+    return [];
   }
+  return (data as CongressTradeRow[]).map(rowToCongressTrade);
 }
 
 /** Cheap check: does `congress_trades` hold any rows at all (i.e. backfilled)? */

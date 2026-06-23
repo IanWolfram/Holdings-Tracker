@@ -23,8 +23,7 @@ export default function AccountPanel({ onClose, isConnected, isConnecting }: Acc
     <Shell>
       <Header
         initials={logic.initials}
-        account={logic.account!}
-        settingsEnv={logic.settings?.etrade.env}
+        account={logic.account}
         onClose={onClose}
         onSignOut={logic.handleSignOut}
       />
@@ -46,12 +45,12 @@ export default function AccountPanel({ onClose, isConnected, isConnecting }: Acc
         ) : (
           <>
             <BrokerageCard
-              isConnected={isConnected}
-              isConnecting={isConnecting}
-              expiresAt={logic.etradeExpiry?.expiresAt}
-              countdown={logic.countdown}
-              onReconnect={logic.handleReconnect}
-              onDisconnect={logic.handleDisconnect}
+              snapTradeConfigured={logic.snapTradeStatus?.configured ?? true}
+              snapTradeConnected={logic.snapTradeStatus?.connected ?? false}
+              snapTradeConnections={logic.snapTradeStatus?.connections ?? []}
+              snapTradeConnecting={logic.snapTradeConnecting}
+              onConnectSnapTrade={logic.handleConnectSnapTrade}
+              onDisconnectSnapTrade={logic.handleDisconnectSnapTrade}
             />
             <DataSourcesList
               dataSources={logic.dataSources}
@@ -80,12 +79,13 @@ export default function AccountPanel({ onClose, isConnected, isConnecting }: Acc
                 account={logic.account}
                 formatDate={logic.formatDate}
                 onSignOut={logic.handleSignOut}
+                onDeleteAccount={logic.handleDeleteAccount}
               />
             )}
           </>
         )}
       </div>
-      <Footer env={logic.settings?.etrade.env} />
+      <Footer />
     </Shell>
   );
 }

@@ -7,10 +7,17 @@ import {
 import { getVaultStore } from "@/lib/vault/store";
 import { requireUser } from "@/lib/auth/requireUser";
 import { apiHandler } from "@/lib/api-handler";
+import { rateLimit, PREDICTIONS_LIMIT } from "@/lib/rate-limit";
 
 export default apiHandler(["GET"], async (req, res) => {
   const user = await requireUser(req, res);
   if (!user) return;
+
+  const rl = rateLimit(`predictions:${user.id}`, PREDICTIONS_LIMIT);
+  if (!rl.allowed) {
+    res.setHeader("Retry-After", Math.ceil(rl.retryAfterMs / 1000));
+    return res.status(429).json({ error: "Too many requests. Please slow down." });
+  }
 
   const store = await getVaultStore(user.id);
   const { ticker } = req.query;
