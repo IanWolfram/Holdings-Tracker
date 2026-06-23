@@ -1,0 +1,1 @@
+{"nodes": [{"id": "instrumentation_client", "label": "instrumentation-client.ts", "file_type": "code", "source_file": "instrumentation-client.ts", "source_location": "L1"}], "edges": [{"source": "instrumentation_client", "target": "nextjs", "relation": "imports_from", "confidence": "EXTRACTED", "source_file": "instrumentation-client.ts", "source_location": "L10", "weight": 1.0}]}
