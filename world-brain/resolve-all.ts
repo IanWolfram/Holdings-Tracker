@@ -25,7 +25,7 @@ const PREDICTION_PATH_RE = /^predictions\/([A-Z0-9.\-]+?)-(\d+)d\.json$/;
 export async function resolvePendingForUser(
   userId: string,
   nowMs: number = Date.now()
-): Promise<{ resolved: number; tickers: number }> {
+): Promise<{ resolved: number; expired: number; tickers: number }> {
   const store = await getVaultStore(userId);
   const notes = await store.listNotes("predictions/");
 
@@ -36,11 +36,20 @@ export async function resolvePendingForUser(
   }
 
   let resolved = 0;
+  let expired = 0;
   for (const ticker of tickers) {
     const bars = await getDailyBars(ticker).catch(() => []);
-    if (!bars.length) continue;
-    const result = await resolveEligiblePredictions(store, ticker, null, nowMs, undefined, bars);
+    if (!bars.length) {
+      // Still run the resolver: with no bars and no price it can only expire
+      // long-overdue pendings, which is exactly what keeps delisted/renamed
+      // tickers from sitting pending forever.
+      console.warn(`[resolve-all] No bars for ${ticker} (${userId}) — expiry-only pass`);
+    }
+    const result = await resolveEligiblePredictions(
+      store, ticker, null, nowMs, undefined, bars.length ? bars : null
+    );
     resolved += result.resolved;
+    expired += result.expired;
   }
 
   if (resolved > 0) {
@@ -65,7 +74,7 @@ export async function resolvePendingForUser(
     }
   }
 
-  return { resolved, tickers: tickers.size };
+  return { resolved, expired, tickers: tickers.size };
 }
 
 /**
@@ -74,7 +83,7 @@ export async function resolvePendingForUser(
  */
 export async function resolveAllUsersPending(
   nowMs: number = Date.now()
-): Promise<{ users: number; resolved: number }> {
+): Promise<{ users: number; resolved: number; expired: number }> {
   const supabase = createServiceClient();
   const { data, error } = await supabase
     .from("vault_notes")
@@ -83,19 +92,21 @@ export async function resolveAllUsersPending(
 
   if (error || !data) {
     console.error("[resolve-all] Failed to list prediction owners:", error?.message);
-    return { users: 0, resolved: 0 };
+    return { users: 0, resolved: 0, expired: 0 };
   }
 
   const userIds = [...new Set(data.map((row) => row.user_id as string))];
   let resolved = 0;
+  let expired = 0;
   for (const userId of userIds) {
     try {
       const result = await resolvePendingForUser(userId, nowMs);
       resolved += result.resolved;
+      expired += result.expired;
     } catch (err) {
       console.error(`[resolve-all] User ${userId} failed:`, (err as Error).message);
     }
   }
 
-  return { users: userIds.length, resolved };
+  return { users: userIds.length, resolved, expired };
 }

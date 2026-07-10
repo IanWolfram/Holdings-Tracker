@@ -26,7 +26,7 @@ export async function register() {
     } catch (err) {
       console.error("[recalibrate-cron] Failed:", (err as Error).message);
     }
-  });
+  }, { timezone: "UTC" });
 
   // Daily prediction resolution — resolve every user's eligible predictions
   // against the horizon-date close so horizons stay accurate and nothing sits
@@ -35,12 +35,12 @@ export async function register() {
   cron.schedule("0 22 * * *", async () => {
     try {
       const { resolveAllUsersPending } = await import("./world-brain/resolve-all");
-      const { users, resolved } = await resolveAllUsersPending();
-      console.info(`[resolve-cron] Resolved ${resolved} prediction(s) across ${users} user(s)`);
+      const { users, resolved, expired } = await resolveAllUsersPending();
+      console.info(`[resolve-cron] Resolved ${resolved}, expired ${expired} prediction(s) across ${users} user(s)`);
     } catch (err) {
       console.error("[resolve-cron] Failed:", (err as Error).message);
     }
-  });
+  }, { timezone: "UTC" });
 
   // Daily congressional-trade ingest — pull new House + Senate PTRs into the
   // shared `congress_trades` table. Incremental (skips already-logged filings),
@@ -56,7 +56,7 @@ export async function register() {
     } catch (err) {
       console.error("[congress-cron] Failed:", (err as Error).message);
     }
-  });
+  }, { timezone: "UTC" });
 
   // Per-user scheduled agent jobs (the `agent_jobs` table behind the "Watching
   // for you" scan toggles). Ticks every 5 minutes; runDueJobs() runs only jobs
@@ -69,7 +69,7 @@ export async function register() {
     } catch (err) {
       console.error("[jobs-cron] Failed:", (err as Error).message);
     }
-  });
+  }, { timezone: "UTC" });
 
   globalState._recalibrateCronScheduled = true;
   console.info("[recalibrate-cron] Scheduled: monthly recalibration (2am UTC, 1st) + daily prediction resolution (22:00 UTC) + daily congress ingest (03:00 UTC) + per-user agent jobs (every 5 min)");

@@ -18,6 +18,7 @@
     "recalibrate": "npx tsx scripts/recalibrate.ts",
     "compare:forecasters": "npx tsx scripts/compare-forecaster-versions.ts",
     "congress:ingest": "npx tsx --env-file=.env.local scripts/ingest-congress.ts",
+    "resolve:all": "npx tsx --env-file=.env.local scripts/resolve-all.ts",
     "pm2:start": "pm2 start ecosystem.config.cjs",
     "pm2:stop": "pm2 stop pulse",
     "pm2:restart": "pm2 restart pulse",

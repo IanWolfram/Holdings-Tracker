@@ -1,5 +1,8 @@
 export type PredictionDirection = "UP" | "DOWN" | "FLAT";
-export type PredictionStatus = "pending" | "resolved";
+/** "expired": pending past horizon + grace with no resolvable price data —
+ *  removed from the pending pool without an outcome so it never poisons
+ *  calibration and never sits pending forever. */
+export type PredictionStatus = "pending" | "resolved" | "expired";
 export type PredictionOutcome = "CORRECT" | "PARTIAL" | "INCORRECT";
 
 export const CATALYST_TYPES = [
@@ -40,7 +43,13 @@ export interface TickerPrediction {
   direction: PredictionDirection;
   magnitudePct: number;
   horizonDays: number;
+  /** Calibration-grounded confidence actually shown in the UI: the raw model
+   *  confidence shrunk toward the observed win rate of its bucket (shrink-only).
+   *  See lib/agent/forecast.ts + world-brain/calibration.ts. */
   confidence: number;
+  /** The model's stated confidence before reliability shrink. Kept for auditing
+   *  calibration drift. Absent on predictions made before calibration was wired. */
+  rawConfidence?: number;
   reasoning: string;
   catalysts: PredictionCatalyst[];
   catalystTypes?: CatalystType[];

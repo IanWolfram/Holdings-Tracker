@@ -9,6 +9,12 @@ export async function register() {
     await hydrateSecrets();
     // Init Sentry AFTER hydration so a SENTRY_DSN stored in app_secrets is live.
     await import("../sentry.server.config");
+    // Schedule the Node-only crons (prediction resolution, recalibration,
+    // congress ingest, agent jobs) AFTER hydration so they see real secrets.
+    // instrumentation.node.ts is not auto-loaded by Next — without this import
+    // none of those crons ever run.
+    const { register: registerNodeCrons } = await import("../instrumentation.node");
+    await registerNodeCrons();
   } else if (process.env.NEXT_RUNTIME === "edge") {
     await import("../sentry.edge.config");
   }
