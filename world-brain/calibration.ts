@@ -59,7 +59,11 @@ function confidenceBucket(confidence: number): string {
 
 function updateStats(stats: MutableStats, prediction: TickerPrediction): void {
   stats.n += 1;
-  stats.confidenceTotal += prediction.confidence;
+  // Aggregate the STATED (raw) confidence, not the calibration-shrunk value
+  // stored in `confidence` — the report measures how the model's stated
+  // conviction maps to outcomes, and mixing scales breaks the shrink loop.
+  // Predictions from before the shrink stored raw in `confidence`, so `??` is exact.
+  stats.confidenceTotal += prediction.rawConfidence ?? prediction.confidence;
   if (prediction.outcome === "CORRECT") stats.correct += 1;
   else if (prediction.outcome === "PARTIAL") stats.partial += 1;
   else stats.incorrect += 1;
@@ -276,6 +280,35 @@ function pctString(rate: number): string {
   return `${Math.round(rate * 100)}%`;
 }
 
+/** Per-catalyst win-rate lines with DOWNWEIGHT/TRUSTED tags (n≥2, "other" excluded). */
+function catalystTrackRecordLines(report: CalibrationReport): string[] {
+  return Object.entries(report.byCatalyst)
+    .filter(([type, stats]) => stats.n >= 2 && type !== "other")
+    .sort((a, b) => b[1].n - a[1].n)
+    .slice(0, 6)
+    .map(([type, stats]) => {
+      const tag = stats.winRate < 0.4 ? " (DOWNWEIGHT)" : stats.winRate > 0.65 ? " (TRUSTED)" : "";
+      return `  - ${type}: ${pctString(stats.winRate)} accurate (n=${stats.n})${tag}`;
+    });
+}
+
+/**
+ * Catalyst-type track record for the FORECAST prompt (v4+). The news brain
+ * already sees these lines via buildCalibrationBlock; the forecaster previously
+ * did not, so catalyst types with a losing record (e.g. m-and-a, govt-contract)
+ * kept their full weight in directional calls.
+ */
+export async function buildCatalystCalibrationBlock(store: VaultStore): Promise<string> {
+  const report = await loadCalibrationReport(store);
+  if (!report || report.totalResolved < 5) return "";
+  const lines = catalystTrackRecordLines(report);
+  if (lines.length === 0) return "";
+  return (
+    `\n\nCatalyst-type track record (your own resolved forecasts — weight catalyst types by how they have actually scored):\n` +
+    lines.join("\n")
+  );
+}
+
 export async function buildCalibrationBlock(ticker: string, store: VaultStore): Promise<string> {
   const report = await loadCalibrationReport(store);
   if (!report || report.totalResolved < 2) return "";
@@ -291,19 +324,11 @@ export async function buildCalibrationBlock(ticker: string, store: VaultStore): 
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([bucket, stats]) => `  - ${bucket}: ${pctString(stats.winRate)} (n=${stats.n})`);
 
-  const catalystEntries = Object.entries(report.byCatalyst)
-    .filter(([type, stats]) => stats.n >= 2 && type !== "other")
-    .sort((a, b) => b[1].n - a[1].n)
-    .slice(0, 6);
-
-  const catalystLines = catalystEntries.map(([type, stats]) => {
-    const tag = stats.winRate < 0.4 ? " (DOWNWEIGHT)" : stats.winRate > 0.65 ? " (TRUSTED)" : "";
-    return `  - ${type}: ${pctString(stats.winRate)} accurate (n=${stats.n})${tag}`;
-  });
+  const catalystLines = catalystTrackRecordLines(report);
 
   const tickerStats = report.byTicker[ticker];
   const tickerLine = tickerStats
-    ? `For ${ticker} specifically: ${tickerStats.correct}/${tickerStats.n} correct (${pctString(tickerStats.winRate)}), avg confidence ${tickerStats.avgConfidence.toFixed(2)}.`
+    ? `For ${ticker} specifically: ${tickerStats.correct}/${tickerStats.n} correct (${pctString(tickerStats.winRate)}), avg stated confidence ${tickerStats.avgConfidence.toFixed(2)}.`
     : `No prior resolved predictions for ${ticker}; treat as cold-start.`;
 
   const lines = [
@@ -316,7 +341,7 @@ export async function buildCalibrationBlock(ticker: string, store: VaultStore): 
   }
 
   if (buckets.length > 0) {
-    lines.push("By confidence bucket:");
+    lines.push("By stated-confidence bucket (your confidence before calibration shrink):");
     lines.push(...buckets);
   }
   if (catalystLines.length > 0) {
@@ -343,7 +368,10 @@ export async function updateCalibration(store: VaultStore): Promise<CalibrationR
     updateStats(tickerStats, prediction);
     byTicker.set(tickerKey, tickerStats);
 
-    const bucketKey = confidenceBucket(prediction.confidence);
+    // Bucket by the STATED confidence — getConfidenceReliabilityFactor looks the
+    // bucket up by rawConfidence, so outcomes must flow back to that same bucket
+    // or the feedback loop never closes (and shrunk values pollute low buckets).
+    const bucketKey = confidenceBucket(prediction.rawConfidence ?? prediction.confidence);
     const bucketStats = byConfidenceBucket.get(bucketKey) ?? createStats();
     updateStats(bucketStats, prediction);
     byConfidenceBucket.set(bucketKey, bucketStats);

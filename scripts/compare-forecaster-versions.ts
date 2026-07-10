@@ -23,22 +23,35 @@ import type { PredictionOutcome, TickerPrediction } from "../types/predictions";
 import { hydrateSecrets } from "../lib/secrets";
 import { directionalStats, type DirectionalStats } from "../world-brain/forecaster-metrics";
 
-const MIN_PAIRS = 10; // promotion gate: need at least this many matched pairs.
-const PROMOTE_MARGIN = 0.05; // candidate must beat v1 directional accuracy by ≥5pp.
-// The current shadow candidate. Bump this when a new shadow forecaster ships so
-// the A/B isolates IT and ignores stale earlier candidates (e.g. the retired v2,
-// whose framing differed). The "v2" bucket label below means "the candidate".
-const CANDIDATE_VERSION = "v3";
+// Promotion gate is on DIRECTIONAL PRECISION + EDGE, not overall dirAcc. A
+// FLAT-heavy variant always wins overall accuracy at 1–7d (FLAT is the
+// majority-correct class), so that axis can never surface a forecaster with
+// genuine directional edge. The candidate is promoted only when, on the calls it
+// actually COMMITS (UP/DOWN), it is (a) statistically better than a coin flip,
+// (b) beats production precision, and (c) makes money per call (positive edge).
+const MIN_DIRECTIONAL = 15; // candidate needs ≥ this many committed UP/DOWN calls.
+const CI_FLOOR = 0.5; // candidate precision Wilson-95 lower bound must exceed this.
+const PRECISION_MARGIN = 0.05; // candidate precision must beat v1 by ≥ this.
+// The current candidate. Bump this when a new forecaster recipe ships so the
+// comparison isolates IT and ignores stale earlier candidates (e.g. the retired
+// v2, whose framing differed). The "v2" bucket label below means "the candidate".
+// NOTE: v4 shipped STRAIGHT TO PRODUCTION (2026-07-09, no shadow lane), so the
+// candidate bucket now matches by version label whether or not the prediction
+// was a shadow — this script is v4's retrospective vs-prior-production check.
+const CANDIDATE_VERSION = "v4";
 
 function dateKey(ms: number): string {
   return new Date(ms).toISOString().slice(0, 10);
 }
 
-// "v1" = production; "v2" bucket = the current shadow candidate (CANDIDATE_VERSION);
+// "v1" bucket = prior production lineage (any non-shadow, non-candidate
+// prediction — production was "v1" pre-2026-06-25, "v3" until 2026-07-09);
+// "v2" bucket = the current candidate (CANDIDATE_VERSION, shadow or production);
 // null = legacy shadow from a retired candidate, excluded so the A/B stays clean.
 function versionOf(p: TickerPrediction): "v1" | "v2" | null {
-  if (!p.shadow) return p.version === undefined || p.version === "v1" ? "v1" : null;
-  return p.version === CANDIDATE_VERSION ? "v2" : null;
+  if (p.version === CANDIDATE_VERSION) return "v2";
+  if (!p.shadow) return "v1";
+  return null;
 }
 
 interface Scored {
@@ -89,7 +102,9 @@ function computeMetrics(items: Scored[]): Metrics {
 
 /** Directional precision on a re-scored set — see world-brain/forecaster-metrics. */
 function directionalReport(items: Scored[]): DirectionalStats {
-  return directionalStats(items.map((s) => ({ direction: s.direction, actualPct: s.actualPct })));
+  return directionalStats(
+    items.map((s) => ({ direction: s.direction, actualPct: s.actualPct, horizonDays: s.horizonDays }))
+  );
 }
 
 function fmtDir(d: DirectionalStats): string {
@@ -208,9 +223,11 @@ async function main(): Promise<void> {
   // Headline forecaster metric: directional precision (edge when it commits).
   // Overall win/dirAcc is shown too, but always-FLAT structurally wins that axis
   // at short horizons (FLAT is the majority-correct class), so it is NOT the test.
+  const dV1 = directionalReport(v1);
+  const dV2 = directionalReport(v2);
   console.log("DIRECTIONAL PRECISION — the test that matters (always-FLAT can't compete here):");
-  console.log("  v1:", fmtDir(directionalReport(v1)));
-  if (v2.length) console.log("  v2:", fmtDir(directionalReport(v2)));
+  console.log("  v1:", fmtDir(dV1));
+  if (v2.length) console.log("  v2:", fmtDir(dV2));
   console.log("");
 
   console.log("Overall accuracy (context only — FLAT is the majority class):");
@@ -225,31 +242,44 @@ async function main(): Promise<void> {
   const v1Keys = new Set(v1.map((s) => s.key));
   const pairedV2 = v2.filter((s) => v1Keys.has(s.key));
 
-  console.log(`\n=== Head-to-head (matched pairs: ${pairedV1.length}) ===`);
+  console.log(`\n=== Head-to-head (matched pairs: ${pairedV1.length}, context only) ===`);
   if (pairedV1.length === 0) {
     console.log("No matched v1/v2 pairs yet — run agent sweeps so v2 shadows accumulate.");
   } else {
-    const mV1 = computeMetrics(pairedV1);
-    const mV2 = computeMetrics(pairedV2);
-    const mBase = baselineFlat(pairedV1);
-    console.log("v1:        ", fmt(mV1));
-    console.log("v2:        ", fmt(mV2));
-    console.log("always-FLAT:", fmt(mBase));
+    console.log("v1:        ", fmt(computeMetrics(pairedV1)));
+    console.log("v2:        ", fmt(computeMetrics(pairedV2)));
+    console.log("always-FLAT:", fmt(baselineFlat(pairedV1)));
+  }
 
-    const beatsV1 = mV2.dirAcc - mV1.dirAcc >= PROMOTE_MARGIN;
-    const beatsBase = mV2.dirAcc >= mBase.dirAcc;
-    const enough = pairedV1.length >= MIN_PAIRS;
-    console.log("\n=== Promotion recommendation ===");
-    if (!enough) {
-      console.log(`HOLD — only ${pairedV1.length} matched pairs (<${MIN_PAIRS}). Keep collecting shadow data.`);
-    } else if (beatsV1 && beatsBase) {
+  // === Promotion gate: directional precision + edge on each version's OWN
+  // committed calls (matched pairs above are context — overall dirAcc favors the
+  // FLAT-heavy variant and would never promote a forecaster with real edge). ===
+  console.log("\n=== Promotion recommendation (gate: directional precision + edge) ===");
+  const ciLowerPct = (dV2.ci95[0] * 100).toFixed(0);
+  if (!v2.length) {
+    console.log("HOLD — no candidate (v2) predictions yet. Run agent sweeps so the shadow accumulates.");
+  } else if (dV2.n < MIN_DIRECTIONAL) {
+    console.log(
+      `HOLD — candidate committed only ${dV2.n} UP/DOWN calls (<${MIN_DIRECTIONAL}). ` +
+        `Precision (${(dV2.precision * 100).toFixed(1)}%, 95% CI lower ${ciLowerPct}%) needs more commits to be trustworthy.`
+    );
+  } else {
+    const beatsCoinFlip = dV2.ci95[0] > CI_FLOOR;
+    const beatsV1 = dV2.precision - dV1.precision >= PRECISION_MARGIN;
+    const positiveEdge = dV2.edgePct > 0;
+    if (beatsCoinFlip && beatsV1 && positiveEdge) {
       console.log(
-        `PROMOTE v2 → v1: dirAcc +${((mV2.dirAcc - mV1.dirAcc) * 100).toFixed(1)}pp over v1 and ≥ always-FLAT baseline.`
+        `PROMOTE candidate → v1: precision ${(dV2.precision * 100).toFixed(1)}% ` +
+          `(95% CI lower ${ciLowerPct}% > ${(CI_FLOOR * 100).toFixed(0)}%), ` +
+          `+${((dV2.precision - dV1.precision) * 100).toFixed(1)}pp over v1, ` +
+          `edge ${dV2.edgePct >= 0 ? "+" : ""}${dV2.edgePct.toFixed(2)}%/call.`
       );
     } else {
-      console.log(
-        `KEEP v1: v2 does not clear the bar (needs +${(PROMOTE_MARGIN * 100).toFixed(0)}pp dirAcc over v1 AND ≥ baseline).`
-      );
+      const fails: string[] = [];
+      if (!beatsCoinFlip) fails.push(`95% CI lower bound ${ciLowerPct}% ≤ ${(CI_FLOOR * 100).toFixed(0)}% (not beating a coin flip)`);
+      if (!beatsV1) fails.push(`precision only +${((dV2.precision - dV1.precision) * 100).toFixed(1)}pp over v1 (need ≥${(PRECISION_MARGIN * 100).toFixed(0)}pp)`);
+      if (!positiveEdge) fails.push(`edge ${dV2.edgePct.toFixed(2)}%/call ≤ 0`);
+      console.log(`KEEP v1: ${fails.join("; ")}.`);
     }
   }
 }

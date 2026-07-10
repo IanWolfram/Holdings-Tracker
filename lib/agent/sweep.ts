@@ -23,7 +23,7 @@ import {
 import { FALLBACK_CONFIDENCE, MAX_ARTICLE_CONTENT_CHARS, SYSTEM_USER_ID } from "../constants";
 import { getVaultStore, type VaultStore } from "@/lib/vault/store";
 import { getBasicQuote } from "../market-data";
-import { getDetailedQuote, getDailyBars, type MarketQuote } from "../marketdata/prices";
+import { getDetailedQuote, getDailyBars } from "../marketdata/prices";
 import { getMacroSnapshot, type MacroSnapshot } from "../marketdata/macro";
 import {
   getEventsSnapshot,
@@ -33,7 +33,8 @@ import {
 import { runAlertsPass } from "../../world-brain/alerts";
 import { appendVaultLog, regenerateVaultIndex } from "../../world-brain/vault-meta";
 import type { CompanyProfile, GeoStory, WorldData } from "@/types/geo.types";
-import { type ClassifiedStory, VERDICT_LABEL } from "@/types/news.types";
+import { type ClassifiedStory, type CongressTrade, VERDICT_LABEL } from "@/types/news.types";
+import { fetchCongressTrades } from "@/lib/congress";
 import type { AgentRunResult, TickerResult } from "./types";
 import { fetchUserPositions } from "./utils";
 import { SWEEP_MAX_TICKERS } from "@/lib/rate-limit";
@@ -41,11 +42,16 @@ import {
   getCurrentProgress,
   setCurrentProgress,
   getIsCancelled,
-  resetCancelled,
+  getRunGeneration,
 } from "./progress";
 import { runForecast } from "./forecast";
 import { buildMarketContextDigest } from "./market-context";
 import { emitSignals, qualifiesAsSignal, type SignalCandidate } from "./signals";
+
+// How many positions analyze concurrently inside a sweep. callLlm retries 429s
+// but has no queue of its own, so this caps peak DeepSeek load to ~this many
+// simultaneous analyses (each ticker still processes its own articles serially).
+const SWEEP_ANALYSIS_CONCURRENCY = 5;
 
 export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
   const uid = userId ?? "__system";
@@ -53,7 +59,8 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
     throw new Error("An agent run is already in progress.");
   }
 
-  resetCancelled(uid);
+  // Capture this run's generation; cancelling bumps it, marking us stale.
+  const runGen = getRunGeneration(uid);
   setCurrentProgress(uid, { status: "running", message: "Fetching live positions..." });
   const startedAt = Date.now();
 
@@ -148,6 +155,21 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
       upcomingEarnings = new Map();
     }
 
+    // Congressional trades across all holdings, fetched ONCE per sweep and
+    // grouped by ticker — a v4 forecaster input. Previously this data only
+    // surfaced on the Hot page, fully disconnected from the forecast.
+    const congressByTicker = new Map<string, CongressTrade[]>();
+    try {
+      const trades = await fetchCongressTrades(holdingTickers);
+      for (const trade of trades) {
+        const bucket = congressByTicker.get(trade.ticker) ?? [];
+        bucket.push(trade);
+        congressByTicker.set(trade.ticker, bucket);
+      }
+    } catch (err) {
+      console.error("[agent] Congress trade fetch failed (non-fatal):", err);
+    }
+
     const tickerResults: TickerResult[] = [];
     const allGeoStories: GeoStory[] = [];
     const signalCandidates: SignalCandidate[] = [];
@@ -198,23 +220,50 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
       }
     }
 
-    // 3b. Analyze news per ticker
-    for (const pos of positions) {
-      if (getIsCancelled(uid)) break;
+    // 3b. Analyze news per ticker — positions run concurrently through a bounded
+    // pool instead of a serial loop, so an N-ticker portfolio no longer chains
+    // (news fetch + DeepSeek analysis + multi-horizon forecast) end-to-end. Each
+    // position is a self-contained unit returning its own partial result, so
+    // concurrent tickers never race on the shared accumulators below.
+    setCurrentProgress(uid, {
+      ...getCurrentProgress(uid),
+      phase: "analyzing",
+      ticker: undefined,
+      currentHeadline: undefined,
+      streamText: "",
+      articleIndex: 0,
+      totalArticles: positions.length,
+      message: `Analyzing ${positions.length} positions in parallel...`,
+    });
 
-      setCurrentProgress(uid, {
-        ...getCurrentProgress(uid),
-        phase: "analyzing",
-        ticker: pos.ticker,
-        currentHeadline: undefined,
-        message: `Fetching news for ${pos.ticker}...`
-      });
+    let tickersCompleted = 0;
+
+    const analyzePosition = async (
+      pos: (typeof positions)[number]
+    ): Promise<{
+      result: TickerResult;
+      geoStories: GeoStory[];
+      buys: number;
+      sells: number;
+      holds: number;
+      signals: SignalCandidate[];
+    }> => {
+      const localGeo: GeoStory[] = [];
+      const localSignals: SignalCandidate[] = [];
+      let buys = 0;
+      let sells = 0;
+      let holds = 0;
+      const verdicts: TickerResult["verdicts"] = [];
+
+      if (getIsCancelled(uid, runGen)) {
+        return { result: { ticker: pos.ticker, verdicts }, geoStories: localGeo, buys, sells, holds, signals: localSignals };
+      }
 
       // Use the same unified NewsService the dashboard uses — it has the cache and prior verdicts
       const articles = await services.newsService.getNewsForTicker(pos.ticker, profiles[pos.ticker]?.sector);
-      // Filter to only articles not yet run through the brain, then cap at 5.
-      // Filtering before slicing ensures previously-analyzed articles don't block new ones.
-      const top = articles.filter(a => a.isAnalyzed !== true).slice(0, 10);
+      // Analyze the FULL backlog of stories not yet run through the brain — a
+      // sweep only finishes a ticker when nothing unanalyzed remains.
+      const unanalyzed = articles.filter((a) => a.isAnalyzed !== true);
 
       // Load per-ticker learned context and few-shot examples from vault
       let tickerContext: string | undefined;
@@ -228,8 +277,8 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
         }
       } catch { /* stub is empty or missing */ }
 
-      const stories = await getRecentVaultStories(pos.ticker, vaultStore, 3);
-      if (stories.length > 0) recentVerdicts = stories;
+      const recentStories = await getRecentVaultStories(pos.ticker, vaultStore, 3);
+      if (recentStories.length > 0) recentVerdicts = recentStories;
 
       if (detailedQuoteCache[pos.ticker] === undefined) {
         try {
@@ -240,27 +289,24 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
       }
       const tickerMarketQuote = detailedQuoteCache[pos.ticker];
 
-      const verdicts: TickerResult["verdicts"] = [];
+      // Work through every unanalyzed story until the queue is empty. A story
+      // whose analysis fails (timeout / API error) goes back to the end of the
+      // queue for another try; only a story that exhausts its attempts records
+      // the FALLBACK verdict, so a flaky call can't leave the backlog
+      // partially analyzed.
+      const MAX_STORY_ATTEMPTS = 3;
+      const queue = unanalyzed.map((article) => ({ article, attempts: 0 }));
+      while (queue.length > 0) {
+        if (getIsCancelled(uid, runGen)) break;
 
-      for (let i = 0; i < top.length; i++) {
-        if (getIsCancelled(uid)) break;
-
-        const article = top[i];
+        const item = queue.shift()!;
+        const article = item.article;
+        item.attempts++;
 
         if (!article.headline?.trim() || !article.url?.trim()) {
           console.warn(`[agent] Skipping story with empty headline/URL for ${pos.ticker}`);
           continue;
         }
-
-        setCurrentProgress(uid, {
-          ...getCurrentProgress(uid),
-          ticker: pos.ticker,
-          articleIndex: i + 1,
-          totalArticles: top.length,
-          currentHeadline: article.headline,
-          message: `Analyzing: ${article.headline.slice(0, 40)}...`,
-          streamText: "" // Reset stream text for the next story
-        });
 
         // Fetch full article text via Jina — gracefully degrade to summary on failure
         const fullContent = await fetchFullArticleContent(article.url);
@@ -275,10 +321,7 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
             enrichedSummary,
             holdingTickers,
             holdingSectors,
-            (chunk) => {
-              const prog = getCurrentProgress(uid);
-              setCurrentProgress(uid, { ...prog, streamText: chunk });
-            },
+            undefined, // no token streaming — parallel tickers would interleave one shared stream
             tickerContext,
             recentVerdicts,
             {
@@ -324,6 +367,14 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
           analysisFailed: true,
         }));
 
+        if (analysis.analysisFailed && item.attempts < MAX_STORY_ATTEMPTS) {
+          // Transient failure — requeue for another attempt instead of
+          // recording a FALLBACK verdict; the story stays unanalyzed until it
+          // either succeeds or exhausts its attempts.
+          queue.push(item);
+          continue;
+        }
+
         const catalystTypes = await classifyCatalystTypes({
           headline: article.headline,
           summary: enrichedSummary,
@@ -338,9 +389,9 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
           analysis
         });
 
-        if (analysis.verdict === "BUY") totalBuys++;
-        else if (analysis.verdict === "SELL") totalSells++;
-        else totalHolds++;
+        if (analysis.verdict === "BUY") buys++;
+        else if (analysis.verdict === "SELL") sells++;
+        else holds++;
 
         {
           const profile = profiles[pos.ticker];
@@ -366,7 +417,7 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
             confidenceBucket: computeConfidenceBucket(analysis.confidence, analysis.analysisFailed),
             catalystTypes,
           };
-          allGeoStories.push(geoStory);
+          localGeo.push(geoStory);
           await writeStoryNote(geoStory, userVaultStore, profile?.sector, userId ?? SYSTEM_USER_ID);
           // Patch the cached entry in-place so the terminal sees the new verdict
           // immediately without busting the full ticker cache (which causes slow reloads).
@@ -387,19 +438,14 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
       // Forecast: synthesize this ticker's verdicts into directional predictions
       // at multiple horizons (1d, 7d, 30d). Each horizon is gated independently
       // so a 9am 1d forecast doesn't block the same day's 7d/30d forecasts.
-      if (userVaultStore && verdicts.length > 0 && !getIsCancelled(uid)) {
-        setCurrentProgress(uid, {
-          ...getCurrentProgress(uid),
-          phase: "forecasting",
-          message: `Forecasting ${pos.ticker}...`,
-        });
+      if (userVaultStore && verdicts.length > 0 && !getIsCancelled(uid, runGen)) {
         try {
           const quote = basicQuoteCache[pos.ticker] ?? (await getBasicQuote(pos.ticker));
-          const tickerMarketQuote = detailedQuoteCache[pos.ticker] ?? null;
-          const currentPrice = quote?.currentPrice ?? tickerMarketQuote?.price ?? null;
+          const forecastMarketQuote = detailedQuoteCache[pos.ticker] ?? null;
+          const currentPrice = quote?.currentPrice ?? forecastMarketQuote?.price ?? null;
           if (currentPrice !== null) {
             for (const horizon of SUPPORTED_HORIZONS) {
-              if (getIsCancelled(uid)) break;
+              if (getIsCancelled(uid, runGen)) break;
               const horizonCutoff = startedAt - horizon * 86_400_000;
               const existing = await loadPredictions(userVaultStore, pos.ticker, horizon);
               // Skip-check only considers production (non-shadow) v1 predictions —
@@ -415,6 +461,13 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
                 continue;
               }
               const daysUntilEarnings = upcomingEarnings.get(pos.ticker.toUpperCase());
+              // PRODUCTION runs the v4 recipe (shipped 2026-07-09, direct to
+              // production by owner decision — no shadow A/B): the v3 recipe
+              // (vol-aware sizing + directional policy, promoted 2026-06-25 at
+              // 88.9% directional precision n=18) PLUS congressional-trade
+              // positioning and the forecaster's own per-catalyst track record.
+              // Evaluate v4 vs v3 retrospectively from resolved outcomes via
+              // scripts/compare-forecaster-versions.ts.
               const prediction = await runForecast(
                 pos.ticker,
                 currentPrice,
@@ -426,7 +479,11 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
                 macroSnapshot,
                 horizon,
                 daysUntilEarnings,
-                { version: "v1" }
+                {
+                  version: "v4",
+                  marketQuote: forecastMarketQuote,
+                  congressTrades: congressByTicker.get(pos.ticker) ?? null,
+                }
               );
               if (prediction) {
                 await appendPrediction(userVaultStore, prediction);
@@ -435,39 +492,16 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
                   `${horizon}d forecast for ${pos.ticker}: ${prediction.direction} +/-${prediction.magnitudePct}% (conf ${Math.round(prediction.confidence * 100)}%)`
                 );
                 if (qualifiesAsSignal(prediction)) {
-                  signalCandidates.push({
+                  localSignals.push({
                     ticker: pos.ticker,
                     direction: prediction.direction as "UP" | "DOWN",
                     magnitudePct: prediction.magnitudePct,
                     confidence: prediction.confidence,
+                    rawConfidence: prediction.rawConfidence,
                     horizonDays: prediction.horizonDays,
                     reasoning: prediction.reasoning,
                   });
                 }
-              }
-              // v3 shadow: hidden from UI/calibration, evaluated against the same
-              // resolution price. v3 reframes price momentum as a directional
-              // signal so it can call DOWN without bearish news (the diagnosed v1
-              // failure). Promotion criterion: scripts/compare-forecaster-versions.ts.
-              const shadowPrediction = await runForecast(
-                pos.ticker,
-                currentPrice,
-                verdicts,
-                tickerContext,
-                userVaultStore,
-                profiles[pos.ticker]?.sector,
-                startedAt,
-                macroSnapshot,
-                horizon,
-                daysUntilEarnings,
-                { version: "v3", shadow: true, marketQuote: tickerMarketQuote }
-              ).catch(() => null);
-              if (shadowPrediction) {
-                await appendPrediction(userVaultStore, shadowPrediction);
-                debug(
-                  "agent",
-                  `${horizon}d SHADOW v3 forecast for ${pos.ticker}: ${shadowPrediction.direction} +/-${shadowPrediction.magnitudePct}% (conf ${Math.round(shadowPrediction.confidence * 100)}%)`
-                );
               }
             }
           }
@@ -476,7 +510,38 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
         }
       }
 
-      tickerResults.push({ ticker: pos.ticker, verdicts });
+      return { result: { ticker: pos.ticker, verdicts }, geoStories: localGeo, buys, sells, holds, signals: localSignals };
+    };
+
+    // Bounded concurrency pool — workers pull from a shared cursor so at most
+    // SWEEP_ANALYSIS_CONCURRENCY positions are analyzed at once. Each result is
+    // merged into the shared accumulators on the single event-loop turn the
+    // worker resumes, so no locking is needed.
+    {
+      let cursor = 0;
+      const worker = async () => {
+        while (cursor < positions.length) {
+          if (getIsCancelled(uid, runGen)) break;
+          const pos = positions[cursor++];
+          const part = await analyzePosition(pos);
+          tickerResults.push(part.result);
+          allGeoStories.push(...part.geoStories);
+          totalBuys += part.buys;
+          totalSells += part.sells;
+          totalHolds += part.holds;
+          signalCandidates.push(...part.signals);
+          tickersCompleted++;
+          setCurrentProgress(uid, {
+            ...getCurrentProgress(uid),
+            phase: "analyzing",
+            articleIndex: tickersCompleted,
+            totalArticles: positions.length,
+            message: `Analyzed ${tickersCompleted}/${positions.length} positions...`,
+          });
+        }
+      };
+      const poolSize = Math.min(SWEEP_ANALYSIS_CONCURRENCY, positions.length);
+      await Promise.all(Array.from({ length: poolSize }, () => worker()));
     }
 
     // Log analysis success/failure rate
@@ -498,7 +563,7 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
       finishedAt: Date.now()
     };
 
-    if (getIsCancelled(uid)) {
+    if (getIsCancelled(uid, runGen)) {
       debug("agent", "Sweep cancelled.");
       return result;
     }
@@ -529,7 +594,7 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
     // messages. Per-user only (skips system runs); dedup keeps manual + scheduled
     // sweeps from double-notifying.
     try {
-      await emitSignals(userId, signalCandidates);
+      await emitSignals(userId, signalCandidates, userVaultStore);
     } catch (err) {
       console.error("[agent] Signal emission failed (non-fatal):", err);
     }
@@ -546,11 +611,17 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
       console.error("[agent] Index regen failed (non-fatal):", err);
     }
 
-    setCurrentProgress(uid, { status: "complete", results: result });
+    // Only write terminal status if this run is still the current generation —
+    // a cancelled run must not clobber the progress of a newer run.
+    if (!getIsCancelled(uid, runGen)) {
+      setCurrentProgress(uid, { status: "complete", results: result });
+    }
     return result;
   } catch (err) {
     console.error(`\x1b[1m\x1b[31m[agent] Fatal error:\x1b[0m`, err);
-    setCurrentProgress(uid, { status: "error", message: (err as Error).message });
+    if (!getIsCancelled(uid, runGen)) {
+      setCurrentProgress(uid, { status: "error", message: (err as Error).message });
+    }
     throw err;
   }
 }

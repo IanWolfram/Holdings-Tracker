@@ -19,6 +19,7 @@ import type { TickerPrediction } from "../types/predictions";
 export interface DirectionalSample {
   direction: TickerPrediction["direction"];
   actualPct: number;
+  horizonDays: number;
 }
 
 export interface DirectionalStats {
@@ -94,10 +95,25 @@ async function collectResolvedSamples(store: {
       if (p.shadow || p.version === "v2") continue; // production forecaster only
       if (!p.outcome || typeof p.actualPct !== "number") continue; // resolved only
       resolvedTotal++;
-      samples.push({ direction: p.direction, actualPct: p.actualPct });
+      samples.push({ direction: p.direction, actualPct: p.actualPct, horizonDays: p.horizonDays });
     }
   }
   return { samples, resolvedTotal };
+}
+
+/**
+ * Directional precision restricted to one horizon — the honest track-record
+ * number to attach to a 1d or 7d signal notification. Returns null when the
+ * user has no resolved predictions at that horizon.
+ */
+export async function computeHorizonDirectionalStats(
+  store: { listNotes(prefix: string): Promise<{ body: string }[]> },
+  horizonDays: number,
+): Promise<DirectionalStats | null> {
+  const { samples } = await collectResolvedSamples(store);
+  const horizonSamples = samples.filter((s) => s.horizonDays === horizonDays);
+  if (horizonSamples.length === 0) return null;
+  return directionalStats(horizonSamples);
 }
 
 /** Compute the current directional snapshot for a user's vault. */

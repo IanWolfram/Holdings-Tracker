@@ -1,4 +1,3 @@
-import type { NextApiResponse } from "next";
 import {
   loadPredictions,
   getAllPredictions,

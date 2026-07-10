@@ -4,7 +4,13 @@ import type { AgentProgress, TickerAnalysisProgress } from "./types";
 // different tenants never observe or clobber each other's progress. The agent's
 // caller passes a uid for every operation; CLI/cron paths use a synthetic id.
 const currentProgressByUser = new Map<string, AgentProgress>();
-const cancelledUsers = new Set<string>();
+
+// Cancellation is generation-based: a run captures the user's generation when
+// it starts, and cancelling bumps it. The run is cancelled once its captured
+// generation is stale. Unlike a per-user boolean flag, this lets the user
+// cancel and immediately start a fresh run — the new run's start can never
+// "un-cancel" the old sweep still draining its in-flight LLM call.
+const runGenerationByUser = new Map<string, number>();
 
 // Per-(user, ticker) analysis state — allows concurrent runs on different tickers.
 const ANALYSIS_TTL_MS = 30 * 60 * 1000; // 30 minutes
@@ -59,7 +65,7 @@ export function getAgentProgress(uid: string): AgentProgress {
 
 export function cancelStockAgent(uid: string): void {
   if (getAgentProgress(uid).status === "running") {
-    cancelledUsers.add(uid);
+    runGenerationByUser.set(uid, getRunGeneration(uid) + 1);
     currentProgressByUser.set(uid, { status: "idle", message: "Agent run cancelled." });
   }
 }
@@ -77,10 +83,12 @@ export function setCurrentProgress(uid: string, progress: AgentProgress): void {
   currentProgressByUser.set(uid, progress);
 }
 
-export function getIsCancelled(uid: string): boolean {
-  return cancelledUsers.has(uid);
+/** The user's current run generation — capture at run start. */
+export function getRunGeneration(uid: string): number {
+  return runGenerationByUser.get(uid) ?? 0;
 }
 
-export function resetCancelled(uid: string): void {
-  cancelledUsers.delete(uid);
+/** A run is cancelled once the generation it captured at start is stale. */
+export function getIsCancelled(uid: string, runGeneration: number): boolean {
+  return getRunGeneration(uid) !== runGeneration;
 }

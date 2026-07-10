@@ -68,4 +68,5 @@ export interface CongressTrade {
   filedDate: number;   // unix timestamp (seconds)
   url: string;
   isCompliant?: boolean; // filed within the STOCK Act 45-day disclosure window
+  ingestedAt?: number;   // unix seconds — when our pipeline first stored the filing; drives "new" detection
 }

@@ -173,10 +173,8 @@ async function consumeStream(
 import type { Verdict } from "@/types/news.types";
 import { getActiveModel, getModelKey } from "../lib/ai-config";
 import type { VaultStore } from "@/lib/vault/store";
-import { getVaultStore } from "@/lib/vault/store";
 import { withCloudSemaphore } from "../lib/classifier";
-import { SYSTEM_USER_ID } from "../lib/constants";
-import { buildCalibrationBlock, loadCalibrationReport, getConfidenceReliabilityFactor } from "./calibration";
+import { buildCalibrationBlock } from "./calibration";
 
 // ---------------------------------------------------------------------------
 // Analysis failure counters (exported for observability)
@@ -579,15 +577,15 @@ export async function analyzeStory(
       ? parsed.verdict
       : "HOLD") as Verdict;
 
+    // Model-stated confidence, unmodified. An earlier revision shrank this with
+    // getConfidenceReliabilityFactor — but that factor measures FORECAST outcomes,
+    // not news-verdict accuracy, and the shrunk values (~0.2–0.35) fed downstream
+    // into the forecaster prompt, whose FORECASTER.md thresholds (≥0.75 strong,
+    // ≤0.60 noise) then read every verdict as noise and killed the news channel.
+    // Confidence shrink belongs on the forecast output (lib/agent/forecast.ts),
+    // the domain the calibration data actually measures.
     const rawConfidence = typeof parsed.confidence === "number"
       ? Math.max(0, Math.min(1, parsed.confidence)) : FALLBACK_CONFIDENCE;
-    // Deterministically shrink overconfident buckets toward observed directional
-    // reliability. The advisory calibration text alone is unreliable with a cheap
-    // model, so we apply the correction to the output rather than trusting the LLM.
-    const reliabilityFactor = store
-      ? getConfidenceReliabilityFactor(await loadCalibrationReport(store), rawConfidence)
-      : 1;
-    const calibratedConfidence = Math.max(0, Math.min(1, rawConfidence * reliabilityFactor));
 
     // Neutral article recap. Trim defensively and cap length so a misbehaving
     // model can never dump the full article back into the Summary block.
@@ -598,7 +596,7 @@ export async function analyzeStory(
     analysisStats.succeeded++;
     return {
       verdict,
-      confidence: calibratedConfidence,
+      confidence: rawConfidence,
       summary: aiSummary,
       reason: parsed.reason ?? headline,
       sectorTags: Array.isArray(parsed.sector_tags) ? parsed.sector_tags : [],

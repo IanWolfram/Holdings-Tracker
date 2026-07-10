@@ -80,7 +80,5 @@ export const PREDICTIONS_LIMIT: RateLimitRule = { max: 120, windowMs: 60_000 };
 /** Coarse per-IP circuit breaker for the whole API surface (anti-flood, not anti-attacker). */
 export const IP_LIMIT: RateLimitRule = { max: 1200, windowMs: 60_000 };
 
-/** Minimum spacing between agent sweeps for one user (on top of single-flight). */
-export const SWEEP_COOLDOWN_MS = 5 * 60 * 1000;
 /** Max tickers analyzed in a single sweep (caps DeepSeek/Polygon spend per run). */
 export const SWEEP_MAX_TICKERS = 40;

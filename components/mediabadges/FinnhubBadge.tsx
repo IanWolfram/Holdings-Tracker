@@ -5,7 +5,7 @@ interface FinnhubBadgeProps {
 export default function FinnhubBadge({ iconOnly }: FinnhubBadgeProps) {
   return (
     <span className="bg-white/[0.04] border border-white/[0.12] px-1.5 py-0.5 rounded flex items-center gap-1">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
+      {/* Plain <img>: static 12px badge asset, next/image is overkill here. */}
       <img
         src="/finnhub-logo.png"
         alt="Finnhub"
