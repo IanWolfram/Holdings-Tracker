@@ -17,6 +17,10 @@ import { debug } from "../debug";
 const DEFAULT_TZ = "America/New_York";
 /** A claim older than this is considered stale (crashed mid-run) and reclaimable. */
 const STALE_LOCK_MS = 30 * 60 * 1000;
+/** A user whose last_seen_at is within this window counts as "on the app". */
+const ACTIVE_WINDOW_MS = 10 * 60 * 1000;
+/** Minimum gap between boosted story_backlog runs for an active user. */
+const BOOST_MIN_GAP_MS = 55 * 1000;
 
 interface AgentJobRow {
   id: string;
@@ -85,12 +89,55 @@ export async function runDueJobs(): Promise<number> {
     return 0;
   }
   const jobs = (due ?? []) as AgentJobRow[];
+
+  // Activity boost: users who are on the app right now (last_seen_at stamped by
+  // the positions poll via lib/activity.ts) get story analysis every tick
+  // instead of waiting for the */15 baseline cron, so a fresh story is analyzed
+  // within about a minute while they're watching.
+  const activeSince = new Date(Date.now() - ACTIVE_WINDOW_MS).toISOString();
+  const boostGap = new Date(Date.now() - BOOST_MIN_GAP_MS).toISOString();
+  const { data: active } = await sb
+    .from("user_activity")
+    .select("user_id")
+    .gte("last_seen_at", activeSince);
+  const activeIds = (active ?? []).map((r) => r.user_id as string);
+  if (activeIds.length > 0) {
+    const { data: boost, error: boostError } = await sb
+      .from("agent_jobs")
+      .select("id, user_id, kind, cron_expr")
+      .eq("enabled", true)
+      .eq("kind", "story_backlog")
+      .in("user_id", activeIds)
+      .or(`last_run_at.is.null,last_run_at.lt.${boostGap}`)
+      .or(`claimed_at.is.null,claimed_at.lt.${staleIso}`);
+    if (boostError) {
+      console.error("[job-runner] boost query failed:", boostError.message);
+    } else {
+      const seen = new Set(jobs.map((j) => j.id));
+      for (const job of (boost ?? []) as AgentJobRow[]) {
+        if (!seen.has(job.id)) jobs.push(job);
+      }
+    }
+  }
+
   if (jobs.length === 0) return 0;
 
   let ran = 0;
   for (const job of jobs) {
-    // Claim so an overlapping tick doesn't double-run it.
-    await sb.from("agent_jobs").update({ claimed_at: new Date().toISOString() }).eq("id", job.id);
+    // Claim atomically so an overlapping tick doesn't double-run it. Sweeps can
+    // outlast the 1-minute tick, so by the time this loop reaches a queued job
+    // another tick may have claimed or even finished it — the conditional
+    // update only succeeds if the job is still unclaimed (or stale) and hasn't
+    // run within the boost gap.
+    const gapIso = new Date(Date.now() - BOOST_MIN_GAP_MS).toISOString();
+    const { data: claimed } = await sb
+      .from("agent_jobs")
+      .update({ claimed_at: new Date().toISOString() })
+      .eq("id", job.id)
+      .or(`claimed_at.is.null,claimed_at.lt.${staleIso}`)
+      .or(`last_run_at.is.null,last_run_at.lt.${gapIso}`)
+      .select("id");
+    if (!claimed || claimed.length === 0) continue;
 
     let outcome: RunOutcome;
     try {

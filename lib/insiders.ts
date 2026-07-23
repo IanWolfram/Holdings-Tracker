@@ -1,6 +1,6 @@
 import type { CongressTrade } from "@/types/news.types";
 
-import { fetchCongressTrades, fetchRecentCongressTrades } from "./congress";
+import { fetchCongressTrades, fetchRecentCongressTrades, fetchCongressTradesByPolitician } from "./congress";
 
 /**
  * Ticker-scoped congressional trades — overlap with specific holdings/watchlist
@@ -18,4 +18,13 @@ export async function getHotTrades(portfolioTickers: string[] = []): Promise<Con
  */
 export async function getRecentHotTrades(limit?: number): Promise<CongressTrade[]> {
   return fetchRecentCongressTrades(limit);
+}
+
+/**
+ * All of a single politician's congressional trades by name — powers the Hot tab
+ * search and watchlist, which must surface a tracked person's filings even when
+ * they predate the recent discovery feed.
+ */
+export async function getTradesByPolitician(name: string): Promise<CongressTrade[]> {
+  return fetchCongressTradesByPolitician(name);
 }

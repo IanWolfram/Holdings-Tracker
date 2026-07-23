@@ -5,6 +5,7 @@ import { getServicesForUser } from "@/src/registry";
 import { requireUser } from "@/lib/auth/requireUser";
 import { fetchCompanyProfile } from "@/lib/company-profile";
 import { apiHandler } from "@/lib/api-handler";
+import { touchLastSeen } from "@/lib/activity";
 
 async function enrichWithHistory(positions: Position[]): Promise<Position[]> {
   const results = await Promise.allSettled(
@@ -42,6 +43,10 @@ async function enrichWithCompanyNames(positions: Position[]): Promise<Position[]
 export default apiHandler(["GET"], async (req, res: NextApiResponse<Position[] | { error: string }>) => {
   const user = await requireUser(req, res);
   if (!user) return;
+
+  // Presence signal: the dashboard polls this route, so it marks the user
+  // "active" for the worker's story-analysis cadence boost.
+  touchLastSeen(user.id);
 
   try {
     const { portfolioService } = await getServicesForUser(user.id);

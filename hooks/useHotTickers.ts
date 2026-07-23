@@ -84,7 +84,10 @@ export function useHotTickers() {
     [tickerNews, loadingNews]
   );
 
-  const newCongressCount = congressTrades.filter((trade) => trade.tradeDate * 1000 > lastSeenAt).length;
+  // "New" = newly disclosed since the user last opened the Hot tab. ingestedAt
+  // (when our pipeline first stored the filing) is the right signal — a brand-new
+  // disclosure can still carry an old trade/filed date. See useCongressTrades.
+  const newCongressCount = congressTrades.filter((trade) => (trade.ingestedAt ?? 0) * 1000 > lastSeenAt).length;
 
   return {
     hotTickers,

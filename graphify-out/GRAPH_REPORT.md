@@ -1,11 +1,11 @@
-# Graph Report - .  (2026-06-23)
+# Graph Report - .  (2026-07-09)
 
 ## Corpus Check
-- 304 files · ~223,396 words
+- 305 files · ~227,454 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1030 nodes · 1852 edges · 49 communities detected
+- 1042 nodes · 1879 edges · 51 communities detected
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
@@ -37,142 +37,142 @@
 
 ### Community 0 - "Community 0"
 Cohesion: 0.02
-Nodes (16): handleCancel(), handleKeyDown(), handleSubmit(), normalize(), resolveBrokerageBrand(), onKeyDown(), submit(), formatCountdown() (+8 more)
+Nodes (27): coerceAnalyzedAge(), isAnalyzedAge(), HttpAccountClient, FinnhubProvider, MapCache, NewsAPIProvider, PolygonProvider, getServices() (+19 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.04
-Nodes (54): fallbackProfile(), fetchCompanyProfile(), addDays(), dateKey(), fetchFinnhubEarnings(), getEventsSnapshot(), getFallbackMacroEvents(), getUpcomingEarnings() (+46 more)
+Cohesion: 0.02
+Nodes (11): handleCancel(), handleKeyDown(), handleSubmit(), onKeyDown(), submit(), NullBrokerProvider, SentryExampleFrontendError, PortfolioService (+3 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.03
-Nodes (19): coerceAnalyzedAge(), isAnalyzedAge(), HttpAccountClient, hasWhiteBackground(), keyLogo(), main(), normalizeKey(), computeNextRun() (+11 more)
+Cohesion: 0.05
+Nodes (11): findCountryAtLatLon(), pointInGeoPolygon(), pointInRing(), buildBoatModel(), buildPlaneModel(), cellLat(), cellLon(), clamp() (+3 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.04
-Nodes (13): CountryFocusPanel(), flagEmoji(), findCountryAtLatLon(), pointInGeoPolygon(), pointInRing(), buildBoatModel(), buildPlaneModel(), cellLat() (+5 more)
+Cohesion: 0.05
+Nodes (21): classifyNews(), findInVault(), keywordClassify(), ClassifierService, CountryFocusPanel(), flagEmoji(), dedupeStories(), jaccard() (+13 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.04
-Nodes (17): FinnhubProvider, MapCache, NewsAPIProvider, NullBrokerProvider, PolygonProvider, PortfolioService, mapRawPosition(), normalizeAcquiredDate() (+9 more)
-
-### Community 5 - "Community 5"
-Cohesion: 0.04
 Nodes (2): formatCurrency(), formatGainLoss()
 
-### Community 6 - "Community 6"
-Cohesion: 0.08
-Nodes (40): baselineFlat(), computeMetrics(), dateKey(), directionalReport(), fmt(), fmtDir(), main(), versionOf() (+32 more)
+### Community 5 - "Community 5"
+Cohesion: 0.07
+Nodes (33): buildCongressBlock(), runForecast(), dispatch(), runCongressJob(), runDueJobs(), runSweepJob(), tzForUser(), buildTickerKnowledge() (+25 more)
 
-### Community 7 - "Community 7"
+### Community 6 - "Community 6"
 Cohesion: 0.07
 Nodes (24): classifyTxType(), companyFromBuffer(), fetchBytes(), fetchHousePtrIndex(), fetchPtrDocument(), ingestHouse(), normalizeAmount(), parseHousePtr() (+16 more)
 
+### Community 7 - "Community 7"
+Cohesion: 0.08
+Nodes (15): effectiveDir(), main(), FsVaultStore, reconstructMarkdown(), serializeFrontmatter(), splitFrontmatter(), SupabaseVaultStore, appendVaultLog() (+7 more)
+
 ### Community 8 - "Community 8"
-Cohesion: 0.07
-Nodes (21): classifyNews(), findInVault(), keywordClassify(), ClassifierService, dispatch(), runCongressJob(), runDueJobs(), runSweepJob() (+13 more)
+Cohesion: 0.1
+Nodes (27): baselineFlat(), computeMetrics(), dateKey(), directionalReport(), fmt(), fmtDir(), main(), versionOf() (+19 more)
 
 ### Community 9 - "Community 9"
 Cohesion: 0.08
-Nodes (20): bar(), flag(), hr(), main(), renderStory(), tags(), analyzeStory(), buildCorrelatedHoldingsBlock() (+12 more)
+Nodes (10): normalize(), resolveBrokerageBrand(), formatCountdown(), getMarketStatus(), minutesFromMidnight(), nyParts(), fetchState(), schedule() (+2 more)
 
 ### Community 10 - "Community 10"
 Cohesion: 0.12
-Nodes (28): asRecord(), buildCalibrationBlock(), collectResolvedPredictions(), confidenceBucket(), createStats(), getConfidenceReliabilityFactor(), getPredictionCatalystTypes(), invalidateCalibrationCache() (+20 more)
+Nodes (30): asRecord(), buildCalibrationBlock(), buildCatalystCalibrationBlock(), catalystTrackRecordLines(), collectResolvedPredictions(), confidenceBucket(), createStats(), getConfidenceReliabilityFactor() (+22 more)
 
 ### Community 11 - "Community 11"
-Cohesion: 0.09
-Nodes (5): computeCompliant(), isoToUnixSeconds(), normalizeCompanyName(), readableAssetType(), rowToCongressTrade()
+Cohesion: 0.11
+Nodes (18): getHistory(), startPolygonFetch(), enqueuePolygon(), fetchCandlesPolygon(), fetchOHLCPolygon(), fetchPolygonNews(), computeAtr14(), computeRsi14() (+10 more)
 
 ### Community 12 - "Community 12"
-Cohesion: 0.14
-Nodes (23): clampConfidence(), createPredictionId(), loadLocalEnv(), magnitudeFromConfidence(), main(), parseFrontmatter(), readHeadline(), readReason() (+15 more)
+Cohesion: 0.09
+Nodes (6): computeCompliant(), isoToUnixSeconds(), normalizeCompanyName(), readableAssetType(), rowToCongressTrade(), timestampToUnixSeconds()
 
 ### Community 13 - "Community 13"
-Cohesion: 0.1
-Nodes (6): dailyGlowClass(), PositionCard(), calculateSentimentMetrics(), clamp01(), normalizeConfidence(), verdictToPolarity()
+Cohesion: 0.11
+Nodes (20): bar(), flag(), hr(), main(), renderStory(), tags(), analyzeStory(), buildCorrelatedHoldingsBlock() (+12 more)
 
 ### Community 14 - "Community 14"
 Cohesion: 0.14
-Nodes (17): buyRatio(), classifyMomentum(), loadAllNews(), loadSupplyChainSource(), logReturns(), parseFrontmatter(), pct(), pearson() (+9 more)
+Nodes (23): clampConfidence(), createPredictionId(), loadLocalEnv(), magnitudeFromConfidence(), main(), parseFrontmatter(), readHeadline(), readReason() (+15 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.14
-Nodes (3): FsVaultStore, splitFrontmatter(), SupabaseVaultStore
+Cohesion: 0.1
+Nodes (6): dailyGlowClass(), PositionCard(), calculateSentimentMetrics(), clamp01(), normalizeConfidence(), verdictToPolarity()
 
 ### Community 16 - "Community 16"
+Cohesion: 0.14
+Nodes (17): buyRatio(), classifyMomentum(), loadAllNews(), loadSupplyChainSource(), logReturns(), parseFrontmatter(), pct(), pearson() (+9 more)
+
+### Community 17 - "Community 17"
+Cohesion: 0.21
+Nodes (13): addDays(), dateKey(), fetchFinnhubEarnings(), getEventsSnapshot(), getFallbackMacroEvents(), getUpcomingEarnings(), uniqSortedTickers(), buildNoteContent() (+5 more)
+
+### Community 18 - "Community 18"
 Cohesion: 0.3
 Nodes (12): checksumSeed(), ensureLicensedOrTrial(), getLicensePath(), getLicenseStatus(), getUserDataPath(), isValidLicenseKeyFormat(), readLicenseState(), readState() (+4 more)
 
-### Community 17 - "Community 17"
+### Community 19 - "Community 19"
 Cohesion: 0.22
 Nodes (2): NewsService, withinWindow()
 
-### Community 18 - "Community 18"
+### Community 20 - "Community 20"
 Cohesion: 0.28
 Nodes (11): aggregateTickerBuyCountsLast30Days(), buildContradictionAlertContent(), detectClusteringAnomalies(), detectContradictions(), meanAbsCorrelationToPortfolio(), readSubagentPrompt(), resolveContradictionWithMetaAnalyst(), runAlertsPass() (+3 more)
 
-### Community 19 - "Community 19"
-Cohesion: 0.26
-Nodes (5): dedupeStories(), jaccard(), normalizeHeadline(), pickCanonical(), UnionFind
-
-### Community 20 - "Community 20"
-Cohesion: 0.25
-Nodes (6): analysisKey(), cancelStockAgent(), getAgentProgress(), getOrInitTickerAnalysis(), getTickerAnalysisProgress(), setTickerAnalysis()
-
 ### Community 21 - "Community 21"
+Cohesion: 0.17
+Nodes (0): 
+
+### Community 22 - "Community 22"
+Cohesion: 0.29
+Nodes (8): analysisKey(), cancelStockAgent(), getAgentProgress(), getIsCancelled(), getOrInitTickerAnalysis(), getRunGeneration(), getTickerAnalysisProgress(), setTickerAnalysis()
+
+### Community 23 - "Community 23"
+Cohesion: 0.27
+Nodes (4): fallbackProfile(), fetchCompanyProfile(), normalizeKey(), resolveCoordinates()
+
+### Community 24 - "Community 24"
 Cohesion: 0.33
 Nodes (5): daysAgo(), fetchFinnhubNews(), fetchQuote(), requireKey(), today()
 
-### Community 22 - "Community 22"
+### Community 25 - "Community 25"
 Cohesion: 0.44
 Nodes (7): appRootPath(), createMainWindow(), ensureUserDataConfigFiles(), iconPath(), parseEnvFile(), startNextServer(), userDataPath()
 
-### Community 23 - "Community 23"
+### Community 26 - "Community 26"
 Cohesion: 0.36
 Nodes (5): dotFillPolygon(), latLonToVector3(), processDots(), srgbToLinear(), verdictColor()
 
-### Community 24 - "Community 24"
+### Community 27 - "Community 27"
 Cohesion: 0.46
 Nodes (1): DiskCache
 
-### Community 25 - "Community 25"
-Cohesion: 0.29
-Nodes (0): 
-
-### Community 26 - "Community 26"
-Cohesion: 0.33
-Nodes (2): normalizeKey(), resolveCoordinates()
-
-### Community 27 - "Community 27"
+### Community 28 - "Community 28"
 Cohesion: 0.53
 Nodes (4): main(), migrateViaPg(), migrateViaSupabase(), walkDir()
 
-### Community 28 - "Community 28"
+### Community 29 - "Community 29"
 Cohesion: 0.6
 Nodes (5): ensureModeChosen(), getModePath(), promptForMode(), readMode(), writeMode()
 
-### Community 29 - "Community 29"
+### Community 30 - "Community 30"
 Cohesion: 0.7
 Nodes (4): computeHeuristicRelevance(), parseFrontmatter(), repairVault(), resolveVaultPath()
 
-### Community 30 - "Community 30"
+### Community 31 - "Community 31"
+Cohesion: 0.8
+Nodes (4): hasWhiteBackground(), keyLogo(), main(), normalizeKey()
+
+### Community 32 - "Community 32"
 Cohesion: 0.5
 Nodes (2): buildRelevanceProfile(), escapeRegex()
 
-### Community 31 - "Community 31"
+### Community 33 - "Community 33"
 Cohesion: 0.5
 Nodes (1): SentryExampleAPIError
 
-### Community 32 - "Community 32"
-Cohesion: 0.67
-Nodes (0): 
-
-### Community 33 - "Community 33"
-Cohesion: 1.0
-Nodes (0): 
-
 ### Community 34 - "Community 34"
-Cohesion: 1.0
+Cohesion: 0.67
 Nodes (0): 
 
 ### Community 35 - "Community 35"
@@ -231,54 +231,62 @@ Nodes (0):
 Cohesion: 1.0
 Nodes (0): 
 
+### Community 49 - "Community 49"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 50 - "Community 50"
+Cohesion: 1.0
+Nodes (0): 
+
 ## Knowledge Gaps
-- **Thin community `Community 33`** (2 nodes): `instrumentation.node.ts`, `register()`
+- **Thin community `Community 35`** (2 nodes): `instrumentation.node.ts`, `register()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 34`** (2 nodes): `FinnhubBadge.tsx`, `FinnhubBadge()`
+- **Thin community `Community 36`** (2 nodes): `FinnhubBadge.tsx`, `FinnhubBadge()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 35`** (2 nodes): `TopBarDivider.tsx`, `TopBarDivider()`
+- **Thin community `Community 37`** (2 nodes): `TopBarDivider.tsx`, `TopBarDivider()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 36`** (2 nodes): `flag-emoji.ts`, `flagEmoji()`
+- **Thin community `Community 38`** (2 nodes): `flag-emoji.ts`, `flagEmoji()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 37`** (2 nodes): `instrumentation.ts`, `register()`
+- **Thin community `Community 39`** (2 nodes): `instrumentation.ts`, `register()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 38`** (1 nodes): `sentry.server.config.ts`
+- **Thin community `Community 40`** (1 nodes): `sentry.server.config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 39`** (1 nodes): `electron-builder.config.js`
+- **Thin community `Community 41`** (1 nodes): `electron-builder.config.js`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 40`** (1 nodes): `next-env.d.ts`
+- **Thin community `Community 42`** (1 nodes): `next-env.d.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 41`** (1 nodes): `tailwind.config.ts`
+- **Thin community `Community 43`** (1 nodes): `tailwind.config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 42`** (1 nodes): `sentry.edge.config.ts`
+- **Thin community `Community 44`** (1 nodes): `sentry.edge.config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 43`** (1 nodes): `instrumentation-client.ts`
+- **Thin community `Community 45`** (1 nodes): `instrumentation-client.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 44`** (1 nodes): `next.config.ts`
+- **Thin community `Community 46`** (1 nodes): `next.config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 45`** (1 nodes): `global-error.tsx`
+- **Thin community `Community 47`** (1 nodes): `global-error.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 46`** (1 nodes): `PolygonBadge.tsx`
+- **Thin community `Community 48`** (1 nodes): `PolygonBadge.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 47`** (1 nodes): `modePreload.js`
+- **Thin community `Community 49`** (1 nodes): `modePreload.js`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 48`** (1 nodes): `licensePreload.js`
+- **Thin community `Community 50`** (1 nodes): `licensePreload.js`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `NewsService` connect `Community 17` to `Community 4`?**
+- **Why does `NewsService` connect `Community 19` to `Community 3`?**
   _High betweenness centrality (0.020) - this node is a cross-community bridge._
-- **Why does `FsVaultStore` connect `Community 15` to `Community 1`?**
-  _High betweenness centrality (0.017) - this node is a cross-community bridge._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.02 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.04 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.02 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
-  _Cohesion score 0.03 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05 - nodes in this community are weakly interconnected._
 - **Should `Community 3` be split into smaller, more focused modules?**
-  _Cohesion score 0.04 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05 - nodes in this community are weakly interconnected._
 - **Should `Community 4` be split into smaller, more focused modules?**
   _Cohesion score 0.04 - nodes in this community are weakly interconnected._
+- **Should `Community 5` be split into smaller, more focused modules?**
+  _Cohesion score 0.07 - nodes in this community are weakly interconnected._

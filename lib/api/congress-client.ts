@@ -44,3 +44,33 @@ export function fetchCongressTrades(tickers?: string[]): Promise<CongressTrade[]
   cache.set(key, { at: now, promise });
   return promise;
 }
+
+/**
+ * Fetch every congressional trade for a single politician by name. Used by the
+ * Hot tab search/watchlist so a tracked person's filings surface even when they
+ * predate the recent discovery feed. Coalesced + short-TTL cached like the feed;
+ * never rejects (failures resolve to []).
+ */
+export function fetchCongressTradesByPolitician(name: string): Promise<CongressTrade[]> {
+  const q = name.trim();
+  if (q.length < 2) return Promise.resolve([]);
+
+  const key = `p:${q.toLowerCase()}`;
+  const now = Date.now();
+  const hit = cache.get(key);
+  if (hit && now - hit.at < TTL_MS) return hit.promise;
+
+  const url = `/api/congress?politician=${encodeURIComponent(q)}`;
+  const promise = (async () => {
+    const res = await authedFetch(url);
+    if (!res.ok) return [];
+    const { trades } = (await res.json()) as { trades: CongressTrade[] };
+    return trades;
+  })().catch(() => {
+    cache.delete(key);
+    return [] as CongressTrade[];
+  });
+
+  cache.set(key, { at: now, promise });
+  return promise;
+}

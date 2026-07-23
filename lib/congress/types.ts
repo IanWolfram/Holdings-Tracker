@@ -32,6 +32,7 @@ export interface CongressTradeRow {
   comment: string | null;
   url: string;
   content_hash: string; // change-detection only — NOT a dedupe key (legit dup trades exist)
+  ingested_at?: string | null; // timestamptz, DB-default now(); present on reads, omitted by writers
 }
 
 /** Outcome of fetching+parsing one filing, recorded in `congress_ingest_log`. */

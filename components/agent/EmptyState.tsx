@@ -74,7 +74,7 @@ function GreetingStrip({ stats }: { stats: OverviewStats | null }) {
 
       <div style={{ display: "grid", gridAutoFlow: "column", gap: 0, alignSelf: "end", border: "1px solid var(--rule)", borderRadius: 8, overflow: "hidden" }}>
         <Stat label="DATE" value={dateLine.split(",")[0].toUpperCase()} sub={dateLine.split(",")[1]?.trim().toUpperCase()} />
-        <Stat label="S&P 500" value={spxVal} sub={spxSub} subColor={spxColor} />
+        <Stat label="S&P 500 · SPY" value={spxVal} sub={spxSub} subColor={spxColor} />
         <Stat label="BOOK" value={fmtMoney(stats?.bookValue ?? null)} sub={stats ? `${stats.holdingsCount} HOLDINGS` : ""} />
         <div style={{ padding: "10px 16px", background: "rgba(255,255,255,0.015)", minWidth: 110 }}>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, letterSpacing: "0.22em", color: "var(--ink-dimmer)", textTransform: "uppercase", marginBottom: 4 }}>QUEUE</div>

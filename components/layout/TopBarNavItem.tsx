@@ -56,8 +56,8 @@ export default function TopBarNavItem({
         {label}
       </span>
       {badge !== undefined && badge > 0 && (
-        <span className="absolute top-3 right-1 min-w-[16px] h-[16px] flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-black px-1 leading-none animate-pulse">
-          {badge > 99 ? "99+" : badge}
+        <span className="absolute top-2 -right-2 h-[15px] flex items-center rounded-full bg-red-500 text-white text-[8.5px] font-black px-1.5 leading-none tracking-wide uppercase animate-pulse">
+          {badge > 99 ? "99+" : badge} new
         </span>
       )}
       {active && (

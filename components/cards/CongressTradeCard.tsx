@@ -127,15 +127,14 @@ function CongressDetailPanel({
             <div
               className={compact ? "rounded-[3px] p-1.5" : "rounded-[4px] p-2"}
               style={{
-                background: "rgba(10,12,18,0.7)",
+                background: "rgba(24, 16, 8, 0.85)", // deep brown — matches card theme
                 border: "1px solid rgba(255,255,255,0.06)",
-                borderTop: `1px solid ${tradeColor}20`,
               }}
             >
               {/* Header: label + STOCK Act compliance flag */}
               <div className="flex items-center justify-between mb-2.5">
                 <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">
-                  Disclosure
+                  Disclosed
                 </span>
                 {compliant !== undefined && (
                   <span
@@ -152,8 +151,7 @@ function CongressDetailPanel({
               </div>
 
               {/* Disclosure delay — how long after the trade it was filed */}
-              <div className="flex justify-between items-center gap-2 mb-2.5">
-                <span className="text-[9px] text-slate-500 shrink-0">Disclosed</span>
+              <div className="flex items-center mb-2.5">
                 <span
                   className="text-[10px] font-mono px-1.5 py-0.5 rounded truncate"
                   style={{ color: delayColor, background: `${delayColor}14` }}
@@ -232,7 +230,11 @@ export default function CongressTradeCard({
     if (!pinned) setExpanded(false);
   };
 
-  const timeAgo = formatDistanceToNow(new Date(trade.tradeDate * 1000), { addSuffix: true });
+  // Show time since disclosure (filed) — the feed's "news" event — and the date
+  // the list is ordered by. Falls back to the trade date if a filing date is
+  // missing. (traded_date can carry future option dates → misleading "in N months".)
+  const headlineDate = (trade.filedDate || trade.tradeDate) * 1000;
+  const timeAgo = formatDistanceToNow(new Date(headlineDate), { addSuffix: true });
   const tradeLabel = TRADE_LABEL[trade.tradeType] ?? "TRADE";
   const tradeColor = TRADE_COLOR[trade.tradeType] ?? "#64748b";
   const partyColor = PARTY_COLOR[trade.party] ?? "#6b7280";
@@ -244,7 +246,7 @@ export default function CongressTradeCard({
       interactive
       cornerRadius={CARD_RADIUS}
       className="relative cursor-pointer group/item rounded-[8px]"
-      style={{ color: EDGE_BROWN }}
+      style={{ color: EDGE_BROWN, border: "none" }}
       onClick={() => window.open(trade.url, "_blank")}
     >
       <div

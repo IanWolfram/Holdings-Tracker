@@ -22,7 +22,11 @@ const WORLD_PROFILES: Record<string, { name: string; ticker: string; countryCode
 // 24-hour in-memory cache — company profiles barely change
 // ---------------------------------------------------------------------------
 
-const profileCache = new Map<string, { data: CompanyProfile; expiresAt: number }>();
+// `hqResolved` records whether HQ-coordinate resolution has already been
+// attempted for this entry. A fast centroid-only fetch (resolveHqCoords:false)
+// stores `false`, so a later globe request can still upgrade it to precise
+// coords instead of being permanently short-circuited by the cache.
+const profileCache = new Map<string, { data: CompanyProfile; expiresAt: number; hqResolved: boolean }>();
 const PROFILE_TTL_MS = 24 * 60 * 60 * 1000;
 
 // ---------------------------------------------------------------------------
@@ -82,7 +86,12 @@ export async function fetchCompanyProfile(
   { resolveHqCoords = false }: { resolveHqCoords?: boolean } = {}
 ): Promise<CompanyProfile | null> {
   const cached = profileCache.get(ticker);
-  if (cached && Date.now() < cached.expiresAt) return cached.data;
+  // Serve from cache unless the caller wants HQ coords and this entry was only
+  // built from a fast (centroid-only) fetch — in that case fall through so the
+  // Polygon HQ lookup can run and upgrade the coordinates.
+  if (cached && Date.now() < cached.expiresAt && (!resolveHqCoords || cached.hqResolved)) {
+    return cached.data;
+  }
 
   const key = process.env.FINNHUB_API_KEY;
   if (!key) {
@@ -178,8 +187,15 @@ export async function fetchCompanyProfile(
     lon: hqCoords?.lon ?? coords.lon,
   };
 
-  profileCache.set(ticker, { data: profile, expiresAt: Date.now() + PROFILE_TTL_MS });
-  
+  // `hqResolved` is true when we have precise coords (TICKER_COORDS or Polygon)
+  // OR when this call attempted resolution but Polygon had nothing — either way
+  // there's no point re-running the rate-limited lookup for 24h.
+  profileCache.set(ticker, {
+    data: profile,
+    expiresAt: Date.now() + PROFILE_TTL_MS,
+    hqResolved: !!hqCoords || resolveHqCoords,
+  });
+
   // If we found new precision coords via Polygon, cache them in the automated bucket
   if (hqCoords && !TICKER_COORDS[ticker]) {
     automatedProfileCache.set(ticker, { data: profile, expiresAt: Date.now() + AUTOMATED_TTL_MS });

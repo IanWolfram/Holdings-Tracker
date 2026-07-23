@@ -20,7 +20,7 @@ interface UseGlobeSceneParams {
   worldData: WorldData | null;
   relevanceThreshold: number;
   onCountryHover: (code: string | null) => void;
-  onStockHover?: (ticker: string | null) => void;
+  onStockHover?: (ticker: string | null, coLocated?: string[]) => void;
   onFocusClick: (target: GlobeFocusTarget) => void;
   isFocused: boolean;
   focusedTicker?: string | null;

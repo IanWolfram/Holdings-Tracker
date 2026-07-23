@@ -55,7 +55,10 @@ function srgbToLinear(c: number): number {
 }
 
 function verdictColor(verdict: "BUY" | "SELL" | "HOLD" | null): [number, number, number] {
-  let hex = 0x2d5238;
+  // Resting green for countries with no active verdict. Brightened from the
+  // old 0x2d5238 so the country outline is clearly visible on its own now that
+  // the duplicate state-border overlay is gone.
+  let hex = 0x328c5a;
   if (verdict === "BUY") hex = 0x00ff88;
   else if (verdict === "SELL") hex = 0xff4444;
   else if (verdict === "HOLD") hex = 0x64748b;
@@ -103,7 +106,10 @@ self.onmessage = (e) => {
     const verdict = showVerdict ? (state?.netVerdict ?? null) : null;
 
     const [r_base, g_base, b_base] = verdictColor(verdict);
-    const opacity = verdict !== null ? 1.0 : 0.82;
+    // Resting (no-verdict) borders are drawn at full opacity too so the single
+    // country outline reads brightly on its own (see verdictColor: the null
+    // case uses a brighter resting green than before).
+    const opacity = 1.0;
     const radius = verdict !== null ? 1.002 : 1.001;
     const r = r_base * opacity;
     const g = g_base * opacity;
@@ -143,10 +149,15 @@ self.onmessage = (e) => {
   }
 
   // ── State lines ────────────────────────────────────────────────────────────
+  // Disabled: US state outlines (us-states.geojson) trace the same national
+  // boundary as the country border (countries.geojson) but from a different,
+  // lower-resolution dataset, so they rendered as a second offset line beside
+  // the country border. Flip to `true` to bring internal state borders back.
+  const RENDER_STATE_BORDERS = false;
   const stateLinePositions: number[] = [];
   const stateLineColors: number[] = [];
 
-  if (stateGeoJSON) {
+  if (RENDER_STATE_BORDERS && stateGeoJSON) {
     const hex = 0x3a5a41; // Brighter for state lines
     const opacity = 0.62; // Increased from 0.28
     const sr = srgbToLinear((hex >> 16 & 255) / 255) * opacity;

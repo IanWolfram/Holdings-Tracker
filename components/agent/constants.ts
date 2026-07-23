@@ -70,5 +70,5 @@ export const SCAN_DEFINITIONS: ScanDefinition[] = [
   { kind: "earnings_watch", name: "Earnings watch", cadence: "Every weekday · 06:30 ET", coverage: "Holdings", defaultNote: "Not yet enabled — turn on to track upcoming reports." },
   { kind: "concentration_risk", name: "Concentration & risk", cadence: "Every Monday · 08:00 ET", coverage: "Portfolio-wide", defaultNote: "Not yet enabled — turn on for weekly concentration checks." },
   { kind: "congress", name: "Congressional disclosures", cadence: "Hourly · STOCK Act filings", coverage: "Watchlist + holdings", defaultNote: "Not yet enabled — turn on to watch new filings." },
-  { kind: "story_backlog", name: "Story analysis backlog", cadence: "Every 15 min · triggered by feed", coverage: "All feeds", defaultNote: "Not yet enabled — turn on to process queued stories." },
+  { kind: "story_backlog", name: "Story analysis", cadence: "Auto · every 15 min · every minute while you're active", coverage: "All feeds", defaultNote: "On by default — analyzes new stories for your holdings automatically." },
 ];

@@ -12,9 +12,15 @@ export async function register() {
     // Schedule the Node-only crons (prediction resolution, recalibration,
     // congress ingest, agent jobs) AFTER hydration so they see real secrets.
     // instrumentation.node.ts is not auto-loaded by Next — without this import
-    // none of those crons ever run.
-    const { register: registerNodeCrons } = await import("../instrumentation.node");
-    await registerNodeCrons();
+    // none of those crons ever run. Set PULSE_CRONS=off when the headless
+    // worker (scripts/worker.ts) owns the schedules, so a UI server doesn't
+    // arm a duplicate copy.
+    if (process.env.PULSE_CRONS !== "off") {
+      const { register: registerNodeCrons } = await import("../instrumentation.node");
+      await registerNodeCrons();
+    } else {
+      console.info("[instrumentation] PULSE_CRONS=off — crons disabled (headless worker owns them)");
+    }
   } else if (process.env.NEXT_RUNTIME === "edge") {
     await import("../sentry.edge.config");
   }

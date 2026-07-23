@@ -1,4 +1,3 @@
-import { fetchStooqQuote } from "./stooq";
 import { fetchCandlesPolygon } from "./polygon";
 import { NEWS_CACHE_TTL_MS, ACCOUNT_CACHE_TTL_MS, FINNHUB_BASE_URL, API_TIMEOUT_MS } from "./constants";
 import type { QuoteData, HistoryData } from "@/types/market-data.types";
@@ -17,19 +16,9 @@ export async function getBasicQuote(ticker: string): Promise<QuoteData | null> {
     return cached.data;
   }
 
-  // Primary: Stooq (no API key required)
-  try {
-    const data = await fetchStooqQuote(ticker);
-    quoteCache.set(ticker, { data, expiresAt: Date.now() + NEWS_CACHE_TTL_MS });
-    return data;
-  } catch (err) {
-    console.warn(
-      `[market-data] Stooq failed for ${ticker}:`,
-      (err as Error).message
-    );
-  }
-
-  // Fallback: Finnhub quote endpoint (if API key is configured)
+  // Primary: Finnhub quote endpoint (60 calls/min free tier). Stooq used to be
+  // the keyless primary here but its CSV endpoint was removed (404s for every
+  // symbol as of 2026-07).
   const finnhubKey = process.env.FINNHUB_API_KEY;
   if (finnhubKey) {
     try {
@@ -67,7 +56,7 @@ export async function getBasicQuote(ticker: string): Promise<QuoteData | null> {
       }
     } catch (err) {
       console.warn(
-        `[market-data] Finnhub fallback failed for ${ticker}:`,
+        `[market-data] Finnhub quote failed for ${ticker}:`,
         (err as Error).message
       );
     }

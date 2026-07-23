@@ -28,6 +28,8 @@ export default function WorldPage() {
   const { proposedEntries } = useProposedPositions(heldTickers);
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
   const [hoveredTicker, setHoveredTicker] = useState<string | null>(null);
+  // All tickers stacked at the hovered marker's location (includes hoveredTicker).
+  const [hoveredCoLocated, setHoveredCoLocated] = useState<string[]>([]);
   // Ticker hovered from inside the country focus panel's logo row. Kept
   // separate from globe-driven `hoveredTicker` so panel hover and map hover
   // never feed back into each other; it highlights the marker's octahedron.
@@ -153,8 +155,9 @@ export default function WorldPage() {
     if (!isFocused) setHoveredCountry(code);
   }, [isFocused]);
 
-  const handleStockHover = useCallback((ticker: string | null) => {
+  const handleStockHover = useCallback((ticker: string | null, coLocated?: string[]) => {
     setHoveredTicker(ticker);
+    setHoveredCoLocated(ticker ? (coLocated ?? [ticker]) : []);
   }, []);
 
   const hoveredState: CountryState | null =
@@ -402,6 +405,7 @@ export default function WorldPage() {
           loading={loading}
           hoveredState={hoveredState}
           hoveredTicker={hoveredTicker}
+          hoveredCoLocated={hoveredCoLocated}
           isFocused={isFocused}
           mousePos={mousePos}
           worldData={worldData}

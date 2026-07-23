@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { authedFetch } from "@/lib/api/client-fetch";
+import { openConnectionPortal } from "@/lib/snaptrade/open-portal";
 import { useAccountSettings } from "@/hooks/useAccountSettings";
 import { useAccount } from "@/hooks/useAccount";
 import { CACHE_STEPS } from "./primitives";
@@ -117,9 +118,8 @@ export function useAccountPanelLogic({ onClose }: AccountPanelLogicParams) {
       if (res.ok && data.redirectURI) {
         // Open the SnapTrade connection portal; refresh status when the user
         // returns to the app (portal opens in a new tab).
-        const win = window.open(data.redirectURI, "_blank", "noopener,noreferrer");
+        openConnectionPortal(data.redirectURI);
         window.addEventListener("focus", () => refreshSnapTradeStatus(), { once: true });
-        if (!win) window.location.href = data.redirectURI;
       } else {
         window.alert(data.error ?? "Could not start SnapTrade connection.");
       }

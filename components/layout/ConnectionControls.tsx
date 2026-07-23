@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { authedFetch } from "@/lib/api/client-fetch";
 import { resolveBrokerageBrand } from "@/lib/brokerages/brand";
+import { openConnectionPortal } from "@/lib/snaptrade/open-portal";
 
 interface ConnectionControlsProps {
   isConnected: boolean;
@@ -35,8 +36,7 @@ export default function ConnectionControls({
       }
       // Open the SnapTrade connection portal in a new tab; clear the connecting
       // flag when the user returns (the parent polls status to pick up the link).
-      const win = window.open(data.redirectURI, "_blank", "noopener,noreferrer");
-      if (!win) window.location.href = data.redirectURI;
+      openConnectionPortal(data.redirectURI);
       window.addEventListener("focus", () => setIsConnecting(false), { once: true });
     } catch {
       setError("Network error");

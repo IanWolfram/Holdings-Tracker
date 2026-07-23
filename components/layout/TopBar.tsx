@@ -6,7 +6,6 @@ import AccountPanel from "@/components/layout/AccountPanel";
 import AccountSummary from "@/components/layout/AccountSummary";
 import ConnectionControls from "@/components/layout/ConnectionControls";
 import TopBarNavItem from "@/components/layout/TopBarNavItem";
-import AgentTrigger from "@/components/triggers/AgentTrigger";
 import { useCalibrationStatus } from "@/hooks/useCalibrationStatus";
 import { useCongressTrades } from "@/hooks/useCongressTrades";
 import { useMarketStatus } from "@/hooks/useMarketStatus";
@@ -170,11 +169,8 @@ export default function TopBar({
 
         {/* ── Unified status rail ── */}
         <div className="nav-rail flex items-stretch h-full rounded-[14px] overflow-hidden border border-white/10">
-          {/* agent sweep — base layer */}
-          <AgentTrigger />
-
           {/* market status + live clock */}
-          <div className="relative z-10 -ml-3 flex flex-col justify-center gap-0.75 pl-3.5 pr-5 rounded-l-[14px] border-l border-white/10 bg-[#131316]">
+          <div className="relative z-10 flex flex-col justify-center gap-0.75 pl-3.5 pr-5 rounded-l-[14px] bg-[#131316]">
             <div className="flex items-center gap-2">
               <span
                 className={`w-1.5 h-1.5 rounded-full ${MARKET_STATE_DOT[market.state]} ${

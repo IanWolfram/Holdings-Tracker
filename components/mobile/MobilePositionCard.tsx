@@ -16,10 +16,14 @@ interface MobilePositionCardProps {
 export default function MobilePositionCard({ position, stories }: MobilePositionCardProps) {
   const { ticker, description, marketValue, currentPrice, pricePaid, gainLoss } = position;
 
-  const buy = stories.filter((s) => s.verdict === "BUY").length;
-  const sell = stories.filter((s) => s.verdict === "SELL").length;
-  const hold = stories.filter((s) => s.verdict === "HOLD").length;
-  
+  // Only count stories that were actually analyzed (isAnalyzed === true) — every
+  // ClassifiedStory carries a placeholder verdict before analysis, so counting
+  // raw verdicts would fold in pending stories and overstate the sentiment.
+  const analyzedStories = stories.filter((s) => s.isAnalyzed === true);
+  const buy = analyzedStories.filter((s) => s.verdict === "BUY").length;
+  const sell = analyzedStories.filter((s) => s.verdict === "SELL").length;
+  const hold = analyzedStories.filter((s) => s.verdict === "HOLD").length;
+
   const total = buy + sell;
   const verdictScore = total > 0 ? buy / total : (hold > 0 ? FALLBACK_CONFIDENCE : FALLBACK_CONFIDENCE);
   const isBullish = verdictScore > FALLBACK_CONFIDENCE;

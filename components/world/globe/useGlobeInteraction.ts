@@ -36,7 +36,7 @@ interface UseGlobeInteractionParams {
   focusZoomRef: MutableRefObject<number>;
   localHitRef: MutableRefObject<THREE.Vector3 | null>;
   onFocusClickRef: MutableRefObject<(target: GlobeFocusTarget) => void>;
-  onStockHoverRef: MutableRefObject<((ticker: string | null) => void) | undefined>;
+  onStockHoverRef: MutableRefObject<((ticker: string | null, coLocated?: string[]) => void) | undefined>;
   onCountryHoverRef: MutableRefObject<(code: string | null) => void>;
   countryFocusOverridesRef: MutableRefObject<Record<
     string,
@@ -272,15 +272,21 @@ export function useGlobeInteraction({
           return _n.dot(_d) > 0.1;
         }
       );
-      const ticker =
+      const hitMarker =
         markerHits.length > 0 && markerHits[0].instanceId !== undefined
-          ? hqMarkersRef.current[markerHits[0].instanceId]?.ticker ?? null
+          ? hqMarkersRef.current[markerHits[0].instanceId] ?? null
           : null;
+      const ticker = hitMarker?.ticker ?? null;
       hoveredMarkerTickerRef.current = ticker;
 
       if (ticker !== prevHoveredTickerRef.current) {
         prevHoveredTickerRef.current = ticker;
-        onStockHoverRef.current?.(ticker);
+        // Co-located markers share a `clusterPeers` list; emit it so the label
+        // can list every stacked ticker. Lone markers report just themselves.
+        const coLocated = hitMarker
+          ? (hitMarker.clusterPeers.length > 0 ? hitMarker.clusterPeers : [hitMarker.ticker])
+          : undefined;
+        onStockHoverRef.current?.(ticker, coLocated);
         if (ticker) {
           if (hoverClearTimerRef.current) {
             clearTimeout(hoverClearTimerRef.current);

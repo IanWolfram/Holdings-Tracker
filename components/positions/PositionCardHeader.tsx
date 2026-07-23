@@ -456,7 +456,13 @@ export default function PositionCardHeader({
       <div
         className={`${
           compact ? "px-[9px] py-[5px]" : "px-4 py-2"
-        } border-t-2 border-white/30 bg-black/[0.35]`} 
+        } bg-black/[0.35]`}
+        style={{
+          borderTop: "2px solid transparent",
+          borderImage:
+            "linear-gradient(90deg, transparent 0%, rgba(148,163,184,0.55) 50%, transparent 100%) 1",
+          boxShadow: "inset 0 1px 12px -6px rgba(148,163,184,0.45)",
+        }}
       >
         <SentimentBar
           buy={buy}

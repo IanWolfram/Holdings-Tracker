@@ -35,6 +35,13 @@ function isoToUnixSeconds(iso: string | null): number {
   return Number.isFinite(ms) ? Math.floor(ms / 1000) : 0;
 }
 
+/** Parse a full timestamptz (e.g. `ingested_at`) to unix seconds. */
+function timestampToUnixSeconds(ts: string | null | undefined): number {
+  if (!ts) return 0;
+  const ms = Date.parse(ts);
+  return Number.isFinite(ms) ? Math.floor(ms / 1000) : 0;
+}
+
 function readableAssetType(row: CongressTradeRow): string {
   const raw = row.asset_type;
   if (!raw) return "Stock";
@@ -89,6 +96,7 @@ function rowToCongressTrade(row: CongressTradeRow): CongressTrade {
     filedDate: isoToUnixSeconds(row.filed_date),
     url: row.url,
     isCompliant: computeCompliant(row.traded_date, row.filed_date),
+    ingestedAt: timestampToUnixSeconds(row.ingested_at),
   };
 }
 
@@ -129,14 +137,51 @@ export async function fetchRecentCongressTrades(
   client?: SupabaseClient,
 ): Promise<CongressTrade[]> {
   const supabase = client ?? createServiceClient();
+  // Order by disclosure date (filed_date) — the "news" event a congress-trade
+  // feed is really about — so newly-disclosed filings surface at the top.
+  // traded_date is a poor sort key here (some filings carry future option dates).
   const { data, error } = await supabase
     .from("congress_trades")
     .select("*")
+    .order("filed_date", { ascending: false, nullsFirst: false })
     .order("traded_date", { ascending: false, nullsFirst: false })
     .limit(limit);
 
   if (error) {
     console.error("[congress/index] recent read failed:", error.message);
+    return [];
+  }
+  return (data as CongressTradeRow[]).map(rowToCongressTrade);
+}
+
+/**
+ * Read a single politician's congressional trades by name (case-insensitive
+ * substring), most-recent first. Powers the Hot tab politician search/watchlist,
+ * which must surface a tracked person's filings even when they fall outside the
+ * recent discovery window (`fetchRecentCongressTrades`). Same degrade-to-empty
+ * contract as the others.
+ */
+export async function fetchCongressTradesByPolitician(
+  name: string,
+  limit = DEFAULT_LIMIT,
+  client?: SupabaseClient,
+): Promise<CongressTrade[]> {
+  const q = name.trim();
+  if (q.length < 2) return [];
+
+  // Escape LIKE metacharacters so a name with % or _ is matched literally.
+  const escaped = q.replace(/[\\%_]/g, (c) => `\\${c}`);
+
+  const supabase = client ?? createServiceClient();
+  const { data, error } = await supabase
+    .from("congress_trades")
+    .select("*")
+    .ilike("politician", `%${escaped}%`)
+    .order("traded_date", { ascending: false, nullsFirst: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("[congress/index] politician read failed:", error.message);
     return [];
   }
   return (data as CongressTradeRow[]).map(rowToCongressTrade);

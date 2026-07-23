@@ -205,8 +205,34 @@ export class FsVaultStore implements VaultStore {
 
 // ── Supabase implementation (multi-tenant / Cloud Mode) ──
 
+/** PostgREST caps a single select at 1,000 rows; page in chunks of this size. */
+const SUPABASE_PAGE_SIZE = 1000;
+
 export class SupabaseVaultStore implements VaultStore {
   constructor(private userId: string) {}
+
+  /**
+   * Select every row matching a path prefix, paging past PostgREST's 1,000-row
+   * cap. Ordered by path so pages are stable; without this, prefixes holding
+   * more than 1,000 notes (e.g. news/) silently lose an arbitrary subset.
+   */
+  private async selectAllByPrefix<T>(columns: string, prefix: string): Promise<T[]> {
+    const supabase = createServiceClient();
+    const rows: T[] = [];
+    for (let from = 0; ; from += SUPABASE_PAGE_SIZE) {
+      const { data, error } = await supabase
+        .from("vault_notes")
+        .select(columns)
+        .eq("user_id", this.userId)
+        .like("path", `${prefix}%`)
+        .order("path", { ascending: true })
+        .range(from, from + SUPABASE_PAGE_SIZE - 1);
+      if (error || !data) break;
+      rows.push(...(data as T[]));
+      if (data.length < SUPABASE_PAGE_SIZE) break;
+    }
+    return rows;
+  }
 
   async read(p: string): Promise<string | null> {
     const supabase = createServiceClient();
@@ -243,14 +269,7 @@ export class SupabaseVaultStore implements VaultStore {
   }
 
   async list(prefix: string): Promise<string[]> {
-    const supabase = createServiceClient();
-    const { data, error } = await supabase
-      .from("vault_notes")
-      .select("path")
-      .eq("user_id", this.userId)
-      .like("path", `${prefix}%`);
-
-    if (error || !data) return [];
+    const data = await this.selectAllByPrefix<{ path: string }>("path", prefix);
     // Strip prefix and return just the next path segment (filename or first dir)
     const seen = new Set<string>();
     return data.map((row) => {
@@ -300,15 +319,13 @@ export class SupabaseVaultStore implements VaultStore {
   }
 
   async listNotes(prefix: string): Promise<VaultNote[]> {
-    const supabase = createServiceClient();
-    // Use startsWith for prefix matching — handles both "news/" and "news"
-    const { data, error } = await supabase
-      .from("vault_notes")
-      .select("id, path, body, frontmatter, updated_at")
-      .eq("user_id", this.userId)
-      .like("path", `${prefix}%`);
-
-    if (error || !data) return [];
+    const data = await this.selectAllByPrefix<{
+      id: string;
+      path: string;
+      body: string;
+      frontmatter: unknown;
+      updated_at: string;
+    }>("id, path, body, frontmatter, updated_at", prefix);
     return data.map((row) => ({
       id: row.id,
       path: row.path,

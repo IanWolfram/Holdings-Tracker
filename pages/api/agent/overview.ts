@@ -2,7 +2,7 @@ import type { NextApiResponse } from "next";
 import { requireUser } from "@/lib/auth/requireUser";
 import { getServicesForUser } from "@/src/registry";
 import { apiHandler } from "@/lib/api-handler";
-import { BROWSER_USER_AGENT, API_TIMEOUT_MS } from "@/lib/constants";
+import { getBasicQuote } from "@/lib/market-data";
 
 interface OverviewResponse {
   bookValue: number | null;
@@ -11,25 +11,15 @@ interface OverviewResponse {
   queueCount: number | null;
 }
 
-// Fetch the S&P 500 index level from Stooq (^spx). The shared getBasicQuote
-// pipeline forces a ".us" equity suffix, so it can't resolve index symbols.
+// S&P 500 proxy via the SPY ETF through the shared quote pipeline (Finnhub).
+// Stooq's index CSV endpoint (^spx) is gone, and Finnhub's free tier doesn't
+// serve raw index symbols — SPY tracks the index tick-for-tick in percent
+// terms, and the UI labels the stat as SPY.
 async function fetchSpxIndex(): Promise<OverviewResponse["spx"]> {
   try {
-    const res = await fetch("https://stooq.com/q/l/?s=^spx&f=sd2t2ohlcv&h&e=csv", {
-      headers: { "User-Agent": BROWSER_USER_AGENT, Accept: "text/csv,text/plain,*/*" },
-      next: { revalidate: 0 },
-      signal: AbortSignal.timeout(API_TIMEOUT_MS),
-    });
-    if (!res.ok) return null;
-    const lines = (await res.text()).trim().split("\n");
-    if (lines.length < 2) return null;
-    // Header: Symbol,Date,Time,Open,High,Low,Close,Volume
-    const v = lines[1].split(",");
-    const open = parseFloat(v[3]);
-    const close = parseFloat(v[6]);
-    if (Number.isNaN(close) || close === 0) return null;
-    const changePercent = open > 0 ? ((close - open) / open) * 100 : 0;
-    return { value: close, changePercent };
+    const quote = await getBasicQuote("SPY");
+    if (!quote || !quote.currentPrice) return null;
+    return { value: quote.currentPrice, changePercent: quote.changePercent };
   } catch {
     return null;
   }

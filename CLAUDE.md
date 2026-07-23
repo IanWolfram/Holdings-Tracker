@@ -45,8 +45,11 @@ npm run world:graph       # CLI: rebuild the world knowledge graph
 npm run backfill          # CLI: backfill calibration from historical predictions
 npm run recalibrate       # CLI: recompute sector rules from calibration (--apply to write)
 npm run compare:forecasters  # CLI: A/B production vs. shadow forecaster versions
-npm run pm2:start | pm2:status | pm2:logs | pm2:restart | pm2:stop
+npm run worker            # CLI: headless cron worker (all 4 crons, no Next/UI) — see docs/headless-worker.md
+npm run pm2:start | pm2:prod | pm2:dev | pm2:deploy | pm2:worker | pm2:status | pm2:logs | pm2:restart | pm2:stop
 ```
+
+**Crons run in exactly one process.** `scripts/worker.ts` (pm2 app `pulse-worker`) is the intended 24/7 cron host; any Next boot also arms the crons unless `PULSE_CRONS=off` is set (the pm2 `pulse`/`pulse-dev` UI apps set it). The UI runs as `pulse` (production build) or `pulse-dev` (hot reload) — mutually exclusive on :3000, toggled from the SwiftBar menu (`scripts/menubar/pulse.15s.sh`) or `npm run pm2:prod`/`pm2:dev`; ship changes to prod with `npm run pm2:deploy`. Details in `docs/headless-worker.md`.
 
 No test framework is configured. There are no test commands.
 
@@ -112,7 +115,7 @@ Finnhub / Polygon / NewsAPI ──→ NewsService ──→ /api/news?ticker=X �
 
 ### Market-data layer (`lib/marketdata/`)
 
-- **`prices.ts`** — daily OHLC bars and detailed quotes via **Polygon** (`getDailyBars`, `getDetailedQuote`, `computeAtr14`). (`lib/stooq.ts` provides lightweight quotes used by `lib/market-data.ts`.)
+- **`prices.ts`** — daily OHLC bars and detailed quotes via **Polygon** (`getDailyBars`, `getDetailedQuote`, `computeAtr14`). (`lib/market-data.ts` `getBasicQuote` serves lightweight quotes via Finnhub — Stooq, the former keyless primary, shut down its CSV endpoint in 2026-07 and was removed.)
 - **`volatility.ts`** — ATR/flat-band math and bar lookup helpers (`findBarOnOrAfter`, `flatBandFromBars`) used to score predictions.
 - **`macro.ts` / `events.ts`** — macro snapshot and earnings/event context fed into the forecaster.
 
@@ -126,7 +129,7 @@ A self-scoring directional-forecast loop. The agent emits dated predictions, the
 - **`world-brain/calibration.ts`** — `updateCalibration()` aggregates resolved outcomes into `calibration.json`; drives confidence/sector adjustments.
 - **`world-brain/resolve-all.ts`** — multi-tenant batch resolution; resolves every user's eligible predictions from their prediction files (works even without a linked brokerage).
 - **`lib/agent/sweep.ts`** — `runStockAgent()` orchestrates a full sweep: resolve prior predictions → analyze news → forecast each ticker across all horizons.
-- **`instrumentation.node.ts`** — two crons: **daily prediction resolution** (22:00 UTC, after US close) and **monthly recalibration** (02:00 UTC on the 1st, then runs `scripts/recalibrate.ts --apply`).
+- **`instrumentation.node.ts`** — four crons: **daily prediction resolution** (22:00 UTC, after US close), **monthly recalibration** (02:00 UTC on the 1st, then runs `scripts/recalibrate.ts --apply`), **daily congress ingest** (03:00 UTC), and **per-user agent jobs** (every minute; `story_backlog` is enabled by default for every user — 15-min baseline, boosted to every minute for users active in the last 10 min per `user_activity.last_seen_at`, stamped by `/api/positions` via `lib/activity.ts`). Hosted 24/7 by the headless worker (`scripts/worker.ts`, pm2 `pulse-worker`); Next boots also arm them unless `PULSE_CRONS=off`.
 - Surfaced via `pages/api/predictions.ts` and `pages/api/calibration-status.ts`.
 
 ### SnapTrade secret storage
@@ -145,7 +148,7 @@ A self-scoring directional-forecast loop. The agent emits dated predictions, the
 ### UI
 
 - App Router pages: `/terminal` (default; root redirects here), `/world` (3D globe), `/hot`, `/agent`, plus `app/(auth)/*`.
-- **`TopBar`** — sticky header; nav tabs **Terminal / World / Hot / Agent**, market-status indicator, refresh, and the `AgentTrigger` sweep control.
+- **`TopBar`** — sticky header; nav tabs **Terminal / World / Hot / Agent**, market-status indicator, and refresh. (The manual sweep button was removed — story analysis is automatic via the `story_backlog` job; the `/agent` page keeps a manual run control.)
 - **`PositionCard`** — per-ticker market value, P/L, proportional BUY/SELL/HOLD verdict bar, expandable news feed.
 - **`NewsCard`** — Framer Motion card with physics-based SVG borders reacting to mouse proximity.
 - **3D globe** (`components/world/`) — three.js globe with per-country sentiment; hooks in `components/world/globe/`.

@@ -17,7 +17,6 @@ const FORWARD = new THREE.Vector3(0, 0, 1);
 const _trackUp = new THREE.Vector3();
 const _trackQuat = new THREE.Quaternion();
 const TRACK_ZOOM = 1.7;
-let _labelTicker: string | null = null;
 let _svgMountRect: DOMRect | null = null;
 let _svgMountRectTs = 0;
 let _svgAnchorRect: DOMRect | null = null;
@@ -104,7 +103,12 @@ export function animateGlobe(
       const prevHoverT = ms.hoverT;
       const prevSepT = ms.separationT;
       const prevFocusT = ms.focusT;
-      const isHovered = ms.ticker === hoveredMarkerTicker;
+      // Hovering any marker in a co-located cluster activates the whole cluster,
+      // so every stacked marker raises its diamond (and gets labeled) at once
+      // instead of only the single one directly under the cursor.
+      const isHovered =
+        ms.ticker === hoveredMarkerTicker ||
+        (hoveredMarkerTicker !== null && ms.clusterPeers.includes(hoveredMarkerTicker));
       const isFocusedMarker = ms.ticker === focusedTicker;
       const effectiveVisible = ms.isProposed ? showProposed && ms.visible : ms.visible;
       ms.hoverT += ((isHovered ? 1 : 0) - ms.hoverT) * 0.14;
@@ -185,46 +189,32 @@ export function animateGlobe(
     }
   }
 
-  // Hover/focus label positioning
-  const activeTicker = hoveredMarkerTicker ?? focusedTicker;
-  if (hoveredMarkerTicker) {
-    _labelTicker = hoveredMarkerTicker;
-  } else if (!focusedTicker) {
-    // only clear when neither hover nor focus is active
-  }
-  const labelTicker = activeTicker ?? _labelTicker;
-  const labelMs = labelTicker
-    ? hqMarkers.find((m) => m.ticker === labelTicker)
-    : null;
-  const labelEl = document.getElementById("marker-hover-label");
-  const labelOpacity = labelMs
-    ? (labelMs.ticker === focusedTicker ? 1 : labelMs.hoverT)
-    : 0;
-  if (labelEl && labelMs && labelOpacity > 0.01) {
-    if (labelMs.spreadOffset) {
-      const labelSpreadT = Math.max(labelMs.focusT, labelMs.separationT);
-      _hoverBasePos
-        .copy(labelMs.basePos)
-        .addScaledVector(labelMs.spreadOffset, labelSpreadT);
-    } else {
-      _hoverBasePos.copy(labelMs.basePos);
+  // Per-marker hover/focus labels: one label element positioned above each
+  // octahedron, so co-located markers each get their own abbreviation above
+  // their own diamond instead of a single stacked list.
+  const labelRect = mount.getBoundingClientRect();
+  for (const ms of hqMarkers) {
+    const labelEl = document.getElementById(`marker-hover-label-${ms.ticker}`);
+    if (!labelEl) continue;
+    const labelOpacity = ms.ticker === focusedTicker ? 1 : ms.hoverT;
+    if (labelOpacity <= 0.01) {
+      labelEl.style.opacity = "0";
+      continue;
     }
-    _hoverWorldPos
-      .copy(_hoverBasePos)
-      .addScaledVector(labelMs.outward, 0.05);
+    if (ms.spreadOffset) {
+      const labelSpreadT = Math.max(ms.focusT, ms.separationT);
+      _hoverBasePos.copy(ms.basePos).addScaledVector(ms.spreadOffset, labelSpreadT);
+    } else {
+      _hoverBasePos.copy(ms.basePos);
+    }
+    _hoverWorldPos.copy(_hoverBasePos).addScaledVector(ms.outward, 0.05);
     globeGroup.localToWorld(_hoverWorldPos);
     _hoverWorldPos.project(camera);
-    const rect = mount.getBoundingClientRect();
-    const sx = rect.left + ((_hoverWorldPos.x + 1) / 2) * rect.width;
-    const sy = rect.top + ((-_hoverWorldPos.y + 1) / 2) * rect.height;
+    const sx = labelRect.left + ((_hoverWorldPos.x + 1) / 2) * labelRect.width;
+    const sy = labelRect.top + ((-_hoverWorldPos.y + 1) / 2) * labelRect.height;
     if (isFinite(sx) && isFinite(sy)) {
       labelEl.style.transform = `translate(${Math.round(sx)}px, ${Math.round(sy - 6)}px) translate(-50%, -100%)`;
       labelEl.style.opacity = String(labelOpacity);
-    }
-  } else if (labelEl) {
-    labelEl.style.opacity = "0";
-    if (labelOpacity <= 0.01 && !focusedTicker) {
-      _labelTicker = null;
     }
   }
 

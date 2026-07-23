@@ -83,10 +83,22 @@ export default function PositionCard({
     targetShares,
   } = position;
 
-  const buy = stories.filter((s) => s.verdict === "BUY").length;
-  const sell = stories.filter((s) => s.verdict === "SELL").length;
-  const hold = stories.filter((s) => s.verdict === "HOLD").length;
-  const sentimentMetrics = useMemo(() => calculateSentimentMetrics(stories), [stories]);
+  // AI CONVICTION / story counts must reflect only stories that were actually
+  // analyzed (DeepSeek run, isAnalyzed === true) — the same set the feed renders
+  // as "analyzed". Every ClassifiedStory carries a placeholder `verdict` even
+  // before analysis, so counting raw verdicts would fold pending/WAITING stories
+  // into the sentiment and contradict the feed (esp. on proposed/watchlist cards).
+  const analyzedStories = useMemo(
+    () => stories.filter((s) => s.isAnalyzed === true),
+    [stories]
+  );
+  const buy = analyzedStories.filter((s) => s.verdict === "BUY").length;
+  const sell = analyzedStories.filter((s) => s.verdict === "SELL").length;
+  const hold = analyzedStories.filter((s) => s.verdict === "HOLD").length;
+  const sentimentMetrics = useMemo(
+    () => calculateSentimentMetrics(analyzedStories),
+    [analyzedStories]
+  );
 
   const gainPositive = gainLoss >= 0;
   const gainPct = pricePaid > 0 ? ((currentPrice - pricePaid) / pricePaid) * 100 : 0;
@@ -133,7 +145,7 @@ export default function PositionCard({
       layout
       layoutId={ticker}
       cornerRadius={POSITION_R}
-      className={`relative flex flex-col group shadow-2xl transition-all duration-300 ${compact ? "min-h-[440px]" : "min-h-[520px]"}${isProposed ? " glass-edge-proposed" : ""}`}
+      className={`relative flex flex-col group shadow-2xl transition-all duration-300${isProposed ? " glass-edge-proposed" : ""}`}
       style={{
         backgroundColor: frosted ? "rgba(8, 13, 9, 0.92)" : "rgba(0, 0, 0, 0.6)",
         backdropFilter: frosted
@@ -216,6 +228,7 @@ export default function PositionCard({
           sourceOrder={SOURCE_ORDER}
           sourcePriority={SOURCE_PRIORITY}
           agentState={agentState}
+          isTickerAnalyzing={isTickerAnalyzing}
           prediction={prediction}
           allPredictions={allPredictions}
           resolvedStats={resolvedStats}

@@ -79,11 +79,14 @@ async function refreshWorldData(
   }
 
   // ── 1. Fetch all company profiles in parallel (24h cached, fast) ─────────
+  // Deliberately WITHOUT resolveHqCoords: the Polygon HQ lookup is serialized
+  // at POLYGON_RATE_MS (13–26s each), so resolving it inline blocked the first
+  // cold /api/world response for tens of seconds per novel ticker. Profiles
+  // come back with country-centroid coords immediately; step 5b upgrades them
+  // to precise HQ coords in the background.
   const profileEntries = await Promise.all(
     positions.map(async (p) => {
-      // Globe needs precise HQ coordinates, so opt into the Polygon lookup
-      // (rate-limited via the shared queue).
-      const prof = await fetchCompanyProfile(p.ticker, { resolveHqCoords: true }).catch(() => null);
+      const prof = await fetchCompanyProfile(p.ticker).catch(() => null);
       return prof ? ([p.ticker, prof] as [string, CompanyProfile]) : null;
     })
   );
@@ -131,17 +134,6 @@ async function refreshWorldData(
     }
   }
 
-  // ── 3. Write individual story notes to Obsidian vault ────────────────────
-  if (allGeoStories.length > 0 && !opts?.mock) {
-    const store = await getVaultStore(opts?.userId ?? SYSTEM_USER_ID);
-    await Promise.all(
-      allGeoStories.map((story) => {
-        const sector = profiles[story.ticker]?.sector;
-        return writeStoryNote(story, store, sector ?? undefined);
-      })
-    );
-  }
-
   // ── 4. Build country states ───────────────────────────────────────────────
   const countries: Record<string, CountryState> = {};
 
@@ -187,12 +179,49 @@ async function refreshWorldData(
   const data: WorldData = { countries, profiles, fetchedAt: Date.now() };
   worldCache = { data, expiresAt: Date.now() + WORLD_CACHE_TTL_MS };
 
-  // Write daily summary
+  // ── 5. Persist story notes + daily summary (fire-and-forget) ─────────────
+  // Pure side-effects the globe UI never reads, so they must not block the
+  // /api/world response. Awaiting them added a Supabase upsert per story plus a
+  // daily-summary write to every cold-cache request.
   if (allGeoStories.length > 0 && !opts?.mock) {
-    const today = new Date().toISOString().split("T")[0];
-    const store = await getVaultStore(opts?.userId ?? SYSTEM_USER_ID);
-    await writeDailySummary(today, allGeoStories, store, data);
+    const userId = opts?.userId ?? SYSTEM_USER_ID;
+    void (async () => {
+      try {
+        const store = await getVaultStore(userId);
+        await Promise.all(
+          allGeoStories.map((story) => {
+            const sector = profiles[story.ticker]?.sector;
+            return writeStoryNote(story, store, sector ?? undefined);
+          })
+        );
+        const today = new Date().toISOString().split("T")[0];
+        await writeDailySummary(today, allGeoStories, store, data);
+      } catch (err) {
+        console.error("[world-data] Vault persistence failed:", err);
+      }
+    })();
   }
+
+  // ── 5b. Refine HQ coordinates in the background (Polygon, rate-limited) ───
+  // Upgrades country-centroid coords to precise company HQ coords without
+  // blocking the response. Mutates the cached `profiles` in place so the next
+  // client poll/revalidation serves precise marker positions. After the first
+  // pass the per-ticker profile cache is warm (hqResolved=true), so subsequent
+  // rebuilds short-circuit here with no Polygon calls.
+  void (async () => {
+    try {
+      for (const p of positions) {
+        const refined = await fetchCompanyProfile(p.ticker, { resolveHqCoords: true }).catch(() => null);
+        const existing = profiles[p.ticker];
+        if (refined && existing) {
+          existing.lat = refined.lat;
+          existing.lon = refined.lon;
+        }
+      }
+    } catch (err) {
+      console.error("[world-data] HQ coordinate refinement failed:", err);
+    }
+  })();
 
   // ── 6. Kick off background world-brain enrichment (non-blocking) ──────────
   if (process.env.ENABLE_BACKGROUND_ENRICHMENT === "true" && !enrichmentLock) {

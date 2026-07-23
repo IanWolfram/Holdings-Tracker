@@ -10,25 +10,32 @@ import type { AgentProgress } from "@/lib/agent/service";
 export default function PendingNewsCard({
   story,
   agentState,
+  tickerAnalyzing = false,
   compact = process.env.NEXT_PUBLIC_UI_MODE === "compact",
 }: {
   story: ClassifiedStory;
   agentState?: AgentProgress;
+  /** True while a per-ticker "Analyze stories" run is processing this ticker's
+   *  backlog. The sweep can't tell us which exact headline is current, so the
+   *  whole pending stack lights up as "Analyzing…" for the ticker. */
+  tickerAnalyzing?: boolean;
   compact?: boolean;
 }) {
   const [progress, setProgress] = useState(0);
 
-  // Exact match: this specific headline is under the microscope right now
+  // Active analysis: either the streaming sweep is on this exact headline, or a
+  // per-ticker "Analyze stories" run is working through this ticker's backlog.
   const isBeingAnalyzed =
-    agentState?.status === "running" &&
-    agentState?.ticker === story.ticker &&
-    agentState?.currentHeadline === story.headline;
+    tickerAnalyzing ||
+    (agentState?.status === "running" &&
+      agentState?.ticker === story.ticker &&
+      agentState?.currentHeadline === story.headline);
 
-  // Coarser match: the agent is running on this ticker (stories queued)
+  // Coarser match: a full sweep is running on this ticker (stories queued)
   const isTickerQueued =
+    !isBeingAnalyzed &&
     agentState?.status === "running" &&
-    agentState?.ticker === story.ticker &&
-    !isBeingAnalyzed;
+    agentState?.ticker === story.ticker;
 
   // Live progress while being analyzed
   useEffect(() => {
@@ -62,7 +69,9 @@ export default function PendingNewsCard({
     if (isBeingAnalyzed) return "Analyzing...";
     if (isTickerQueued) return `In Queue`;
     if (agentState?.status === "running") return "Waiting";
-    return "Run Agent ↑";
+    // Idle: the always-on worker analyzes this automatically — there is no
+    // manual "Run Agent" button on the terminal anymore, so say "Queued".
+    return "Queued";
   })();
 
   const statusColor = isBeingAnalyzed ? "#00FF88" : isTickerQueued ? "#94a3b8" : "#64748b";

@@ -59,9 +59,11 @@ export async function register() {
   }, { timezone: "UTC" });
 
   // Per-user scheduled agent jobs (the `agent_jobs` table behind the "Watching
-  // for you" scan toggles). Ticks every 5 minutes; runDueJobs() runs only jobs
-  // whose next_run_at has arrived, so this is a cheap no-op most ticks.
-  cron.schedule("*/5 * * * *", async () => {
+  // for you" scan toggles, including the on-by-default story analysis). Ticks
+  // every minute so the activity boost in runDueJobs() can analyze new stories
+  // within ~1 min for users who are on the app; runDueJobs() runs only jobs
+  // that are due or boosted, so this is a cheap no-op most ticks.
+  cron.schedule("* * * * *", async () => {
     try {
       const { runDueJobs } = await import("./lib/agent/job-runner");
       const ran = await runDueJobs();
@@ -72,5 +74,5 @@ export async function register() {
   }, { timezone: "UTC" });
 
   globalState._recalibrateCronScheduled = true;
-  console.info("[recalibrate-cron] Scheduled: monthly recalibration (2am UTC, 1st) + daily prediction resolution (22:00 UTC) + daily congress ingest (03:00 UTC) + per-user agent jobs (every 5 min)");
+  console.info("[recalibrate-cron] Scheduled: monthly recalibration (2am UTC, 1st) + daily prediction resolution (22:00 UTC) + daily congress ingest (03:00 UTC) + per-user agent jobs (every minute)");
 }

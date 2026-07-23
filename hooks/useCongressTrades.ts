@@ -20,7 +20,10 @@ export function useCongressTrades(pathname: string) {
       // Shares the coalesced recent-feed request with the other congress hooks.
       const trades = await fetchCongressTrades();
       const lastSeen = Number(localStorage.getItem(LS_KEY) ?? "0");
-      const unseen = trades.filter((trade) => trade.tradeDate * 1000 > lastSeen).length;
+      // "New" = newly disclosed/ingested since the user last opened the Hot tab.
+      // ingestedAt (when our pipeline first stored the filing) is the right signal:
+      // trade/filed dates can be old even for a brand-new disclosure.
+      const unseen = trades.filter((trade) => (trade.ingestedAt ?? 0) * 1000 > lastSeen).length;
       setBadgeCount(unseen);
     };
 

@@ -27,9 +27,13 @@ export function computeNextRun(cronExpr: string, tz: string): Date | null {
     if (parts.length !== 5) return null;
 
     const now = new Date();
-    // Try next 48 hours to find the next match
-    for (let i = 1; i <= 288; i++) {
-      const candidate = new Date(now.getTime() + i * 10 * 60 * 1000);
+    // Scan minute-by-minute for the next 48 hours. (A coarser step silently
+    // misses schedules whose minute doesn't align with the step — e.g. a
+    // 10-minute scan from :04 never lands on a */15 minute, returning null and
+    // killing the job's schedule.)
+    for (let i = 1; i <= 48 * 60; i++) {
+      const candidate = new Date(now.getTime() + i * 60 * 1000);
+      candidate.setSeconds(0, 0);
       if (matchesCron(parts, candidate)) {
         return candidate;
       }

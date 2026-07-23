@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { authedFetch } from "@/lib/api/client-fetch";
+import { openConnectionPortal } from "@/lib/snaptrade/open-portal";
 
 // First-run activation surface. The single most important step for a new user is
 // connecting a brokerage — that's what turns Pulse from a demo into *their*
@@ -49,10 +50,9 @@ export default function FirstRunOnboarding() {
       const res = await authedFetch("/api/snaptrade/connect", { method: "POST" });
       const data = await res.json();
       if (res.ok && data.redirectURI) {
-        const win = window.open(data.redirectURI, "_blank", "noopener,noreferrer");
+        openConnectionPortal(data.redirectURI);
         // Re-check connection when the user returns from the portal tab.
         window.addEventListener("focus", () => refresh(), { once: true });
-        if (!win) window.location.href = data.redirectURI;
       } else {
         window.alert(data.error ?? "Could not start the brokerage connection.");
       }

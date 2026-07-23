@@ -56,6 +56,7 @@ interface WorldOverlaysProps {
   loading: boolean;
   hoveredState: CountryState | null;
   hoveredTicker: string | null;
+  hoveredCoLocated: string[];
   isFocused: boolean;
   mousePos: { x: number; y: number };
   worldData: WorldData | null;
@@ -73,6 +74,7 @@ export default function WorldOverlays({
   loading,
   hoveredState,
   hoveredTicker,
+  hoveredCoLocated,
   isFocused,
   mousePos,
   worldData,
@@ -120,6 +122,7 @@ export default function WorldOverlays({
 
       <CubeHoverLabel
         hoveredTicker={hoveredTicker}
+        coLocatedTickers={hoveredCoLocated}
         profile={hoveredTicker && worldData?.profiles[hoveredTicker] ? worldData.profiles[hoveredTicker] : null}
         focusedTicker={focusTarget?.type === "stock" ? focusTarget.ticker : null}
       />

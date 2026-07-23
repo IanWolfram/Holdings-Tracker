@@ -1,5 +1,5 @@
 import type { NextApiResponse } from "next";
-import { getHotTrades, getRecentHotTrades } from "@/lib/insiders";
+import { getHotTrades, getRecentHotTrades, getTradesByPolitician } from "@/lib/insiders";
 import { requireUser } from "@/lib/auth/requireUser";
 import { getServicesForUser } from "@/src/registry";
 import type { CongressTrade } from "@/types/news.types";
@@ -28,8 +28,9 @@ export default apiHandler(["GET"], async (req, res: NextApiResponse<CongressResp
       typeof req.query.tickers === "string"
         ? req.query.tickers.split(",").map(t => t.trim().toUpperCase()).filter(Boolean)
         : [];
+    const politician = typeof req.query.politician === "string" ? req.query.politician.trim() : "";
 
-    const cacheKey = `${user.id}|${[...requested].sort().join(",")}`;
+    const cacheKey = `${user.id}|${[...requested].sort().join(",")}|p:${politician.toLowerCase()}`;
     const now = Date.now();
     const hit = responseCache.get(cacheKey);
     if (hit && now - hit.at < RESPONSE_CACHE_TTL_MS) {
@@ -37,7 +38,11 @@ export default apiHandler(["GET"], async (req, res: NextApiResponse<CongressResp
     }
 
     let trades: CongressTrade[];
-    if (requested.length > 0) {
+    if (politician) {
+      // Name-scoped read (Hot tab search / watchlist): every filing for a
+      // specific person, regardless of recency — independent of holdings.
+      trades = await getTradesByPolitician(politician);
+    } else if (requested.length > 0) {
       // Ticker-scoped read (dashboard / watchlist): union the explicitly
       // requested tickers with the user's holdings, de-duped.
       const { portfolioService } = await getServicesForUser(user.id);

@@ -28,6 +28,9 @@ interface PositionCardNewsFeedProps {
   sourceOrder: readonly string[];
   sourcePriority: Record<string, number>;
   agentState?: AgentProgress;
+  /** True while a per-ticker analysis (the card's "Analyze stories" button) is
+   *  running for this ticker — drives the pending cards' live progress state. */
+  isTickerAnalyzing?: boolean;
   prediction?: TickerPrediction | null;
   allPredictions?: TickerPrediction[];
   resolvedStats?: { total: number; correct: number };
@@ -45,6 +48,7 @@ export default function PositionCardNewsFeed({
   sourceOrder,
   sourcePriority,
   agentState,
+  isTickerAnalyzing = false,
   allPredictions,
   resolvedStats,
   compact = false,
@@ -112,7 +116,8 @@ export default function PositionCardNewsFeed({
       key: "pending",
       count: pendingStories.length,
       stackVariant:
-        agentState?.status === "running" && agentState?.ticker === ticker
+        isTickerAnalyzing ||
+        (agentState?.status === "running" && agentState?.ticker === ticker)
           ? "queued"
           : "pending",
       badge: (
@@ -135,6 +140,7 @@ export default function PositionCardNewsFeed({
           key={`${story.ticker}-${story.source}-${story.datetime}-${story.headline}`}
           story={story}
           agentState={agentState}
+          tickerAnalyzing={isTickerAnalyzing}
         />
       )),
     });
@@ -181,18 +187,54 @@ export default function PositionCardNewsFeed({
         open={showPredictions}
         onToggle={togglePredictions}
       />
-      {/* News region — fixed height (the card is sized via items-stretch to the
-          tallest card in its row). Stacks live INLINE in a flex column: opening
-          one makes it flex-1 (it grows into the slack below the previews) while
-          its siblings translate to their new positions on the same spring, so
-          the open stack visibly shoves its neighbours away. Because exactly one
-          child grows inside a fixed-height container, the sum — and therefore
-          the card height — never changes. The prediction panel still overlays
-          (it's a full-region swap, not a stack-among-stacks). */}
+      {/* News region — its height comes ONLY from the invisible in-flow sizer
+          below: flex intrinsic sizing ignores min-h-0, so the sizer's height
+          deliberately leaks into the card (and, via the grid's items-stretch,
+          the row). The sizer always renders the CLOSED-state previews, so the
+          card hugs its collapsed content with no dead space — and since it
+          ignores openStack/showPredictions, no interaction can move the card
+          height. Everything the user actually sees/clicks lives in the
+          absolute layers, which contribute zero intrinsic height. */}
       <div className="relative overflow-hidden flex-1 min-h-0">
-        <div className={`h-full ${showPredictions ? "invisible" : ""}`} aria-hidden={showPredictions || undefined}>
+        {/* In-flow height sizer — invisible, inert twin of the closed-state
+            column. Mirrors GlassContainer's border-t/padding and the stack gap
+            exactly so the interactive layer lines up 1:1 over it. */}
+        <div
+          inert
+          aria-hidden="true"
+          className={`invisible border-t border-transparent ${compact ? "p-2 pb-6" : "p-3 pb-7"}`}
+        >
+          {!hasContent ? (
+            <EmptyState
+              icon="candlestick_chart"
+              headline="No recent news"
+              sub="Refresh or check back later"
+              variant="neutral"
+            />
+          ) : (
+            <div className={`flex flex-col ${compact ? "gap-2" : "gap-3"}`}>
+              {stacks.map((s) => (
+                <NewsCollapsible
+                  key={s.key}
+                  badge={s.badge}
+                  count={s.count}
+                  stackVariant={s.stackVariant}
+                >
+                  {s.cards}
+                </NewsCollapsible>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className={`absolute inset-0 ${showPredictions ? "invisible" : ""}`} aria-hidden={showPredictions || undefined}>
         <GlassContainer className={`h-full ${compact ? "p-2 pb-6" : "p-3 pb-7"} border-t border-white/[0.05]`}>
-          <div className="flex flex-col overflow-x-hidden h-full">
+          {/* Collapsed: overflow-hidden on BOTH axes — overflow-x-hidden alone
+              forces overflow-y to compute to `auto`, which made this fixed-height
+              column scrollable (native scrollbar) when stacks overflowed.
+              Open: overflow must stay visible — the ExpandedStack overlay bleeds
+              past this padded column (negative insets) to cover the container's
+              padding edge-to-edge; the region wrapper's overflow-hidden clips it. */}
+          <div className={`flex flex-col h-full ${openStack === null ? "overflow-hidden" : ""}`}>
           {loading && !hasContent && (
             <EmptyState
               icon="progress_activity"
@@ -286,13 +328,12 @@ export default function PositionCardNewsFeed({
 }
 
 // Inline expanded stack — no panel/backdrop of its own. The scroll container is
-// ABSOLUTELY positioned (inset-0): it contributes ~0 intrinsic height, so the
-// card never grows from the open stack's content (the grid stretches every card
-// in a row to the tallest, so in-flow cards here would balloon the whole row).
-// INSIDE it, the cards flow normally between two STICKY translucent glass bars —
-// cards slide *behind* the frosted glass as they scroll, and when they don't
-// overflow the bottom bar simply hugs the last card instead of floating below a
-// dead gap (the original bug).
+// ABSOLUTELY positioned: it contributes ~0 intrinsic height, so the card never
+// grows from the open stack's content (the grid stretches every card in a row
+// to the tallest, so in-flow cards here would balloon the whole row). Two
+// translucent glass bars are pinned absolutely OVER it (top/bottom) — cards
+// slide *behind* the frosted glass as they scroll, and the bars never move,
+// even during rubber-band overscroll (sticky bars would ride the bounce).
 function ExpandedStack({
   badge,
   cards,
@@ -304,14 +345,14 @@ function ExpandedStack({
   compact: boolean;
   onClose: () => void;
 }) {
-  // Frosted glass — strong blur + a mostly-opaque dark tint so news cards
-  // scrolling behind the bars dissolve into a soft blur instead of staying
-  // legible. Kept just translucent enough to read as glass, not a solid bar.
+  // Frosted glass — moderate blur + a light dark tint: cards scrolling behind
+  // soften without the bar reading as a near-solid block. Enough contrast
+  // remains for the badge/chevron to stay legible.
   const barStyle: React.CSSProperties = {
-    backdropFilter: "blur(30px) saturate(140%)",
-    WebkitBackdropFilter: "blur(30px) saturate(140%)",
+    backdropFilter: "blur(14px) saturate(140%)",
+    WebkitBackdropFilter: "blur(14px) saturate(140%)",
     background:
-      "linear-gradient(to bottom, rgba(20,20,26,0.82) 0%, rgba(20,20,26,0.7) 100%)",
+      "linear-gradient(to bottom, rgba(20,20,26,0.45) 0%, rgba(20,20,26,0.35) 100%)",
   };
 
   return (
@@ -320,10 +361,27 @@ function ExpandedStack({
       animate={{ opacity: 1 }}
       className="relative h-full min-h-0"
     >
+      {/* Negative insets mirror the GlassContainer padding (p-3 pb-7 / compact
+          p-2 pb-6) so the glass bars sit flush against the grey region's edges
+          instead of floating inside its padding. Still ~0 intrinsic height
+          (absolute), so the card never grows. The bars are absolute SIBLINGS of
+          the scroll container, not sticky children — sticky bars ride along
+          with macOS rubber-band overscroll and expose the background; pinned
+          siblings stay immovable while only the cards bounce behind them. */}
       <div
-        className="absolute inset-0 overflow-y-auto overscroll-contain [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
+        className={`absolute ${
+          compact ? "-inset-x-2 -top-2 -bottom-6" : "-inset-x-3 -top-3 -bottom-7"
+        }`}
       >
-        {/* Top translucent glass bar — sticks to the top; cards scroll behind it.
+        <div className="absolute inset-0 overflow-y-auto overscroll-contain [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+          {/* py-9 = bar height (h-7) + the old 8px gap, so cards rest clear of
+              the pinned bars. Card gutter absorbs the container padding the
+              overlay bleeds over (old container padding + old px) so the cards
+              keep their inset while only the glass bars go full-bleed. */}
+          <div className={`space-y-2 py-9 ${compact ? "px-3" : "px-4.5"}`}>{cards}</div>
+        </div>
+
+        {/* Top translucent glass bar — pinned to the top; cards scroll behind it.
             `layout` keeps it scale-corrected during the parent's grow. MUST sit
             above the cards (z-30): NewsCard's physics-border layer is itself
             z-10, so a z-10 bar tied with it and the later-in-DOM cards painted
@@ -334,7 +392,7 @@ function ExpandedStack({
           layout
           onClick={onClose}
           aria-label="Collapse stack"
-          className="sticky top-0 z-30 w-full h-7 px-2.5 flex items-center justify-between gap-2 group/col transition-colors hover:bg-white/[0.05] rounded-t-[8px]"
+          className="absolute top-0 inset-x-0 z-30 h-7 px-2.5 flex items-center justify-between gap-2 group/col transition-colors hover:bg-white/[0.05]"
           style={{ ...barStyle, boxShadow: "inset 0 -1px 0 0 rgba(255,255,255,0.06)" }}
         >
           <span className="flex items-center gap-1.5 min-w-0">{badge}</span>
@@ -343,14 +401,12 @@ function ExpandedStack({
           </span>
         </motion.button>
 
-        <div className={`space-y-2 py-2 ${compact ? "px-1" : "px-1.5"}`}>{cards}</div>
-
-        {/* Bottom translucent glass bar — sticks to the bottom; cards scroll behind. */}
+        {/* Bottom translucent glass bar — pinned to the bottom; cards scroll behind. */}
         <motion.button
           layout
           onClick={onClose}
           aria-label="Collapse stack"
-          className="sticky bottom-0 z-30 w-full h-7 px-2.5 flex items-center justify-center group/col2 transition-colors hover:bg-white/[0.05] rounded-b-[8px]"
+          className="absolute bottom-0 inset-x-0 z-30 h-7 px-2.5 flex items-center justify-center group/col2 transition-colors hover:bg-white/[0.05]"
           style={{ ...barStyle, boxShadow: "inset 0 1px 0 0 rgba(255,255,255,0.06)" }}
         >
           <span className="material-symbols-outlined text-[16px] text-slate-500 group-hover/col2:text-slate-300 transition-colors">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import TopBar from "@/components/layout/TopBar";
 import PositionCard from "@/components/cards/PositionCard";
 import AddProposedCard from "@/components/cards/AddProposedCard";
@@ -93,6 +93,70 @@ export default function DesktopDashboard({
     [allPositions]
   );
 
+  // Index of the first proposed card in the merged grid (held positions come
+  // first, so it sits at positions.length). -1 when there's nothing to divide
+  // (no held positions, or no proposed positions).
+  const firstProposedIndex =
+    positions.length > 0 && allPositions.length > positions.length
+      ? positions.length
+      : -1;
+
+  // Vertical divider between the last real position and the first proposed one.
+  // We measure the live grid so the line only appears when the first proposed
+  // card is mid-row — if it wraps to the start of a new row, there's nothing to
+  // divide and we hide it. Geometry is relative to the (position: relative) grid.
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [divider, setDivider] = useState<{ left: number; top: number; height: number } | null>(null);
+
+  useEffect(() => {
+    if (firstProposedIndex < 0) {
+      setDivider(null);
+      return;
+    }
+    const grid = gridRef.current;
+    if (!grid) return;
+
+    const measure = () => {
+      // The card elements are the grid children at [0..allPositions.length-1];
+      // the AddProposedCard and this divider span come after, so these indices
+      // stay stable.
+      const prev = grid.children[firstProposedIndex - 1] as HTMLElement | undefined;
+      const card = grid.children[firstProposedIndex] as HTMLElement | undefined;
+      if (!prev || !card) {
+        setDivider(null);
+        return;
+      }
+      // If the first proposed card sits on a different row than the last held
+      // card, the proposed run starts a new line — no divider.
+      if (Math.abs(prev.offsetTop - card.offsetTop) > 2) {
+        setDivider(null);
+        return;
+      }
+      const GAP = 16; // matches gap-4
+      const top = Math.min(prev.offsetTop, card.offsetTop);
+      const bottom = Math.max(
+        prev.offsetTop + prev.offsetHeight,
+        card.offsetTop + card.offsetHeight
+      );
+      setDivider({
+        left: card.offsetLeft - GAP / 2,
+        top,
+        height: bottom - top,
+      });
+    };
+
+    // rAF so the grid has settled its layout before the first read.
+    const raf = requestAnimationFrame(measure);
+    const ro = new ResizeObserver(measure);
+    ro.observe(grid);
+    window.addEventListener("resize", measure);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [firstProposedIndex, allPositions.length, news, loadingNews]);
+
   return (
     <div className="min-h-screen flex flex-col bg-surface">
       <TopBar lastUpdated={lastUpdated} refreshing={refreshing} onRefresh={onRefresh} totalValue={totalValue} totalCostBasis={totalCostBasis} totalGainLoss={totalGainLoss} _cashBalance={cashBalance} />
@@ -110,7 +174,10 @@ export default function DesktopDashboard({
             }}
           />
         )}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 items-stretch">
+        <div
+          ref={gridRef}
+          className="relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 items-stretch"
+        >
           {allPositions.map((pos) => (
             <PositionCard
               key={pos.ticker}
@@ -131,6 +198,22 @@ export default function DesktopDashboard({
             onAdd={onAddProposed}
             existingTickers={allTickers}
           />
+          {divider && (
+            <span
+              aria-hidden
+              className="pointer-events-none absolute z-20"
+              style={{
+                left: divider.left - 1,
+                top: divider.top,
+                width: 2,
+                height: divider.height,
+                borderRadius: 2,
+                background:
+                  "linear-gradient(180deg, transparent 0%, rgba(234,179,8,0.7) 14%, rgba(234,179,8,0.7) 86%, transparent 100%)",
+                boxShadow: "0 0 6px rgba(234,179,8,0.3)",
+              }}
+            />
+          )}
         </div>
       </main>
     </div>
