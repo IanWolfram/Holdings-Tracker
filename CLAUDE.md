@@ -110,7 +110,7 @@ Finnhub / Polygon / NewsAPI ──→ NewsService ──→ /api/news?ticker=X �
 
 ### AI / LLM layer
 
-- **`lib/ai-config.ts`** — `getActiveModel()` currently resolves to **DeepSeek** (`deepseek-chat`, override via `DEEPSEEK_MODEL`). `getModelKey()` reads `DEEPSEEK_API_KEY`. `user_preferences.ai_model_id` is stored per-user but selection is not yet wired to swap providers at runtime.
+- **`lib/ai-config.ts`** — `getActiveModel()` resolves to **DeepSeek** (`deepseek-chat`, override via `DEEPSEEK_MODEL`); `getModelKey()` reads `DEEPSEEK_API_KEY`. DeepSeek is the sole runtime model — the per-user `ai_model_id` preference plumbing was removed (there was no UI and it never swapped providers); the `user_preferences.ai_model_id` column is retained but unused.
 - **`world-brain/brain.ts`** — `callLlm()` is the single LLM entry point. Base URL is `https://api.deepseek.com/v1` (or OpenAI's when the active provider is `openai`). System prompts are assembled from `world-brain/agents/*.md` + portfolio-agnostic static files; **per-user content (session insights) is never cached in a process-wide var** — that would leak one tenant's data to another.
 
 ### Market-data layer (`lib/marketdata/`)
@@ -129,7 +129,8 @@ A self-scoring directional-forecast loop. The agent emits dated predictions, the
 - **`world-brain/calibration.ts`** — `updateCalibration()` aggregates resolved outcomes into `calibration.json`; drives confidence/sector adjustments.
 - **`world-brain/resolve-all.ts`** — multi-tenant batch resolution; resolves every user's eligible predictions from their prediction files (works even without a linked brokerage).
 - **`lib/agent/sweep.ts`** — `runStockAgent()` orchestrates a full sweep: resolve prior predictions → analyze news → forecast each ticker across all horizons.
-- **`instrumentation.node.ts`** — four crons: **daily prediction resolution** (22:00 UTC, after US close), **monthly recalibration** (02:00 UTC on the 1st, then runs `scripts/recalibrate.ts --apply`), **daily congress ingest** (03:00 UTC), and **per-user agent jobs** (every minute; `story_backlog` is enabled by default for every user — 15-min baseline, boosted to every minute for users active in the last 10 min per `user_activity.last_seen_at`, stamped by `/api/positions` via `lib/activity.ts`). Hosted 24/7 by the headless worker (`scripts/worker.ts`, pm2 `pulse-worker`); Next boots also arm them unless `PULSE_CRONS=off`.
+- **`instrumentation.node.ts`** — five crons: **daily prediction resolution** (22:00 UTC, after US close), **monthly recalibration** (02:00 UTC on the 1st, then runs `scripts/recalibrate.ts --apply`), **daily congress ingest** (03:00 UTC), **per-user agent jobs** (every minute; `story_backlog` is enabled by default for every user — 15-min baseline, boosted to every minute for users active in the last 10 min per `user_activity.last_seen_at`, stamped by `/api/positions` via `lib/activity.ts`), and **stock-watch alerts** (every 2 min; `lib/agent/watch-evaluator.ts` evaluates `stock_watches` price/verdict rules → notifications). Hosted 24/7 by the headless worker (`scripts/worker.ts`, pm2 `pulse-worker`); Next boots also arm them unless `PULSE_CRONS=off`.
+- **Agent job kinds** (`lib/agent/scheduler.ts` `AgentJobKind`): `story_backlog` (auto story analysis), `morning_digest` (daily sweep + per-user Telegram digest via `lib/agent/digest.ts`), and `congress`. The old `earnings_watch` / `concentration_risk` kinds were removed — they only ever ran the generic sweep.
 - Surfaced via `pages/api/predictions.ts` and `pages/api/calibration-status.ts`.
 
 ### SnapTrade secret storage
@@ -174,7 +175,7 @@ A self-scoring directional-forecast loop. The agent emits dated predictions, the
 Key tables (RLS-protected, `auth.uid() = user_id` unless system-scoped):
 
 - `snaptrade_users` — per-user SnapTrade `(snapTradeUserId, userSecret)`; `userSecret` AES-256-GCM-sealed.
-- `user_preferences` — `ai_model_id`, default timescale, vault enabled, cron opt-in.
+- `user_preferences` — default timescale, vault enabled, cron opt-in, `signals_conversation_id`, and per-user Telegram link (`telegram_chat_id`, `telegram_link_code`). (`ai_model_id` column retained but unused — see AI/LLM layer.)
 - `vault_notes` — markdown body + JSONB frontmatter, unique on `(user_id, path)`.
 - `user_activity` — last-seen / last-refresh timestamps.
 - `app_secrets` — shared plaintext config (see Configuration & Secrets).

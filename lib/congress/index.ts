@@ -186,13 +186,3 @@ export async function fetchCongressTradesByPolitician(
   }
   return (data as CongressTradeRow[]).map(rowToCongressTrade);
 }
-
-/** Cheap check: does `congress_trades` hold any rows at all (i.e. backfilled)? */
-export async function congressDbHasData(client?: SupabaseClient): Promise<boolean> {
-  const supabase = client ?? createServiceClient();
-  const { count, error } = await supabase
-    .from("congress_trades")
-    .select("*", { count: "exact", head: true })
-    .limit(1);
-  return !error && (count ?? 0) > 0;
-}

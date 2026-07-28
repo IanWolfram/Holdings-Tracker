@@ -35,14 +35,6 @@ export const FINNHUB_BASE_URL = "https://finnhub.io/api/v1";
 
 export const PARQET_LOGO_BASE_URL = "https://assets.parqet.com/logos/symbol";
 
-// ── HTTP Header Constants ───────────────────────────────────────────────────
-
-/** Browser-like User-Agent for Yahoo Finance and other scraping endpoints. */
-export const BROWSER_USER_AGENT =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
-
-
-
 // ── Classification / Verdict Thresholds ─────────────────────────────────────
 
 /** Net-score threshold above which the verdict flips from HOLD to BUY or SELL. */
@@ -54,16 +46,6 @@ export const FALLBACK_CONFIDENCE = 0.5;
 /** Maximum content characters sent to the AI for article analysis. */
 export const MAX_ARTICLE_CONTENT_CHARS = 6000;
 
-// ── UI Configuration ────────────────────────────────────────────────────────
-
-export const NEWS_PREVIEW_COUNT = 3;
-
 // Duplicate / same-event story detection
 export const DUPLICATE_SIMILARITY_THRESHOLD = 0.55;
 export const DUPLICATE_MIN_TOKENS = 4;
-
-// Animation & Physics
-export const GLASS_SPRING_CONFIG = {
-  stiffness: 100,
-  damping: 20,
-};

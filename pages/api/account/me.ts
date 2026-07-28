@@ -24,7 +24,6 @@ export default apiHandler(["GET"], async (req, res: NextApiResponse) => {
     },
     preferences: {
       cronOptIn: preferences.cronOptIn,
-      aiModel: preferences.aiModel,
       vaultEnabled: preferences.vaultEnabled,
       defaultTimescale: preferences.defaultTimescale,
       analyzedMaxAgeDays: preferences.analyzedMaxAgeDays,

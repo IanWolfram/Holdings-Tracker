@@ -9,10 +9,21 @@ export interface TickerDigest {
   topSell?: ClassifiedStory;
 }
 
-export async function sendTelegramMessage(text: string): Promise<void> {
+/** Is the bot itself configured (single global bot token serves every tenant)? */
+export function isTelegramBotConfigured(): boolean {
+  return Boolean(process.env.TELEGRAM_BOT_TOKEN);
+}
+
+/**
+ * Send a message to a specific chat. `chatId` is PER-USER — this app is
+ * multi-tenant, so the destination must be the recipient's own linked chat,
+ * never a process-wide TELEGRAM_CHAT_ID (that would fan every tenant's digest
+ * into one inbox). The bot token is the one shared, portfolio-agnostic secret.
+ */
+export async function sendTelegramMessage(chatId: string, text: string): Promise<void> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID;
-  if (!token || !chatId) throw new Error("Telegram env vars not set");
+  if (!token) throw new Error("TELEGRAM_BOT_TOKEN not set");
+  if (!chatId) throw new Error("Telegram chatId is required");
 
   const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: "POST",

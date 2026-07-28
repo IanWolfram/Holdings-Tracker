@@ -4,7 +4,7 @@ import { authedFetch } from "@/lib/api/client-fetch";
 export interface AccountSettings {
   ai: { activeModel: string; activeProvider: string; hasKey: boolean };
   dataSources: { finnhub: boolean; polygon: boolean; newsapi: boolean; fred: boolean };
-  telegram: { configured: boolean };
+  telegram: { configured: boolean; available: boolean };
   ui: { mode: string };
   cache: { newsTtlMs: number; positionsTtlMs: number };
 }

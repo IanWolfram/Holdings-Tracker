@@ -11,6 +11,7 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { computeNextRun, type AgentJobKind } from "./scheduler";
 import { runStockAgent } from "./sweep";
+import { sendUserDigest } from "./digest";
 import { VERDICT_LABEL } from "@/types/news.types";
 import { debug } from "../debug";
 
@@ -37,6 +38,22 @@ async function runSweepJob(userId: string): Promise<RunOutcome> {
   return { status: "ok", summary };
 }
 
+/**
+ * Morning digest: refresh the user's analysis with a sweep (so verdicts/signals
+ * reflect overnight news), then deliver the digest to their linked Telegram chat.
+ * A user with no linked chat still gets the fresh sweep; the send is skipped.
+ */
+async function runDigestJob(userId: string): Promise<RunOutcome> {
+  const sweep = await runStockAgent(userId);
+  const digest = await sendUserDigest(userId);
+  const sweepSummary = `${sweep.totalBuys} ${VERDICT_LABEL.BUY} / ${sweep.totalSells} ${VERDICT_LABEL.SELL} across ${sweep.tickerResults.length} ticker(s)`;
+  const delivery =
+    digest.status === "sent"
+      ? `digest sent (${digest.tickers} ticker(s))`
+      : `digest skipped (${digest.reason})`;
+  return { status: "ok", summary: `${sweepSummary}; ${delivery}` };
+}
+
 async function runCongressJob(): Promise<RunOutcome> {
   const { runCongressIngest } = await import("../congress/ingest");
   const result = await runCongressIngest({ logger: (m) => debug("agent", m) });
@@ -51,8 +68,7 @@ async function runCongressJob(): Promise<RunOutcome> {
 async function dispatch(job: AgentJobRow): Promise<RunOutcome> {
   switch (job.kind) {
     case "morning_digest":
-    case "earnings_watch":
-    case "concentration_risk":
+      return runDigestJob(job.user_id);
     case "story_backlog":
       return runSweepJob(job.user_id);
     case "congress":

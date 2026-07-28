@@ -145,9 +145,6 @@ export function dedupeStories(
   const n = stories.length;
   if (n <= 1) return stories;
 
-  const tokens = stories.map((s) =>
-    tokenize(`${s.headline} ${s.summary ?? ""}`, s.ticker, companyName),
-  );
   const urls = stories.map((s) => canonicalizeUrl(s.url));
 
   // Phase 1: Exact URL dedup — same article from different providers.

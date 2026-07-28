@@ -6,19 +6,7 @@ export interface NewsArticle {
   source: "finnhub";
 }
 
-export interface Quote {
-  currentPrice: number;
-  change: number;
-  percentChange: number;
-  high: number;
-  low: number;
-  open: number;
-  previousClose: number;
-  timestamp: number;
-}
-
 import { FINNHUB_BASE_URL, API_TIMEOUT_MS } from "./constants";
-import { debug } from "./debug";
 
 const BASE = FINNHUB_BASE_URL;
 
@@ -84,64 +72,3 @@ export async function fetchFinnhubNews(ticker: string): Promise<NewsArticle[]> {
   }
 }
 
-/**
- * Fetch real-time stock quote using direct REST (avoids SDK Cloudflare issues)
- */
-export async function fetchQuote(ticker: string): Promise<Quote> {
-  const key = requireKey();
-  const url = `${BASE}/quote?symbol=${ticker}&token=${key}`;
-
-  try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(API_TIMEOUT_MS) });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-
-    if (!data || data.c === undefined) {
-      throw new Error(`No quote data returned for ${ticker}`);
-    }
-
-    return {
-      currentPrice: data.c ?? 0,
-      change: data.d ?? 0,
-      percentChange: data.dp ?? 0,
-      high: data.h ?? 0,
-      low: data.l ?? 0,
-      open: data.o ?? 0,
-      previousClose: data.pc ?? 0,
-      timestamp: data.t ?? Math.floor(Date.now() / 1000),
-    };
-  } catch (err) {
-    console.error(`[finnhub] Quote fetch error for ${ticker}:`, err);
-    throw err;
-  }
-}
-/**
- * Fetch historical stock candles using direct REST for better 2026 compatibility
- */
-export async function fetchCandles(
-  ticker: string,
-  days: number = 90
-): Promise<number[]> {
-  const key = process.env.FINNHUB_API_KEY;
-  if (!key) throw new Error("FINNHUB_API_KEY is not set");
-
-  const to = Math.floor(Date.now() / 1000);
-  const from = to - days * 24 * 60 * 60;
-  const url = `${FINNHUB_BASE_URL}/stock/candle?symbol=${ticker}&resolution=D&from=${from}&to=${to}&token=${key}`;
-
-  try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(API_TIMEOUT_MS) });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    
-    const data = await res.json();
-    if (data.s === "ok" && Array.isArray(data.c)) {
-      debug("finnhub", `2026 Sync: Fetched ${data.c.length} candles for ${ticker}`);
-      return data.c;
-    }
-    console.warn(`[finnhub] No candles for ${ticker} in 2026 range:`, data.s);
-    return [];
-  } catch (err) {
-    console.error(`[finnhub] 2026 Fetch error for ${ticker}:`, err);
-    return [];
-  }
-}

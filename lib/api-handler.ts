@@ -78,7 +78,13 @@ export function apiHandler<T = unknown>(
       log.error(namespace, msg);
       captureException(err, { requestId, route: namespace, method: req.method });
       if (!res.headersSent) {
-        return res.status(500).json({ error: msg });
+        // Never leak the raw exception message to the client — it can carry
+        // Postgres/SDK internals or file paths. The detail is in the log +
+        // Sentry; the client gets a generic message plus the request id so a
+        // report can be correlated back to the captured error.
+        return res
+          .status(500)
+          .json({ error: `Internal server error (request ${requestId})` });
       }
     }
   };

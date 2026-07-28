@@ -6,8 +6,6 @@ import { computeNextRun, type AgentJobKind } from "@/lib/agent/scheduler";
 
 const DEFAULT_CRON: Record<AgentJobKind, string> = {
   morning_digest: "30 6 * * *",
-  earnings_watch: "30 6 * * 1-5",
-  concentration_risk: "0 8 * * 1",
   congress: "0 * * * *",
   story_backlog: "*/15 * * * *",
 };

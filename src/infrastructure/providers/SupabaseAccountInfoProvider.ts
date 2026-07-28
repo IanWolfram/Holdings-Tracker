@@ -31,13 +31,12 @@ export class SupabaseAccountInfoProvider implements IAccountInfoProvider {
 
     const { data } = await supabase
       .from("user_preferences")
-      .select("cron_opt_in, ai_model_id, vault_enabled, default_timescale, analyzed_max_age_days")
+      .select("cron_opt_in, vault_enabled, default_timescale, analyzed_max_age_days")
       .eq("user_id", userId)
       .single();
 
     return {
       cronOptIn: data?.cron_opt_in ?? false,
-      aiModel: data?.ai_model_id ?? null,
       vaultEnabled: data?.vault_enabled ?? false,
       defaultTimescale: data?.default_timescale ?? DEFAULT_TIMESCALE,
       analyzedMaxAgeDays: data?.analyzed_max_age_days ?? DEFAULT_ANALYZED_AGE_DAYS,
@@ -52,7 +51,6 @@ export class SupabaseAccountInfoProvider implements IAccountInfoProvider {
 
     const update: Record<string, unknown> = {};
     if (patch.cronOptIn !== undefined) update.cron_opt_in = patch.cronOptIn;
-    if (patch.aiModel !== undefined) update.ai_model_id = patch.aiModel;
     if (patch.vaultEnabled !== undefined) update.vault_enabled = patch.vaultEnabled;
     if (patch.defaultTimescale !== undefined) update.default_timescale = patch.defaultTimescale;
     if (patch.analyzedMaxAgeDays !== undefined) update.analyzed_max_age_days = patch.analyzedMaxAgeDays;
