@@ -13,7 +13,6 @@ export default apiHandler(["PATCH"], async (req, res: NextApiResponse) => {
 
   const patch: Record<string, unknown> = {};
   if (typeof body.cronOptIn === "boolean") patch.cronOptIn = body.cronOptIn;
-  if (typeof body.aiModel === "string" || body.aiModel === null) patch.aiModel = body.aiModel;
   if (typeof body.vaultEnabled === "boolean") patch.vaultEnabled = body.vaultEnabled;
   if (body.defaultTimescale !== undefined) {
     if (!isTimescaleKey(body.defaultTimescale)) {
@@ -37,7 +36,6 @@ export default apiHandler(["PATCH"], async (req, res: NextApiResponse) => {
 
   return res.status(200).json({
     cronOptIn: updated.cronOptIn,
-    aiModel: updated.aiModel,
     vaultEnabled: updated.vaultEnabled,
     defaultTimescale: updated.defaultTimescale,
     analyzedMaxAgeDays: updated.analyzedMaxAgeDays,

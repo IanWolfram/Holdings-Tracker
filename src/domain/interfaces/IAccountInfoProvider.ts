@@ -8,7 +8,6 @@ export interface AccountInfo {
 
 export interface UserPreferences {
   cronOptIn: boolean;
-  aiModel: string | null;
   vaultEnabled: boolean;
   /** Default x-axis window for PositionCard graphs (e.g. "6M", "1Y"). */
   defaultTimescale: string;

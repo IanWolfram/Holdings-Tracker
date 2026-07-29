@@ -4,7 +4,13 @@ import { getVaultStore, type VaultStore } from "@/lib/vault/store";
 import { requireUser } from "@/lib/auth/requireUser";
 import { getServicesForUser } from "@/src/registry";
 import { apiHandler } from "@/lib/api-handler";
+import { rateLimit, CHAT_LIMIT } from "@/lib/rate-limit";
 import { type Verdict, VERDICT_LABEL } from "@/types/news.types";
+
+/** Caps on request-body size — bound token spend and oversized-row risk. */
+const MAX_MESSAGE_CHARS = 8000;
+const MAX_HISTORY_ITEMS = 40;
+const MAX_HISTORY_CHARS = 24000;
 
 // ---------------------------------------------------------------------------
 // Vault context helpers (async, VaultStore-based)
@@ -175,6 +181,14 @@ export default apiHandler(["POST"], async (req, res: NextApiResponse) => {
   const user = await requireUser(req, res);
   if (!user) return;
 
+  // Per-user throttle: this route drives a paid LLM call, so cap frequency
+  // (the coarse per-IP guard in apiHandler is not enough on its own).
+  const { allowed, retryAfterMs } = rateLimit(`chat:${user.id}`, CHAT_LIMIT);
+  if (!allowed) {
+    res.setHeader("Retry-After", Math.ceil(retryAfterMs / 1000));
+    return res.status(429).json({ error: "You're sending messages too quickly. Please slow down." });
+  }
+
   const { message, history } = req.body as {
     message: string;
     history?: Array<{ role: "user" | "assistant"; content: string }>;
@@ -182,6 +196,18 @@ export default apiHandler(["POST"], async (req, res: NextApiResponse) => {
 
   if (!message?.trim()) {
     return res.status(400).json({ error: "message is required." });
+  }
+  if (message.length > MAX_MESSAGE_CHARS) {
+    return res.status(400).json({ error: "Message is too long." });
+  }
+  if (history) {
+    if (!Array.isArray(history) || history.length > MAX_HISTORY_ITEMS) {
+      return res.status(400).json({ error: "Conversation history is too long." });
+    }
+    const historyChars = history.reduce((n, m) => n + (m?.content?.length ?? 0), 0);
+    if (historyChars > MAX_HISTORY_CHARS) {
+      return res.status(400).json({ error: "Conversation history is too large." });
+    }
   }
 
   // ---- 1. Holdings context ------------------------------------------------

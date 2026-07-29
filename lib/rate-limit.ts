@@ -77,6 +77,8 @@ if (typeof cleanup.unref === "function") cleanup.unref();
 export const NEWS_LIMIT: RateLimitRule = { max: 600, windowMs: 60_000 };
 /** Per-user /api/predictions — low fan-out (1–2/refresh). */
 export const PREDICTIONS_LIMIT: RateLimitRule = { max: 120, windowMs: 60_000 };
+/** Per-user /api/agent/chat — a human-driven LLM call, so keep it tight to bound spend. */
+export const CHAT_LIMIT: RateLimitRule = { max: 30, windowMs: 60_000 };
 /** Coarse per-IP circuit breaker for the whole API surface (anti-flood, not anti-attacker). */
 export const IP_LIMIT: RateLimitRule = { max: 1200, windowMs: 60_000 };
 

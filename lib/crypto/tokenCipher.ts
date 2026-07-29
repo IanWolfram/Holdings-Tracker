@@ -54,34 +54,3 @@ export function decrypt(blob: EncryptedBlob): string {
   ]);
   return plaintext.toString("utf8");
 }
-
-/**
- * Convenience: encrypt to Buffers suitable for Postgres bytea columns.
- */
-export function encryptForStorage(plaintext: string, keyVersion = 1) {
-  const blob = encrypt(plaintext, keyVersion);
-  return {
-    ciphertext: blob.ciphertext,
-    iv: blob.iv,
-    authTag: blob.authTag,
-    keyVersion: blob.keyVersion,
-  };
-}
-
-/**
- * Convenience: decrypt from values retrieved from Postgres bytea columns.
- * Handles both Buffer and Uint8Array (node-postgres returns Uint8Array).
- */
-export function decryptFromStorage(
-  ciphertext: Buffer | Uint8Array,
-  iv: Buffer | Uint8Array,
-  authTag: Buffer | Uint8Array,
-  keyVersion: number,
-): string {
-  return decrypt({
-    ciphertext: Buffer.from(ciphertext),
-    iv: Buffer.from(iv),
-    authTag: Buffer.from(authTag),
-    keyVersion,
-  });
-}

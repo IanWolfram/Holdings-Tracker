@@ -438,5 +438,3 @@ export function PositionChart({
     </svg>
   );
 }
-
-export default PositionChart;

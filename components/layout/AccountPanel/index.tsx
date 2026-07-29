@@ -58,6 +58,7 @@ export default function AccountPanel({ onClose, isConnected, isConnecting }: Acc
             />
             <NotificationsSection
               telegramConfigured={logic.settings?.telegram.configured ?? false}
+              telegramAvailable={logic.settings?.telegram.available ?? false}
             />
             <PreferencesSection
               uiMode={logic.uiMode}

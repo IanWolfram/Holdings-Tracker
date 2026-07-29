@@ -4,6 +4,7 @@ import { useState, type CSSProperties, type ReactNode } from "react";
 import { Icon } from "./icons";
 import { ACCENT, type OverviewStats, type ScanCard } from "./types";
 import { SUGGESTED_PROMPTS, QUICK_ACTIONS, type QuickAction, type PromptCategory } from "./constants";
+import WatchesManager from "./WatchesManager";
 
 function MicroLabel({ children, style }: { children: ReactNode; style?: CSSProperties }) {
   return (
@@ -316,6 +317,8 @@ export default function EmptyState({
           </div>
         </div>
       </section>
+
+      <WatchesManager />
     </div>
   );
 }

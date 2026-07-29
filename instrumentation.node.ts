@@ -73,6 +73,20 @@ export async function register() {
     }
   }, { timezone: "UTC" });
 
+  // Stock-watch evaluation (the `stock_watches` price / verdict alert rules).
+  // Every 2 minutes: responsive enough for price crossings while staying well
+  // inside the Finnhub quote quota (quotes are deduped per distinct symbol).
+  // A no-op when no user has any enabled watch.
+  cron.schedule("*/2 * * * *", async () => {
+    try {
+      const { evaluateWatches } = await import("./lib/agent/watch-evaluator");
+      const fired = await evaluateWatches();
+      if (fired > 0) console.info(`[watch-cron] Fired ${fired} watch alert(s)`);
+    } catch (err) {
+      console.error("[watch-cron] Failed:", (err as Error).message);
+    }
+  }, { timezone: "UTC" });
+
   globalState._recalibrateCronScheduled = true;
-  console.info("[recalibrate-cron] Scheduled: monthly recalibration (2am UTC, 1st) + daily prediction resolution (22:00 UTC) + daily congress ingest (03:00 UTC) + per-user agent jobs (every minute)");
+  console.info("[recalibrate-cron] Scheduled: monthly recalibration (2am UTC, 1st) + daily prediction resolution (22:00 UTC) + daily congress ingest (03:00 UTC) + per-user agent jobs (every minute) + stock-watch alerts (every 2 min)");
 }

@@ -6,7 +6,13 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const code = searchParams.get("code");
   const rawNext = searchParams.get("next") ?? "/terminal";
-  const next = rawNext.startsWith("/") ? rawNext : "/terminal";
+  // Only allow same-origin relative paths. A bare leading "/" is not enough:
+  // "//evil.com" and "/\evil.com" are protocol-relative and resolve off-origin
+  // via new URL(next, req.url), so reject anything whose second char is / or \.
+  const next =
+    rawNext.startsWith("/") && !rawNext.startsWith("//") && !rawNext.startsWith("/\\")
+      ? rawNext
+      : "/terminal";
 
   if (!code) {
     return NextResponse.redirect(new URL("/login", req.url));
