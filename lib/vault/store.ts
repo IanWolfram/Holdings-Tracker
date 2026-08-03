@@ -27,6 +27,12 @@ export interface VaultStore {
   readNote(path: string): Promise<VaultNote | null>;
   /** List notes under a prefix with their frontmatter for efficient bulk access. */
   listNotes(prefix: string): Promise<VaultNote[]>;
+  /**
+   * Like {@link listNotes} but WITHOUT the note body (each `body` is ""). Selects
+   * only path + frontmatter, so callers that index/aggregate frontmatter don't
+   * pay egress for every note's full markdown body. Use this for hot-path scans.
+   */
+  listNotesMeta(prefix: string): Promise<VaultNote[]>;
   /** Append content to an existing note (for log-style files). */
   append(path: string, content: string): Promise<void>;
 }
@@ -192,6 +198,11 @@ export class FsVaultStore implements VaultStore {
     return notes;
   }
 
+  /** Fs backend has no egress cost, so meta is just listNotes. */
+  async listNotesMeta(prefix: string): Promise<VaultNote[]> {
+    return this.listNotes(prefix);
+  }
+
   async append(p: string, content: string): Promise<void> {
     const full = this.full(p);
     fs.mkdirSync(nodePath.dirname(full), { recursive: true });
@@ -330,6 +341,25 @@ export class SupabaseVaultStore implements VaultStore {
       id: row.id,
       path: row.path,
       body: row.body,
+      frontmatter: (row.frontmatter as Record<string, unknown>) ?? {},
+      updatedAt: row.updated_at,
+    }));
+  }
+
+  async listNotesMeta(prefix: string): Promise<VaultNote[]> {
+    // Deliberately omits `body` — the biggest column — so frontmatter-only
+    // scanners (e.g. the news vault index) don't pull every note's full
+    // markdown on every rebuild. `body` is returned as "" for shape parity.
+    const data = await this.selectAllByPrefix<{
+      id: string;
+      path: string;
+      frontmatter: unknown;
+      updated_at: string;
+    }>("id, path, frontmatter, updated_at", prefix);
+    return data.map((row) => ({
+      id: row.id,
+      path: row.path,
+      body: "",
       frontmatter: (row.frontmatter as Record<string, unknown>) ?? {},
       updatedAt: row.updated_at,
     }));

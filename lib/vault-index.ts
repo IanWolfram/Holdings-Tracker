@@ -15,7 +15,13 @@ interface CachedIndex {
   builtAt: number;
 }
 const indexCache = new Map<string, CachedIndex>();
-const CACHE_TTL = 30 * 1000; // 30 seconds
+// The index is rebuilt from a full scan of the `news/` prefix (thousands of
+// notes). A short TTL meant hot paths (classification, world data, the
+// every-minute story_backlog cron) re-downloaded that scan constantly — the
+// dominant driver of Supabase egress. 15 min keeps the index fresh enough
+// (single new stories are patched in live via updateVaultIndex) while cutting
+// rebuild frequency ~30x. Live single-story updates keep readers current between rebuilds.
+const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
 
 /**
  * Extract catalystTypes from structured frontmatter.
@@ -51,9 +57,14 @@ function extractHeadline(note: VaultNote): string {
 }
 
 /**
- * Extract summary from the ## Summary section in the note body.
+ * Extract summary: prefer frontmatter (always written by the note writer),
+ * fall back to the ## Summary section in the body when present. The index scan
+ * fetches frontmatter only (no body), so the frontmatter path is the norm.
  */
 function extractSummary(note: VaultNote): string {
+  const fmSummary = note.frontmatter.summary;
+  if (typeof fmSummary === "string" && fmSummary.trim()) return fmSummary.trim();
+
   const match = note.body.match(/## Summary\n([\s\S]*?)(?:\n##|$)/);
   return match ? match[1].trim() : "";
 }
@@ -82,7 +93,10 @@ export async function getVaultIndex(
 
   const newIndex = new Map<string, VaultEntry>();
   try {
-    const notes = await store.listNotes("news/");
+    // Frontmatter-only scan: the index reads verdict/confidence/headline/etc.
+    // from frontmatter, so fetching each note's full body would be pure egress
+    // waste. Body-fallback extractors degrade gracefully (frontmatter wins).
+    const notes = await store.listNotesMeta("news/");
     for (const note of notes) {
       const fm = note.frontmatter;
       const url = fm.url;
