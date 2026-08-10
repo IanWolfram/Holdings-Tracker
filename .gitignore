@@ -32,3 +32,8 @@ __pycache__/
 
 # World vault — now stored in Supabase vault_notes, not filesystem
 world-vault/
+
+# graphify knowledge-graph build artifact — rebuilt on disk by the post-commit
+# hook / `/graphify --update`; not tracked (bulky cache, and it publishes the
+# full code-structure graph on a public repo)
+graphify-out/
