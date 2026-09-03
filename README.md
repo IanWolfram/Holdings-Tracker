@@ -10,7 +10,7 @@ Architecture notes live in [`CLAUDE.md`](CLAUDE.md).
 
 ## Quick Start
 
-Requires Node 20+, a Supabase project, and API keys (DeepSeek, SnapTrade, Finnhub/Polygon/NewsAPI).
+Requires Node 20.19+ (22.13+ or 24 also fine — see `.nvmrc`), a Supabase project, and API keys (DeepSeek, SnapTrade, Finnhub/Polygon/NewsAPI).
 
 ```bash
 git clone https://github.com/IanWolfram/Holdings-Tracker.git
@@ -64,4 +64,4 @@ Tracking purposes only — no financial advice, no trade placement. Use at your 
 
 ## License
 
-No license granted — all rights reserved.
+A personal project, published to show the work. No license granted — all rights reserved.
