@@ -1,184 +1,82 @@
 # CLAUDE.md
 
-## graphify
-
-This project has a graphify knowledge graph at `graphify-out/graph.json` (868 nodes, 1571 edges, 46 communities). An MCP server is configured in `.mcp.json` providing live graph query tools.
-
-**You MUST use the graphify MCP tools for codebase navigation instead of reading entire files.** This saves ~46x tokens per query.
-
-### How to use graphify
-
-Before reading source files to understand architecture or find connections, query the graph first:
-
-- **`query_graph`** — "What connects to X?" Broad context. Use `mode="bfs"`, `depth=2-3`, `token_budget=1500`.
-- **`get_node`** — "What is SnapTradeProvider?" Single node detail with source file and type.
-- **`get_neighbors`** — "What does X import/call?" Direct connections of one node.
-- **`get_community`** — "Show me the whole Auth cluster." All nodes in a community.
-- **`shortest_path`** — "How does auth reach the dashboard?" Trace a dependency path.
-- **`god_nodes`** — "What are the most important abstractions?" Hub nodes with the most connections.
-- **`graph_stats`** — Quick summary of graph size and health.
-
-### When to query vs read
-
-- **Query the graph** when: exploring unfamiliar code, finding dependencies, tracing data flow, understanding how modules connect, answering "where is X used?".
-- **Read source files** when: you need exact implementation details, are editing specific code, debugging a specific bug, or the graph doesn't cover what you need.
-
-### Keep the graph updated
-
-After adding new files, creating new components, or making significant architectural changes, run `/graphify --update` to re-extract only changed files and merge them into the graph. The git post-commit hook also auto-rebuilds on code commits.
-
-This file guides Claude Code (claude.ai/code) when working in this repository. Keep it **navigational** — architecture-level truths and pointers, not exhaustive file lists (that's what graphify is for).
+Guidance for Claude Code in this repo. Keep this file **navigational** — non-obvious truths and gotchas only. Anything derivable by reading code belongs in the code, not here.
 
 ## Project Overview
 
-**Pulse** (Holdings Tracker) — a real-time, multi-tenant financial portfolio dashboard. It aggregates brokerage positions via **SnapTrade** (multi-broker aggregation; E\*TRADE, Schwab, etc.), fetches news from Finnhub, Polygon, and NewsAPI, classifies sentiment with the DeepSeek API, and runs a self-calibrating **directional forecasting** engine that scores its own past predictions. Built with Next.js 16 (App Router + Pages Router), React 19, Tailwind CSS 4, SWR, Framer Motion, and three.js (3D globe). Auth and storage are Supabase. There is **no single-user / offline mode** — every request is scoped to an authenticated Supabase user.
+**Pulse** (Holdings Tracker) — real-time, multi-tenant financial portfolio dashboard. Aggregates brokerage positions via SnapTrade, classifies news sentiment with DeepSeek, and runs a self-calibrating directional forecasting engine that scores its own past predictions. Next.js 16 (App Router + Pages Router), React 19, Tailwind 4, SWR, three.js. Auth and storage are Supabase.
+
+**There is no single-user or offline mode.** Every request is scoped to an authenticated Supabase user.
+
+## Codebase navigation
+
+A graphify knowledge graph lives at `graphify-out/graph.json`, with an MCP server configured in `.mcp.json`.
+
+**Prefer the graphify MCP tools over reading whole files** when exploring architecture, tracing dependencies, or answering "where is X used?" — it costs ~46x fewer tokens. Read source directly when you need exact implementation details, are editing, or are debugging a specific bug.
+
+Tools: `query_graph` (broad context), `get_node`, `get_neighbors`, `get_community`, `shortest_path`, `god_nodes`, `graph_stats`. A git post-commit hook rebuilds the graph; `/graphify --update` re-extracts changed files manually.
 
 ## Commands
 
 ```bash
-npm run dev               # Next.js dev server (localhost:3000)
+npm run dev               # Next dev server (localhost:3000)
 npm run build             # Production build
 npm run lint              # ESLint (max-warnings 50)
-npm run agent             # CLI: full portfolio intelligence sweep (scripts/agent.ts)
-npm run world:refresh     # CLI: force a 3D globe intelligence update
-npm run world:graph       # CLI: rebuild the world knowledge graph
-npm run backfill          # CLI: backfill calibration from historical predictions
-npm run recalibrate       # CLI: recompute sector rules from calibration (--apply to write)
-npm run compare:forecasters  # CLI: A/B production vs. shadow forecaster versions
-npm run worker            # CLI: headless cron worker (all 4 crons, no Next/UI) — see docs/headless-worker.md
+npm test                  # Vitest (watch: npm run test:watch)
+npm run worker            # Headless cron worker — see docs/headless-worker.md
+npm run agent             # Full portfolio intelligence sweep
+npm run resolve:all       # Resolve every user's eligible predictions
+npm run congress:ingest   # Pull new congressional trade disclosures
+npm run recalibrate       # Recompute sector rules (--apply to write)
+npm run compare:forecasters  # A/B production vs. shadow forecaster
 npm run pm2:start | pm2:prod | pm2:dev | pm2:deploy | pm2:worker | pm2:status | pm2:logs | pm2:restart | pm2:stop
 ```
 
-**Crons run in exactly one process.** `scripts/worker.ts` (pm2 app `pulse-worker`) is the intended 24/7 cron host; any Next boot also arms the crons unless `PULSE_CRONS=off` is set (the pm2 `pulse`/`pulse-dev` UI apps set it). The UI runs as `pulse` (production build) or `pulse-dev` (hot reload) — mutually exclusive on :3000, toggled from the SwiftBar menu (`scripts/menubar/pulse.15s.sh`) or `npm run pm2:prod`/`pm2:dev`; ship changes to prod with `npm run pm2:deploy`. Details in `docs/headless-worker.md`.
+Test coverage is intentionally narrow: the pure seams of the forecasting/calibration loop and shared utilities, backed by in-memory doubles in `tests/helpers/`. UI and provider adapters are deliberately uncovered — they churn too fast to pay rent.
 
-Tests run on **Vitest** (`npm test`, watch via `npm run test:watch`). Coverage is intentionally narrow — the pure, high-leverage seams of the forecasting/calibration loop and shared utilities live under `tests/`, backed by an `InMemoryVaultStore` double (`tests/helpers/`). UI and provider adapters are not unit-tested (they churn too fast to pay rent).
+## Gotchas
 
-## Configuration & Secrets
+These are the things that cause real mistakes.
 
-Secrets (API keys, SnapTrade client credentials, etc.) live in the Supabase **`app_secrets`** table — one source of truth across environments. `lib/secrets.ts` `hydrateSecrets()` reads them at server boot (from `src/instrumentation.ts`, Node runtime only) and copies them into `process.env`, so the rest of the app keeps reading `process.env.X`. **An explicitly-set env var (e.g. from `.env.local`) always wins** — hydration only fills keys that are unset.
+**Crons must run in exactly one process.** `scripts/worker.ts` (pm2 `pulse-worker`) is the intended 24/7 host, but *any* Next boot also arms them unless `PULSE_CRONS=off` is set. Duplicate crons are harmless but double API/LLM spend. The pm2 `pulse`/`pulse-dev` UI apps set the flag; a bare `npm run dev` does not.
 
-CLI entry points (`scripts/agent.ts`, `world-refresh`) bypass instrumentation and must call `hydrateSecrets()` themselves. The Supabase connection vars (`NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`) must stay in the real environment — they're needed to read `app_secrets` and so can't be sourced from it. Application/script code reads `process.env`; it must **not** parse `.env.local` itself. Let the runtime load it (e.g. `npx tsx --env-file=.env.local …`) so `process.env` is the single interface.
+**Secrets come from Supabase `app_secrets`, never from parsing `.env.local`.** `lib/secrets.ts` `hydrateSecrets()` copies them into `process.env` at boot; app code just reads `process.env.X`. An explicitly-set env var always wins — hydration only fills unset keys. Two consequences:
+- CLI entry points bypass instrumentation and **must call `hydrateSecrets()` themselves**.
+- `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` must stay in the real environment — they're needed to *read* `app_secrets`, so they can't come from it.
 
-**Inspect the secrets:** `npx tsx --env-file=.env.local scripts/list-secrets.ts` lists every key in `app_secrets` (values masked; add `--reveal` to print them in full).
+Hydration runs **once at boot**. If the database was unreachable at startup, the process holds no API keys and will not recover on its own — restart it.
 
-## Brokerage Connections (SnapTrade)
+Inspect with `npx tsx --env-file=.env.local scripts/list-secrets.ts` (`--reveal` to unmask).
 
-Brokerage linking runs entirely through **SnapTrade** (the legacy E\*TRADE OAuth 1.0a flow and its token tables have been removed). The user connects a brokerage via the SnapTrade connection portal (`pages/api/snaptrade/*`); per-user `(snapTradeUserId, userSecret)` is stored in the `snaptrade_users` table with the `userSecret` AES-256-GCM-sealed (`lib/crypto/bytea.ts` `sealSecret` → `tokenCipher`, key `ETRADE_TOKEN_ENC_KEY` — kept as the generic secret-encryption key). When a user has no linked brokerage, the position path returns an empty portfolio (`NullBrokerProvider`) — there is no mock mode.
+**Never cache per-user content in a process-wide variable.** This is multi-tenant; a module-level cache of session insights or prompts leaks one tenant's data to another. Caches are per-user and key-prefixed (`u:<userId>:`) via `src/registry.ts`, held in an LRU-capped registry.
 
-- **TopBar rail** (`components/layout/ConnectionControls.tsx`) shows the user's *actual* linked brokerage (logo + animated brand gradient via `lib/brokerages/brand.ts`); SnapTrade's own branding lives only in the Account panel's `BrokerageCard`.
+**`ETRADE_TOKEN_ENC_KEY` is the generic secret-encryption key.** The name is historical — the E\*TRADE OAuth flow is gone and SnapTrade is the only broker. It seals SnapTrade user secrets (AES-256-GCM, `lib/crypto/bytea.ts`). Carrying it over verbatim is required for any environment move, or sealed secrets won't unseal.
+
+**Unpaginated Supabase selects silently truncate at 1,000 rows.** Paginate with `.range()` — see `selectAllByPrefix`.
+
+**Sweeps take a cross-process lock.** Manual sweeps run in the Next process while cron sweeps run in the worker, so the in-memory guard can't see across them. `lib/agent/run-lock.ts` claims a row in `sweep_locks` with heartbeats and a 30-minute stale threshold. Note that `scripts/worker.ts` exits on SIGINT via `process.exit(0)`, which skips the release — a lock held at shutdown stays orphaned until it goes stale.
+
+**Dual routing:** App Router (`app/`) for UI and auth, Pages Router (`pages/api/`) for API. Not a migration in progress — it's the convention.
+
+**DeepSeek is the only runtime model.** `lib/ai-config.ts` resolves it; `world-brain/brain.ts` `callLlm()` is the single entry point. The `user_preferences.ai_model_id` column is retained but unused.
 
 ## Architecture
 
-### Auth & Multi-Tenancy
-
 ```
-Supabase Auth ──→ middleware.ts (Edge) ──→ redirects unauthenticated to /login
-                       │
-                       ▼
-              lib/auth/requireUser.ts ──→ pages/api/* handlers get user.id
-                       │
-                       ▼
-              src/registry.ts ──→ getServicesForUser(userId) ──→ per-user SnapTradeProvider (or NullBrokerProvider) + scoped caches
+Supabase Auth → middleware.ts (Edge, redirects to /login)
+              → lib/auth/requireUser.ts (API routes get user.id)
+              → src/registry.ts getServicesForUser(userId)
+                 → per-user SnapTradeProvider (or NullBrokerProvider) + scoped caches
 ```
 
-- **`middleware.ts`** — Edge middleware. Redirects unauthenticated users to `/login`. Public paths: `/login`, `/signup`, `/forgot-password`, `/reset`, `/check-email`, `/auth/callback`.
-- **`lib/auth/requireUser.ts`** — API-route helper. Returns `User` or sends 401.
-- **`lib/supabase/server.ts`** — server client (cookies via Pages-Router `req.headers`) + `createServiceClient()` for service-role access.
-- **`lib/supabase/browser.ts`** — browser client (localStorage, persisted in Electron userData).
-- **`app/(auth)/`** — login, signup, forgot-password, reset, check-email. Signup uses Cloudflare Turnstile.
-- **`app/auth/callback/route.ts`** — exchanges `code` for a session; validates `next` to block open redirects.
+`src/` follows clean-architecture layering: `domain/interfaces/` (ports), `infrastructure/providers/` (adapters), `services/` (composition). `getServices()` is a legacy singleton for CLI/cron use only and carries a `NullBrokerProvider` — user-facing paths must use `getServicesForUser()`.
 
-### Clean-architecture layering (`src/`)
+User-facing API routes take `requireUserWithClient()` and pass the caller's RLS-scoped client into the vault store. Service-role access (`createServiceClient()`) is reserved for system-scoped and cross-tenant work.
 
-- **`src/domain/interfaces/`** — ports: `IBrokerProvider`, `INewsProvider`, `IClassifier`, `ICache`, `IAccountInfoProvider`.
-- **`src/infrastructure/providers/`** — adapters: `SnapTradeProvider`, `NullBrokerProvider` (empty portfolio when unlinked), `FinnhubProvider`, `PolygonProvider`, `NewsAPIProvider`, `SupabaseAccountInfoProvider`.
-- **`src/services/`** — `PortfolioService`, `NewsService`, `ClassifierService` compose providers behind the interfaces.
-- **`src/registry.ts`** — `getServicesForUser(userId)` builds per-user services with the SnapTrade broker (when linked) and **key-prefixed** caches (`u:<userId>:`). `getServices()` is a legacy singleton for CLI/cron use only (carries a `NullBrokerProvider`).
+**Predictions/forecasting** is the key subsystem: the agent emits dated predictions, the system resolves them against the actual close at the horizon date, and calibration feeds back into the prompts. Horizons are 1, 7, and 30 days. Predictions live in the `predictions` table behind `lib/predictions/store.ts`. A shadow v2 forecaster records predictions without affecting production scoring, so promotion is data-driven.
 
-### Data Flow
+**Vault storage** (`lib/vault/store.ts`) is the `vault_notes` table — markdown body plus JSONB frontmatter, unique on `(user_id, path)`.
 
-```
-SnapTrade API ──→ SnapTradeProvider ──→ /api/positions ──→ Dashboard (SWR polling)
-                                        │
-Finnhub / Polygon / NewsAPI ──→ NewsService ──→ /api/news?ticker=X ──→ PositionCard → NewsCard
-                                        │
-                                ClassifierService ──→ world-brain/brain.ts (DeepSeek) ──→ verdict bar
-```
+Schema lives in `supabase/migrations/`. Tables are RLS-protected on `auth.uid() = user_id` unless system-scoped; `congress_trades` and `app_secrets` are shared, and a `handle_new_user()` trigger seeds defaults on signup.
 
-- **`pages/api/`** — all routes use `requireUser()` + `getServicesForUser()` to scope data per-user.
-- **SWR caching** — `MapCache` / `DiskCache` implement `getWithMeta()` returning `{ value, isStale }`. World and news data serve stale results immediately while revalidating in the background. No cron-driven prewarming.
-
-### AI / LLM layer
-
-- **`lib/ai-config.ts`** — `getActiveModel()` resolves to **DeepSeek** (`deepseek-chat`, override via `DEEPSEEK_MODEL`); `getModelKey()` reads `DEEPSEEK_API_KEY`. DeepSeek is the sole runtime model — the per-user `ai_model_id` preference plumbing was removed (there was no UI and it never swapped providers); the `user_preferences.ai_model_id` column is retained but unused.
-- **`world-brain/brain.ts`** — `callLlm()` is the single LLM entry point. Base URL is `https://api.deepseek.com/v1` (or OpenAI's when the active provider is `openai`). System prompts are assembled from `world-brain/agents/*.md` + portfolio-agnostic static files; **per-user content (session insights) is never cached in a process-wide var** — that would leak one tenant's data to another.
-
-### Market-data layer (`lib/marketdata/`)
-
-- **`prices.ts`** — daily OHLC bars and detailed quotes via **Polygon** (`getDailyBars`, `getDetailedQuote`, `computeAtr14`). (`lib/market-data.ts` `getBasicQuote` serves lightweight quotes via Finnhub — Stooq, the former keyless primary, shut down its CSV endpoint in 2026-07 and was removed.)
-- **`volatility.ts`** — ATR/flat-band math and bar lookup helpers (`findBarOnOrAfter`, `flatBandFromBars`) used to score predictions.
-- **`macro.ts` / `events.ts`** — macro snapshot and earnings/event context fed into the forecaster.
-
-### Predictions / Forecasting / Calibration  ← key subsystem
-
-A self-scoring directional-forecast loop. The agent emits dated predictions, the system resolves them against the actual close at the horizon date, and calibration feeds back into the prompts.
-
-- **`types/predictions.ts`** — `TickerPrediction`, `PredictionOutcome`, `CatalystType`; constants `FLAT_BAND_PCT`, `CORRECT_DIRECTION_MAGNITUDE_RATIO`. Supported horizons: **1, 7, 30 days**.
-- **`lib/agent/forecast.ts`** — `runForecast()` synthesizes a ticker's news verdicts + macro + recent resolved outcomes into a directional prediction, using the `world-brain/agents/FORECASTER.md` prompt. Supports a **shadow v2** forecaster that records predictions without affecting production scoring (A/B promotion via `scripts/compare-forecaster-versions.ts`).
-- **`world-brain/predictions.ts`** — load/save/append predictions (stored as `predictions/<TICKER>-<H>d.json` in the user's vault) and `resolveEligiblePredictions()` (scores pending predictions whose horizon close has arrived).
-- **`world-brain/calibration.ts`** — `updateCalibration()` aggregates resolved outcomes into `calibration.json`; drives confidence/sector adjustments.
-- **`world-brain/resolve-all.ts`** — multi-tenant batch resolution; resolves every user's eligible predictions from their prediction files (works even without a linked brokerage).
-- **`lib/agent/sweep.ts`** — `runStockAgent()` orchestrates a full sweep: resolve prior predictions → analyze news → forecast each ticker across all horizons.
-- **`instrumentation.node.ts`** — five crons: **daily prediction resolution** (22:00 UTC, after US close), **monthly recalibration** (02:00 UTC on the 1st; runs `recalibrateSectorRules()` **in-process** against the SYSTEM user's Supabase vault — no longer spawns a CLI — plus a boot-time catch-up if a monthly run was missed while the worker was down, tracked via the `cron_runs` table), **daily congress ingest** (03:00 UTC), **per-user agent jobs** (every minute; `story_backlog` is enabled by default for every user — 15-min baseline, boosted to every minute for users active in the last 10 min per `user_activity.last_seen_at`, stamped by `/api/positions` via `lib/activity.ts`), and **stock-watch alerts** (every 2 min; `lib/agent/watch-evaluator.ts` evaluates `stock_watches` price/verdict rules → notifications). Hosted 24/7 by the headless worker (`scripts/worker.ts`, pm2 `pulse-worker`); Next boots also arm them unless `PULSE_CRONS=off`. **Sweeps (manual + cron) and the resolve cron take a cross-process per-user lock** (`sweep_locks` table, `lib/agent/run-lock.ts`) so one user's prediction files can't be written concurrently by the UI and worker processes.
-- **Agent job kinds** (`lib/agent/scheduler.ts` `AgentJobKind`): `story_backlog` (auto story analysis), `morning_digest` (daily sweep + per-user Telegram digest via `lib/agent/digest.ts`), and `congress`. The old `earnings_watch` / `concentration_risk` kinds were removed — they only ever ran the generic sweep.
-- Surfaced via `pages/api/predictions.ts` and `pages/api/calibration-status.ts`.
-
-### SnapTrade secret storage
-
-- Per-user `(snapTradeUserId, userSecret)` stored in the `snaptrade_users` table; `userSecret` is AES-256-GCM-sealed via `lib/crypto/bytea.ts` `sealSecret`/`unsealSecret` (backed by `lib/crypto/tokenCipher.ts`, key `ETRADE_TOKEN_ENC_KEY` / `…_KEYS`, `key_version` for rotation).
-- **`lib/snaptrade/users.ts`** — `loadSnapTradeUser(userId)` / register-and-store via the service-role client. **`lib/snaptrade/client.ts`** — shared SDK client + `isSnapTradeConfigured()`.
-
-### Vault storage
-
-- **`SupabaseVaultStore`** (`lib/vault/store.ts`, `getVaultStore(userId)`) — reads/writes the `vault_notes` table; JSONB frontmatter stays queryable. Holds predictions, calibration, session insights, and world-brain notes.
-
-### Electron
-
-- **`electron/main.js`** — spawns Next.js and always opens `/login`; auth is required. (`electron/mode.js`, `modePrompt.html`, `modePreload.js` are a legacy mode chooser, no longer used.)
-
-### UI
-
-- App Router pages: `/terminal` (default; root redirects here), `/world` (3D globe), `/hot`, `/agent`, plus `app/(auth)/*`.
-- **`TopBar`** — sticky header; nav tabs **Terminal / World / Hot / Agent**, market-status indicator, and refresh. (The manual sweep button was removed — story analysis is automatic via the `story_backlog` job; the `/agent` page keeps a manual run control.)
-- **`PositionCard`** — per-ticker market value, P/L, proportional BUY/SELL/HOLD verdict bar, expandable news feed.
-- **`NewsCard`** — Framer Motion card with physics-based SVG borders reacting to mouse proximity.
-- **3D globe** (`components/world/`) — three.js globe with per-country sentiment; hooks in `components/world/globe/`.
-
-### Key Design Decisions
-
-- **Dual routing**: App Router (`app/`) for UI/auth, Pages Router (`pages/api/`) for API.
-- **Tailwind CSS 4** with `@theme` tokens in `app/globals.css`.
-- **Per-user cache scoping**: each user gets their own cache instances (`MapCache` + a `news-<userId>` `DiskCache`), held in an LRU-capped registry (`src/registry.ts`) that bounds memory. The `DiskCache` reads back from disk when its in-memory entry is stale, so a worker-process sweep's verdict patches become visible to the UI process (see `src/infrastructure/cache/DiskCache.ts`).
-- **App-layer encryption** for SnapTrade user secrets (AES-256-GCM, `ETRADE_TOKEN_ENC_KEY`), not Supabase Vault — simpler, portable, `key_version` enables rotation. (The env key keeps its historical `ETRADE_` name but is now the generic secret-encryption key.)
-- **Forecaster A/B via shadow predictions** — a candidate version writes predictions that are scored but never shown, so promotion is data-driven.
-
-## External Dependencies
-
-- **Supabase** — Auth (email + password + confirmation), Postgres (RLS-protected), `app_secrets` config table.
-- **DeepSeek API** — `https://api.deepseek.com/v1`, model `deepseek-chat` (override `DEEPSEEK_MODEL`). Requires `DEEPSEEK_API_KEY`. OpenAI is a supported alternate base URL in `brain.ts`.
-- **SnapTrade** — brokerage aggregation (E\*TRADE, Schwab, etc.). Users link a brokerage through the SnapTrade connection portal (`pages/api/snaptrade/connect` → `redirectURI`); positions/balances flow through `SnapTradeProvider`. Requires SnapTrade client credentials in `app_secrets`.
-- **News/market**: Finnhub, Polygon, NewsAPI. Extra signal sources: Congress trades and insider activity (`lib/insiders.ts` → `/api/congress`). Congress data comes from our own **official-source ingester** (`lib/congress/`: House Clerk PTRs + Senate eFD → parse → `@unitedstates/congress-legislators` roster join → Supabase `congress_trades`), refreshed by a daily cron and the `npm run congress:ingest` CLI. Excess return is computed locally vs SPY. See `docs/congress-official-scraper-plan.md`. OCR for scanned/paper PTRs is deferred.
-- **Cloudflare Turnstile** — bot protection on `/signup`.
-
-## Database Schema (Supabase)
-
-Key tables (RLS-protected, `auth.uid() = user_id` unless system-scoped):
-
-- `snaptrade_users` — per-user SnapTrade `(snapTradeUserId, userSecret)`; `userSecret` AES-256-GCM-sealed.
-- `user_preferences` — default timescale, vault enabled, cron opt-in, `signals_conversation_id`, and per-user Telegram link (`telegram_chat_id`, `telegram_link_code`). (`ai_model_id` column retained but unused — see AI/LLM layer.)
-- `vault_notes` — markdown body + JSONB frontmatter, unique on `(user_id, path)`.
-- `user_activity` — last-seen / last-refresh timestamps.
-- `app_secrets` — shared plaintext config (see Configuration & Secrets).
-- `congress_trades` — parsed congressional PTR rows (shared/public, no `user_id`; authenticated read-only, service-role writes). `congress_ingest_log` — per-filing ingest status for incremental runs (service-role only).
-
-Bootstrap trigger `handle_new_user()` inserts default `user_preferences` + `user_activity` rows on signup. Migrations live in `supabase/migrations/`.
+Deeper detail: `docs/headless-worker.md` (worker runbook), `docs/congress-trades-system.md`, `docs/recalibration.md`, `docs/data-handling.md`, `docs/snaptrade-brokerage-ui.md`.
