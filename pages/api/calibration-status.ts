@@ -1,7 +1,7 @@
 import type { NextApiResponse } from "next";
 import { getVaultStore } from "@/lib/vault/store";
 import { loadCalibrationReport } from "../../world-brain/calibration";
-import { requireUser } from "@/lib/auth/requireUser";
+import { requireUserWithClient } from "@/lib/auth/requireUser";
 import { apiHandler } from "@/lib/api-handler";
 
 export interface CalibrationStatusResponse {
@@ -10,10 +10,12 @@ export interface CalibrationStatusResponse {
 }
 
 export default apiHandler(["GET"], async (req, res: NextApiResponse<CalibrationStatusResponse | { error: string }>) => {
-  const user = await requireUser(req, res);
-  if (!user) return;
+  // Read-only, caller's own calibration note: RLS-scoped so vault_notes access
+  // is enforced by policy, not just the store's internal user_id filter.
+  const { user, client } = await requireUserWithClient(req, res);
+  if (!user || !client) return;
 
-  const store = await getVaultStore(user.id);
+  const store = await getVaultStore(user.id, client);
 
   try {
     const data = await loadCalibrationReport(store);

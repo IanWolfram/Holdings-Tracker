@@ -1,6 +1,5 @@
 import type { NextApiResponse } from "next";
-import { requireUser } from "@/lib/auth/requireUser";
-import { createServiceClient } from "@/lib/supabase/server";
+import { requireUserWithClient } from "@/lib/auth/requireUser";
 import { apiHandler } from "@/lib/api-handler";
 import { computeNextRun, type AgentJobKind } from "@/lib/agent/scheduler";
 
@@ -13,10 +12,10 @@ const DEFAULT_CRON: Record<AgentJobKind, string> = {
 const DEFAULT_TZ = "America/New_York";
 
 export default apiHandler(["GET", "PATCH"], async (req, res: NextApiResponse) => {
-  const user = await requireUser(req, res);
-  if (!user) return;
-
-  const sb = createServiceClient();
+  // RLS-scoped: agent_jobs queries are constrained to the caller's rows by the
+  // user's JWT; `.eq("user_id", …)` below is defense-in-depth.
+  const { user, client: sb } = await requireUserWithClient(req, res);
+  if (!user || !sb) return;
 
   if (req.method === "GET") {
     const { data, error } = await sb

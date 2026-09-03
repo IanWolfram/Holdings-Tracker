@@ -95,6 +95,14 @@ function getPredictionCatalystTypes(prediction: TickerPrediction): CatalystType[
 }
 
 async function collectResolvedPredictions(store: VaultStore): Promise<TickerPrediction[]> {
+  const ps = store.predictionStore?.();
+  if (ps) {
+    // Table path: resolved + non-shadow are filtered in SQL. Keep the same
+    // confidence/outcome guards the JSON path applied for parity.
+    const rows = await ps.resolvedNonShadow();
+    return rows.filter((p) => typeof p.confidence === "number" && !!p.outcome);
+  }
+
   const notes = await store.listNotes("predictions/");
   const resolved: TickerPrediction[] = [];
 

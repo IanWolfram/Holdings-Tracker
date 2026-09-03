@@ -10,6 +10,8 @@
     "electron:dev": "concurrently \"next dev -p 3571\" \"wait-on http://localhost:3571 && electron .\"",
     "electron:build": "next build && electron-builder -c electron-builder.config.js",
     "lint": "eslint . --max-warnings=50",
+    "test": "VITE_CONFIG_NATIVE_IGNORE_WARNING=true vitest run",
+    "test:watch": "VITE_CONFIG_NATIVE_IGNORE_WARNING=true vitest",
     "world:refresh": "node scripts/world-refresh.mjs",
     "agent": "npx tsx scripts/agent.ts",
     "backfill": "npx tsx scripts/backfill-calibration.ts",
@@ -56,7 +58,8 @@
     "swr": "^2.4.1",
     "tailwindcss": "^4.2.2",
     "three": "^0.183.2",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.2",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/pg": "^8.20.0",
@@ -69,6 +72,7 @@
     "pg": "^8.20.0",
     "tsx": "^4.23.1",
     "typescript-eslint": "^8.58.2",
+    "vitest": "^4.1.10",
     "wait-on": "^9.0.5"
   }
 }

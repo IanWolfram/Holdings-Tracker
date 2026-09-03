@@ -16,7 +16,7 @@ import path from "path";
 import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
 import { loadCalibrationReport, type CalibrationStats } from "../world-brain/calibration";
-import { FsVaultStore } from "../lib/vault/store";
+import { FsVaultStore, type VaultStore } from "../lib/vault/store";
 import { CATALYST_TYPES, type CatalystType } from "../types/predictions";
 
 interface CatalystExpectation {
@@ -103,7 +103,7 @@ interface RecalibrateProposal {
   catalystsTotal: number;
 }
 
-async function buildProposal(store: FsVaultStore): Promise<RecalibrateProposal | null> {
+async function buildProposal(store: VaultStore): Promise<RecalibrateProposal | null> {
   const report = await loadCalibrationReport(store);
   if (!report) return null;
 
@@ -215,6 +215,60 @@ function applyProposal(rulesPath: string, proposal: RecalibrateProposal): "updat
   return mode;
 }
 
+export type RecalibrateOutcome =
+  | { status: "no-calibration" }
+  | { status: "no-report" }
+  | { status: "no-rules-file" }
+  | {
+      status: "ok";
+      applied: boolean;
+      mode?: "updated" | "appended";
+      catalystsWithDrift: number;
+      catalystsTotal: number;
+      body: string;
+    };
+
+/**
+ * Regenerate the auto Calibration Provenance section of world-brain/sector-rules.md
+ * from `_metrics/calibration.json` in the given vault store. Reusable so the
+ * monthly cron can run this IN-PROCESS against the SYSTEM user's Supabase vault
+ * (the same store updateCalibration writes to) instead of spawning a CLI that
+ * read from an unrelated local FsVaultStore. Never calls process.exit — returns
+ * a structured outcome so the caller decides how to react.
+ */
+export async function recalibrateSectorRules(
+  store: VaultStore,
+  opts: { apply: boolean } = { apply: false }
+): Promise<RecalibrateOutcome> {
+  if (!(await store.exists("_metrics/calibration.json"))) {
+    return { status: "no-calibration" };
+  }
+  const proposal = await buildProposal(store);
+  if (!proposal) return { status: "no-report" };
+
+  const rulesPath = path.join(process.cwd(), "world-brain", "sector-rules.md");
+  if (!fs.existsSync(rulesPath)) return { status: "no-rules-file" };
+
+  if (opts.apply) {
+    const mode = applyProposal(rulesPath, proposal);
+    return {
+      status: "ok",
+      applied: true,
+      mode,
+      catalystsWithDrift: proposal.catalystsWithDrift,
+      catalystsTotal: proposal.catalystsTotal,
+      body: proposal.body,
+    };
+  }
+  return {
+    status: "ok",
+    applied: false,
+    catalystsWithDrift: proposal.catalystsWithDrift,
+    catalystsTotal: proposal.catalystsTotal,
+    body: proposal.body,
+  };
+}
+
 async function main(): Promise<void> {
   loadLocalEnv();
 
@@ -222,45 +276,45 @@ async function main(): Promise<void> {
   const vaultPathRaw = process.env.WORLD_VAULT_PATH ?? "./world-vault";
   const store = new FsVaultStore(vaultPathRaw);
 
-  const calibrationExists = await store.exists("_metrics/calibration.json");
-  if (!calibrationExists) {
-    console.error(`[recalibrate] calibration.json not found in vault.`);
-    console.error(`[recalibrate] Run \`npm run backfill -- --apply\` or a live agent run first.`);
-    process.exit(1);
+  const outcome = await recalibrateSectorRules(store, { apply });
+  switch (outcome.status) {
+    case "no-calibration":
+      console.error(`[recalibrate] calibration.json not found in vault.`);
+      console.error(`[recalibrate] Run \`npm run backfill -- --apply\` or a live agent run first.`);
+      process.exit(1);
+      break;
+    case "no-report":
+      console.error("[recalibrate] Failed to load calibration report.");
+      process.exit(1);
+      break;
+    case "no-rules-file":
+      console.error(`[recalibrate] sector-rules.md not found in world-brain/.`);
+      process.exit(1);
+      break;
+    case "ok":
+      if (outcome.applied) {
+        console.log(
+          `[recalibrate] sector-rules.md ${outcome.mode}: ${outcome.catalystsWithDrift}/${outcome.catalystsTotal} catalysts beyond ${(DRIFT_THRESHOLD * 100).toFixed(0)}pp drift.`
+        );
+      } else {
+        console.log("[recalibrate] DRY RUN — proposed Calibration Provenance section:\n");
+        console.log(outcome.body);
+        console.log(
+          `\n[recalibrate] ${outcome.catalystsWithDrift}/${outcome.catalystsTotal} catalysts beyond ${(DRIFT_THRESHOLD * 100).toFixed(0)}pp drift.`
+        );
+        console.log("[recalibrate] Run with --apply to update sector-rules.md.");
+      }
+      break;
   }
-
-  const proposal = await buildProposal(store);
-  if (!proposal) {
-    console.error("[recalibrate] Failed to load calibration report.");
-    process.exit(1);
-  }
-
-  const rulesPath = path.join(process.cwd(), "world-brain", "sector-rules.md");
-  if (!fs.existsSync(rulesPath)) {
-    console.error(`[recalibrate] sector-rules.md not found at ${rulesPath}.`);
-    process.exit(1);
-  }
-
-  if (apply) {
-    const mode = applyProposal(rulesPath, proposal);
-    console.log(
-      `[recalibrate] sector-rules.md ${mode}: ${proposal.catalystsWithDrift}/${proposal.catalystsTotal} catalysts beyond ${(DRIFT_THRESHOLD * 100).toFixed(0)}pp drift.`
-    );
-    return;
-  }
-
-  console.log("[recalibrate] DRY RUN — proposed Calibration Provenance section:\n");
-  console.log(proposal.body);
-  console.log(
-    `\n[recalibrate] ${proposal.catalystsWithDrift}/${proposal.catalystsTotal} catalysts beyond ${(DRIFT_THRESHOLD * 100).toFixed(0)}pp drift.`
-  );
-  console.log("[recalibrate] Run with --apply to update sector-rules.md.");
 }
 
-main().catch((err) => {
-  console.error("[recalibrate] Fatal error:", err);
-  process.exit(1);
-});
+// Only run the CLI when invoked directly (not when imported by the cron).
+if (process.argv[1] && /recalibrate\.ts$/.test(process.argv[1])) {
+  main().catch((err) => {
+    console.error("[recalibrate] Fatal error:", err);
+    process.exit(1);
+  });
+}
 
 // Suppress the "value is never read" lint hint when CATALYST_TYPES is imported
 // for type-narrowing only.

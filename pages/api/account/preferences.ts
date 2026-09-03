@@ -1,13 +1,16 @@
 import type { NextApiResponse } from "next";
-import { requireUser } from "@/lib/auth/requireUser";
-import { getServicesForUser } from "@/src/registry";
+import { requireUserWithClient } from "@/lib/auth/requireUser";
+import { SupabaseAccountInfoProvider } from "@/src/infrastructure/providers/SupabaseAccountInfoProvider";
 import { apiHandler } from "@/lib/api-handler";
 import { isTimescaleKey } from "@/lib/timescales";
 import { isAnalyzedAge } from "@/lib/analyzedAge";
 
 export default apiHandler(["PATCH"], async (req, res: NextApiResponse) => {
-  const user = await requireUser(req, res);
-  if (!user) return;
+  // RLS-scoped: this only writes the caller's own user_preferences row, so build
+  // a request-scoped provider on the user's JWT rather than the cached
+  // (service-role) one from the registry.
+  const { user, client } = await requireUserWithClient(req, res);
+  if (!user || !client) return;
 
   const body = req.body as Record<string, unknown>;
 
@@ -31,8 +34,8 @@ export default apiHandler(["PATCH"], async (req, res: NextApiResponse) => {
     return res.status(400).json({ error: "No valid fields to update" });
   }
 
-  const services = await getServicesForUser(user.id);
-  const updated = await services.accountInfo.updatePreferences(user.id, patch);
+  const accountInfo = new SupabaseAccountInfoProvider(client);
+  const updated = await accountInfo.updatePreferences(user.id, patch);
 
   return res.status(200).json({
     cronOptIn: updated.cronOptIn,

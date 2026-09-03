@@ -1,4 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { SupabasePredictionStore, type PredictionStore } from "@/lib/predictions/store";
 
 export interface VaultNote {
   id: string;
@@ -35,6 +37,13 @@ export interface VaultStore {
   listNotesMeta(prefix: string): Promise<VaultNote[]>;
   /** Append content to an existing note (for log-style files). */
   append(path: string, content: string): Promise<void>;
+  /**
+   * Relational prediction backend, when this store has one. SupabaseVaultStore
+   * returns a table-backed {@link PredictionStore}; filesystem/in-memory stores
+   * return undefined and their callers use the legacy JSON-in-vault path. Lets
+   * predictions migrate to a real table without changing every call site.
+   */
+  predictionStore?(): PredictionStore | undefined;
 }
 
 // ── Shared frontmatter helpers ──
@@ -69,8 +78,16 @@ export function splitFrontmatter(content: string): { frontmatter: Record<string,
       fm[key] = [];
       continue;
     }
-    let value: unknown = raw.replace(/^["']|["']$/g, "");
-    try { value = JSON.parse(value as string); } catch { /* keep as string */ }
+    let value: unknown;
+    if (/^".*"$/.test(raw)) {
+      // Double-quoted string — JSON.parse so escaped quotes/backslashes are
+      // properly unescaped (stripping the quotes first left `\"` in the value).
+      try { value = JSON.parse(raw); } catch { value = raw.slice(1, -1); }
+    } else {
+      const stripped = raw.replace(/^["']|["']$/g, "");
+      value = stripped;
+      try { value = JSON.parse(stripped); } catch { /* keep as string */ }
+    }
     fm[key] = value;
   }
 
@@ -94,7 +111,9 @@ export function serializeFrontmatter(fm: Record<string, unknown>): string {
       lines.push(`${key}: ${JSON.stringify(value)}`);
     } else if (typeof value === "string") {
       if (value.includes(":") || value.includes("#") || value.includes('"') || value.includes("'")) {
-        lines.push(`${key}: "${value.replace(/"/g, '\\"')}"`);
+        // JSON.stringify escapes quotes AND backslashes, so splitFrontmatter's
+        // JSON.parse path round-trips the value exactly.
+        lines.push(`${key}: ${JSON.stringify(value)}`);
       } else {
         lines.push(`${key}: ${value}`);
       }
@@ -220,7 +239,25 @@ export class FsVaultStore implements VaultStore {
 const SUPABASE_PAGE_SIZE = 1000;
 
 export class SupabaseVaultStore implements VaultStore {
-  constructor(private userId: string) {}
+  private readonly db: SupabaseClient;
+
+  /**
+   * @param userId  tenant whose notes this store reads/writes.
+   * @param client  optional RLS-scoped client (the caller's JWT). When passed,
+   *   every query is additionally enforced by the `auth.uid() = user_id` policy
+   *   on vault_notes, so a request handler can't leak another tenant's notes.
+   *   Omit it in worker/cron/CLI contexts (no request scope) to use the
+   *   service-role client, which still filters by `userId` explicitly.
+   */
+  constructor(private userId: string, client?: SupabaseClient) {
+    this.db = client ?? createServiceClient();
+  }
+
+  /** Predictions live in the relational `predictions` table, reusing this
+   *  store's client so request paths get RLS and worker paths use service-role. */
+  predictionStore(): PredictionStore {
+    return new SupabasePredictionStore(this.userId, this.db);
+  }
 
   /**
    * Select every row matching a path prefix, paging past PostgREST's 1,000-row
@@ -228,7 +265,7 @@ export class SupabaseVaultStore implements VaultStore {
    * more than 1,000 notes (e.g. news/) silently lose an arbitrary subset.
    */
   private async selectAllByPrefix<T>(columns: string, prefix: string): Promise<T[]> {
-    const supabase = createServiceClient();
+    const supabase = this.db;
     const rows: T[] = [];
     for (let from = 0; ; from += SUPABASE_PAGE_SIZE) {
       const { data, error } = await supabase
@@ -246,7 +283,7 @@ export class SupabaseVaultStore implements VaultStore {
   }
 
   async read(p: string): Promise<string | null> {
-    const supabase = createServiceClient();
+    const supabase = this.db;
     const { data, error } = await supabase
       .from("vault_notes")
       .select("body, frontmatter")
@@ -264,7 +301,7 @@ export class SupabaseVaultStore implements VaultStore {
       ? { frontmatter, body }
       : splitFrontmatter(body);
 
-    const supabase = createServiceClient();
+    const supabase = this.db;
     const { error } = await supabase.from("vault_notes").upsert(
       {
         user_id: this.userId,
@@ -290,7 +327,7 @@ export class SupabaseVaultStore implements VaultStore {
   }
 
   async exists(p: string): Promise<boolean> {
-    const supabase = createServiceClient();
+    const supabase = this.db;
     const { data, error } = await supabase
       .from("vault_notes")
       .select("id")
@@ -301,7 +338,7 @@ export class SupabaseVaultStore implements VaultStore {
   }
 
   async delete(p: string): Promise<void> {
-    const supabase = createServiceClient();
+    const supabase = this.db;
     const { error } = await supabase
       .from("vault_notes")
       .delete()
@@ -311,7 +348,7 @@ export class SupabaseVaultStore implements VaultStore {
   }
 
   async readNote(p: string): Promise<VaultNote | null> {
-    const supabase = createServiceClient();
+    const supabase = this.db;
     const { data, error } = await supabase
       .from("vault_notes")
       .select("id, path, body, frontmatter, updated_at")
@@ -375,6 +412,14 @@ export class SupabaseVaultStore implements VaultStore {
 
 // ── Factory ──
 
-export async function getVaultStore(userId: string): Promise<VaultStore> {
-  return new SupabaseVaultStore(userId);
+/**
+ * Build a vault store for a user. Pass an RLS-scoped `client` (the caller's JWT,
+ * from createUserClient) on request paths so Row-Level Security enforces tenant
+ * isolation on vault_notes; omit it in worker/cron/CLI contexts to use the
+ * service-role client. Read-only handlers acting on the caller's own notes are
+ * the safest to convert; deep read-write pipelines that also write SYSTEM-user
+ * notes must keep the service-role default.
+ */
+export async function getVaultStore(userId: string, client?: SupabaseClient): Promise<VaultStore> {
+  return new SupabaseVaultStore(userId, client);
 }

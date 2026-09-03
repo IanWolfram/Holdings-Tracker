@@ -36,14 +36,31 @@ export default apiHandler(["GET", "DELETE", "POST"], async (req, res: NextApiRes
       return res.status(409).json({ error: "An agent run is already in progress." });
     }
 
-    log.info("api/agent/run", `sweep started user=${user.id}`);
-
-    // Fire and forget (it updates global state)
-    // We don't await it here so we can return "Started" immediately
-    runStockAgent(user.id).catch((err) => {
+    // Fire and forget (it updates global state) — but wait a beat before
+    // returning 202. The cross-process sweep lock is claimed in the first few
+    // awaits of runStockAgent; if a worker-side cron sweep already holds it,
+    // the run rejects almost immediately and the client deserves a 409, not a
+    // "started" that silently died in the background.
+    const run = runStockAgent(user.id);
+    run.catch((err) => {
       console.error("[api/agent/run] Background agent run failed:", err);
     });
+    const EARLY_FAILURE_WINDOW_MS = 1_500;
+    const earlyFailure = await Promise.race([
+      run.then(
+        () => null,
+        (err: unknown) => (err instanceof Error ? err : new Error(String(err)))
+      ),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), EARLY_FAILURE_WINDOW_MS)),
+    ]);
+    if (earlyFailure) {
+      if (earlyFailure.message.includes("already in progress")) {
+        return res.status(409).json({ error: "An agent run is already in progress." });
+      }
+      return res.status(500).json({ error: "Agent run failed to start." });
+    }
 
+    log.info("api/agent/run", `sweep started user=${user.id}`);
     return res.status(202).json({ message: "Agent run started." });
   }
 }, "api/agent/run");

@@ -1,13 +1,12 @@
 import type { NextApiResponse } from "next";
-import { requireUser } from "@/lib/auth/requireUser";
-import { createServiceClient } from "@/lib/supabase/server";
+import { requireUserWithClient } from "@/lib/auth/requireUser";
 import { apiHandler } from "@/lib/api-handler";
 
 export default apiHandler(["GET", "POST", "DELETE"], async (req, res: NextApiResponse) => {
-  const user = await requireUser(req, res);
-  if (!user) return;
-
-  const supabase = createServiceClient();
+  // RLS-scoped: proposed_positions queries are restricted to the caller's rows
+  // by the user's JWT; `.eq("user_id", …)` below is defense-in-depth.
+  const { user, client: supabase } = await requireUserWithClient(req, res);
+  if (!user || !supabase) return;
 
   if (req.method === "GET") {
     const { data, error } = await supabase

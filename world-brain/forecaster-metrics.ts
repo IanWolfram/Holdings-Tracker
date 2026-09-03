@@ -15,6 +15,7 @@
  * over time instead of being re-derived by hand.
  */
 import type { TickerPrediction } from "../types/predictions";
+import type { VaultStore } from "../lib/vault/store";
 
 export interface DirectionalSample {
   direction: TickerPrediction["direction"];
@@ -77,12 +78,32 @@ const HISTORY_CAP = 730; // keep ~2y of daily snapshots
  * to directional samples. actualPct is taken straight off the resolved record
  * (set by `resolveEligiblePredictions`), so no bars need re-fetching.
  */
-async function collectResolvedSamples(store: {
-  listNotes(prefix: string): Promise<{ body: string }[]>;
-}): Promise<{ samples: DirectionalSample[]; resolvedTotal: number }> {
-  const notes = await store.listNotes("predictions/");
+/** Minimal store shape the metrics readers need: JSON-path listing plus the
+ *  optional relational prediction backend. A full VaultStore satisfies it. */
+export type MetricsStore = Pick<VaultStore, "listNotes"> & {
+  predictionStore?: VaultStore["predictionStore"];
+};
+
+async function collectResolvedSamples(
+  store: MetricsStore,
+): Promise<{ samples: DirectionalSample[]; resolvedTotal: number }> {
   const samples: DirectionalSample[] = [];
   let resolvedTotal = 0;
+
+  const consider = (p: TickerPrediction): void => {
+    if (p.shadow || p.version === "v2") return; // production forecaster only
+    if (!p.outcome || typeof p.actualPct !== "number") return; // resolved only
+    resolvedTotal++;
+    samples.push({ direction: p.direction, actualPct: p.actualPct, horizonDays: p.horizonDays });
+  };
+
+  const ps = store.predictionStore?.();
+  if (ps) {
+    for (const p of await ps.resolvedNonShadow()) consider(p);
+    return { samples, resolvedTotal };
+  }
+
+  const notes = await store.listNotes("predictions/");
   for (const note of notes) {
     let arr: TickerPrediction[];
     try {
@@ -91,12 +112,7 @@ async function collectResolvedSamples(store: {
       continue;
     }
     if (!Array.isArray(arr)) continue;
-    for (const p of arr) {
-      if (p.shadow || p.version === "v2") continue; // production forecaster only
-      if (!p.outcome || typeof p.actualPct !== "number") continue; // resolved only
-      resolvedTotal++;
-      samples.push({ direction: p.direction, actualPct: p.actualPct, horizonDays: p.horizonDays });
-    }
+    for (const p of arr) consider(p);
   }
   return { samples, resolvedTotal };
 }
@@ -107,7 +123,7 @@ async function collectResolvedSamples(store: {
  * user has no resolved predictions at that horizon.
  */
 export async function computeHorizonDirectionalStats(
-  store: { listNotes(prefix: string): Promise<{ body: string }[]> },
+  store: MetricsStore,
   horizonDays: number,
 ): Promise<DirectionalStats | null> {
   const { samples } = await collectResolvedSamples(store);
@@ -118,7 +134,7 @@ export async function computeHorizonDirectionalStats(
 
 /** Compute the current directional snapshot for a user's vault. */
 export async function computeForecasterSnapshot(
-  store: { listNotes(prefix: string): Promise<{ body: string }[]> },
+  store: MetricsStore,
   nowMs: number = Date.now(),
 ): Promise<ForecasterSnapshot | null> {
   const { samples, resolvedTotal } = await collectResolvedSamples(store);
@@ -134,11 +150,7 @@ export async function computeForecasterSnapshot(
  * duplicates, so the history reflects one point per resolution day.
  */
 export async function appendForecasterSnapshot(
-  store: {
-    listNotes(prefix: string): Promise<{ body: string }[]>;
-    read(path: string): Promise<string | null>;
-    write(path: string, body: string): Promise<void>;
-  },
+  store: MetricsStore & Pick<VaultStore, "read" | "write">,
   nowMs: number = Date.now(),
 ): Promise<ForecasterSnapshot | null> {
   const snapshot = await computeForecasterSnapshot(store, nowMs);

@@ -1,6 +1,5 @@
 import type { NextApiResponse } from "next";
-import { requireUser } from "@/lib/auth/requireUser";
-import { createServiceClient } from "@/lib/supabase/server";
+import { requireUserWithClient } from "@/lib/auth/requireUser";
 import { apiHandler } from "@/lib/api-handler";
 import type { WatchRule } from "@/lib/agent/scheduler";
 
@@ -15,10 +14,10 @@ function parseRule(input: unknown): WatchRule | null {
 }
 
 export default apiHandler(["GET", "POST", "DELETE"], async (req, res: NextApiResponse) => {
-  const user = await requireUser(req, res);
-  if (!user) return;
-
-  const sb = createServiceClient();
+  // RLS-scoped client: the DB restricts these stock_watches queries to the
+  // caller's own rows; the `.eq("user_id", …)` filters are defense-in-depth.
+  const { user, client: sb } = await requireUserWithClient(req, res);
+  if (!user || !sb) return;
 
   if (req.method === "GET") {
     const { data, error } = await sb

@@ -11,6 +11,7 @@
  * standard informational-only disclaimer — see types/news.types.ts.
  */
 import { createServiceClient } from "@/lib/supabase/server";
+import type { MetricsStore } from "@/world-brain/forecaster-metrics";
 import { VERDICT_LABEL } from "@/types/news.types";
 import { computeHorizonDirectionalStats } from "@/world-brain/forecaster-metrics";
 import { debug } from "../debug";
@@ -27,9 +28,6 @@ export interface SignalCandidate {
   horizonDays: number;
   reasoning: string;
 }
-
-/** Minimal read surface emitSignals needs from the user's vault store. */
-type MetricsStore = { listNotes(prefix: string): Promise<{ body: string }[]> };
 
 /** Minimum confidence for a directional forecast to surface as a signal. */
 export const SIGNAL_CONFIDENCE_MIN = 0.6;

@@ -6,7 +6,7 @@ import type {
   TickerPrediction,
   PredictionOutcome,
 } from "../types/predictions";
-import { FLAT_BAND_PCT, CORRECT_DIRECTION_MAGNITUDE_RATIO } from "../types/predictions";
+import { FLAT_BAND_PCT, CORRECT_DIRECTION_MAGNITUDE_RATIO, parsePredictions } from "../types/predictions";
 import type { DailyBar } from "../lib/marketdata/prices";
 import { findBarOnOrAfter, flatBandFromBars } from "../lib/marketdata/volatility";
 
@@ -23,11 +23,26 @@ export async function loadPredictions(
   ticker: string,
   horizon: number = DEFAULT_HORIZON
 ): Promise<TickerPrediction[]> {
+  const ps = store.predictionStore?.();
+  if (ps) {
+    try {
+      return await ps.load(ticker, horizon);
+    } catch (err) {
+      console.error(`[predictions] table load failed for ${ticker}-${horizon}d:`, (err as Error).message);
+      return [];
+    }
+  }
+  // Legacy JSON-in-vault path (filesystem / in-memory stores).
   try {
     const content = await store.read(predictionPath(ticker, horizon));
     if (content === null) return [];
-    const parsed = JSON.parse(content);
-    return Array.isArray(parsed) ? parsed : [];
+    // Validate at the storage boundary: a corrupt row (NaN price, bad enum)
+    // would silently poison calibration, which trains on this data forever.
+    const { predictions, dropped } = parsePredictions(JSON.parse(content));
+    if (dropped > 0) {
+      console.warn(`[predictions] Dropped ${dropped} corrupt ${ticker}-${horizon}d prediction row(s)`);
+    }
+    return predictions;
   } catch {
     return [];
   }
@@ -39,10 +54,21 @@ export async function savePredictions(
   predictions: TickerPrediction[],
   horizon: number = DEFAULT_HORIZON
 ): Promise<void> {
+  const ps = store.predictionStore?.();
+  if (ps) {
+    await ps.save(ticker, horizon, predictions);
+    return;
+  }
   await store.write(predictionPath(ticker, horizon), JSON.stringify(predictions, null, 2));
 }
 
 export async function appendPrediction(store: VaultStore, prediction: TickerPrediction): Promise<void> {
+  const ps = store.predictionStore?.();
+  if (ps) {
+    // Single-row insert — no read-modify-write, so it can't lose a concurrent append.
+    await ps.append(prediction);
+    return;
+  }
   const horizon = prediction.horizonDays ?? DEFAULT_HORIZON;
   const existing = await loadPredictions(store, prediction.ticker, horizon);
   existing.push(prediction);
@@ -233,6 +259,20 @@ export async function getAllPredictions(
   store: VaultStore,
   limit = 50
 ): Promise<Record<string, TickerPrediction[]>> {
+  const ps = store.predictionStore?.();
+  if (ps) {
+    try {
+      const grouped = await ps.allByTicker();
+      const result: Record<string, TickerPrediction[]> = {};
+      for (const [ticker, predictions] of Object.entries(grouped)) {
+        result[ticker] = predictions.sort((a, b) => b.runAt - a.runAt).slice(0, limit);
+      }
+      return result;
+    } catch (err) {
+      console.error("[predictions] table allByTicker failed:", (err as Error).message);
+      return {};
+    }
+  }
   try {
     const notes = await store.listNotes("predictions/");
 

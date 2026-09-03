@@ -1,24 +1,23 @@
 import type { NextApiResponse } from "next";
-import { requireUser } from "@/lib/auth/requireUser";
-import { createServiceClient } from "@/lib/supabase/server";
+import { requireUserWithClient } from "@/lib/auth/requireUser";
 import { apiHandler } from "@/lib/api-handler";
 
 export default apiHandler(["GET", "POST", "PATCH", "DELETE"], async (req, res: NextApiResponse) => {
-  const user = await requireUser(req, res);
-  if (!user) return;
-
-  const supabase = createServiceClient();
+  // RLS-scoped: conversations/messages/user_preferences queries are constrained
+  // to the caller's rows by the user's JWT; explicit filters are belt-and-suspenders.
+  const { user, client: supabase } = await requireUserWithClient(req, res);
+  if (!user || !supabase) return;
 
   // The user's dedicated, system-managed "Agent Signals" conversation is pinned
   // in the UI and rendered as a signals list — identify it by id, not title.
-  async function getSignalsConvId(): Promise<string | null> {
+  const getSignalsConvId = async (): Promise<string | null> => {
     const { data } = await supabase
       .from("user_preferences")
       .select("signals_conversation_id")
-      .eq("user_id", user!.id)
+      .eq("user_id", user.id)
       .maybeSingle();
     return (data as { signals_conversation_id?: string } | null)?.signals_conversation_id ?? null;
-  }
+  };
 
   if (req.method === "GET") {
     const id = req.query.id as string | undefined;

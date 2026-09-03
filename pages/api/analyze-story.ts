@@ -4,14 +4,17 @@ import { analyzeStory } from "../../world-brain/brain";
 import { getServicesForUser } from "@/src/registry";
 import { writeStoryNote } from "../../world-brain/obsidian";
 import { MAX_ARTICLE_CONTENT_CHARS } from "@/lib/constants";
-import { requireUser } from "@/lib/auth/requireUser";
+import { requireUserWithClient } from "@/lib/auth/requireUser";
 import { getVaultStore } from "@/lib/vault/store";
 import type { ClassifiedStory } from "@/types/news.types";
 import { apiHandler } from "@/lib/api-handler";
 
 export default apiHandler(["POST"], async (req, res: NextApiResponse) => {
-  const user = await requireUser(req, res);
-  if (!user) return;
+  // RLS-scoped: the only vault write here (writeStoryNote via the caller's
+  // store) sets user_id to the caller, so it passes the WITH CHECK policy. The
+  // in-memory cache patch below is unaffected.
+  const { user, client } = await requireUserWithClient(req, res);
+  if (!user || !client) return;
 
   const { ticker, url, headline, summary } = req.body as {
     ticker?: string;
@@ -52,7 +55,7 @@ export default apiHandler(["POST"], async (req, res: NextApiResponse) => {
   });
 
   // Persist to vault (Supabase in cloud mode)
-  const vaultStore = await getVaultStore(user.id);
+  const vaultStore = await getVaultStore(user.id, client);
   const now = Math.floor(Date.now() / 1000);
   await writeStoryNote(
     {

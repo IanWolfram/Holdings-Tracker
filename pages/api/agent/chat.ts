@@ -1,7 +1,7 @@
 import type { NextApiResponse } from "next";
 import { callLlm, getSystemPrompt, loadSessionInsights } from "@/world-brain/brain";
 import { getVaultStore, type VaultStore } from "@/lib/vault/store";
-import { requireUser } from "@/lib/auth/requireUser";
+import { requireUserWithClient } from "@/lib/auth/requireUser";
 import { getServicesForUser } from "@/src/registry";
 import { apiHandler } from "@/lib/api-handler";
 import { rateLimit, CHAT_LIMIT } from "@/lib/rate-limit";
@@ -178,8 +178,9 @@ You are now in interactive chat mode with the portfolio owner. Unlike story anal
 // ---------------------------------------------------------------------------
 
 export default apiHandler(["POST"], async (req, res: NextApiResponse) => {
-  const user = await requireUser(req, res);
-  if (!user) return;
+  // RLS-scoped: the vault access below is read-only over the caller's own notes.
+  const { user, client } = await requireUserWithClient(req, res);
+  if (!user || !client) return;
 
   // Per-user throttle: this route drives a paid LLM call, so cap frequency
   // (the coarse per-IP guard in apiHandler is not enough on its own).
@@ -234,7 +235,7 @@ export default apiHandler(["POST"], async (req, res: NextApiResponse) => {
 
   // ---- 2. Vault context ---------------------------------------------------
   let vaultContext = "";
-  const store = await getVaultStore(user.id);
+  const store = await getVaultStore(user.id, client);
   // Load this user's session insights now; passed into getSystemPrompt below.
   // Insights are threaded per request and never cached globally, so one tenant's
   // insights can never leak into another tenant's system prompt.

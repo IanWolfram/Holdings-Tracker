@@ -74,3 +74,69 @@ export interface TickerPrediction {
    *  predictions resolved under the legacy fixed ±FLAT_BAND_PCT rule. */
   flatBandPct?: number;
 }
+
+// ── Runtime validation ──
+// Stored predictions feed the calibration loop forever, so a single corrupt row
+// (a NaN price, a bad direction) can silently poison the model's self-scoring.
+// This schema is deliberately STRICT on the fields the resolver and calibration
+// depend on and LENIENT elsewhere (`.passthrough()` keeps unknown/newer fields):
+// the aim is to drop genuinely broken rows, never to discard otherwise-valid
+// predictions that predate a field. See loadPredictions in world-brain/predictions.ts.
+import { z } from "zod";
+
+const finiteNumber = z.number().refine(Number.isFinite, "must be a finite number");
+
+const catalystSchema = z
+  .object({
+    headline: z.string().default(""),
+    verdict: z.string().default(""),
+    confidence: z.number().default(0),
+    catalystTypes: z.array(z.enum(CATALYST_TYPES)).optional(),
+  })
+  .passthrough();
+
+/** Validates ONE stored prediction. Critical fields are required + finite. */
+export const tickerPredictionSchema = z
+  .object({
+    id: z.string().min(1),
+    ticker: z.string().min(1),
+    runAt: finiteNumber,
+    priceAtPrediction: finiteNumber.refine((n) => n > 0, "price must be positive"),
+    direction: z.enum(["UP", "DOWN", "FLAT"]),
+    magnitudePct: finiteNumber,
+    horizonDays: finiteNumber,
+    confidence: finiteNumber,
+    rawConfidence: finiteNumber.optional(),
+    reasoning: z.string().default(""),
+    catalysts: z.array(catalystSchema).default([]),
+    catalystTypes: z.array(z.enum(CATALYST_TYPES)).optional(),
+    engine: z.string().default("unknown"),
+    version: z.string().optional(),
+    shadow: z.boolean().optional(),
+    status: z.enum(["pending", "resolved", "expired"]),
+    sourceUrl: z.string().optional(),
+    synthetic: z.boolean().optional(),
+    resolvedAt: finiteNumber.optional(),
+    priceAtResolution: finiteNumber.optional(),
+    actualPct: finiteNumber.optional(),
+    outcome: z.enum(["CORRECT", "PARTIAL", "INCORRECT"]).optional(),
+    flatBandPct: finiteNumber.optional(),
+  })
+  .passthrough();
+
+/**
+ * Parse an unknown value into a clean TickerPrediction[]: keeps valid rows,
+ * drops (and counts) corrupt ones. Never throws — corruption in one row must
+ * not lose the rest of a ticker's history.
+ */
+export function parsePredictions(raw: unknown): { predictions: TickerPrediction[]; dropped: number } {
+  if (!Array.isArray(raw)) return { predictions: [], dropped: 0 };
+  const predictions: TickerPrediction[] = [];
+  let dropped = 0;
+  for (const item of raw) {
+    const result = tickerPredictionSchema.safeParse(item);
+    if (result.success) predictions.push(result.data as TickerPrediction);
+    else dropped++;
+  }
+  return { predictions, dropped };
+}

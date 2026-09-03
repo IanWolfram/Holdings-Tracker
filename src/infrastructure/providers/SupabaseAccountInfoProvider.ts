@@ -1,6 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { DEFAULT_TIMESCALE } from "@/lib/timescales";
 import { DEFAULT_ANALYZED_AGE_DAYS } from "@/lib/analyzedAge";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   AccountInfo,
   UserPreferences,
@@ -8,7 +9,23 @@ import type {
 } from "@/src/domain/interfaces/IAccountInfoProvider";
 
 export class SupabaseAccountInfoProvider implements IAccountInfoProvider {
+  /**
+   * @param prefsClient  optional RLS-scoped client (the caller's JWT) used ONLY
+   *   by the `user_preferences` methods, so a request path enforces isolation on
+   *   that table at the database. `getAccountInfo` ignores it: the Supabase Auth
+   *   admin API it calls requires the service-role key. Omit in worker/cron/CLI
+   *   contexts to use service-role throughout (the registry does this).
+   */
+  constructor(private prefsClient?: SupabaseClient) {}
+
+  /** Client for the user_preferences table — RLS-scoped when one was injected. */
+  private prefsDb(): SupabaseClient {
+    return this.prefsClient ?? createServiceClient();
+  }
+
   async getAccountInfo(userId: string): Promise<AccountInfo> {
+    // Always service-role: auth.admin.getUserById needs it; an anon/RLS client
+    // cannot reach the Auth admin API.
     const supabase = createServiceClient();
 
     // auth.users is not accessible via the client API, so we read
@@ -27,7 +44,7 @@ export class SupabaseAccountInfoProvider implements IAccountInfoProvider {
   }
 
   async getPreferences(userId: string): Promise<UserPreferences> {
-    const supabase = createServiceClient();
+    const supabase = this.prefsDb();
 
     const { data } = await supabase
       .from("user_preferences")
@@ -47,7 +64,7 @@ export class SupabaseAccountInfoProvider implements IAccountInfoProvider {
     userId: string,
     patch: Partial<UserPreferences>,
   ): Promise<UserPreferences> {
-    const supabase = createServiceClient();
+    const supabase = this.prefsDb();
 
     const update: Record<string, unknown> = {};
     if (patch.cronOptIn !== undefined) update.cron_opt_in = patch.cronOptIn;

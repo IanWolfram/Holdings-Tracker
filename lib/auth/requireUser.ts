@@ -1,40 +1,31 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { createServerClient } from "@supabase/ssr";
-import type { User } from "@supabase/supabase-js";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { createUserClient } from "@/lib/supabase/server";
 
+/**
+ * Authenticate the request's user. Returns the `User` or sends a 401 and
+ * returns null. The RLS-scoped client used to validate the session is the same
+ * one a handler should use for the user's own data — get it from
+ * {@link requireUserWithClient} to avoid rebuilding it.
+ */
 export async function requireUser(
   req: NextApiRequest,
   res: NextApiResponse,
 ): Promise<User | null> {
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          // Pages Router: cookies are on req.headers
-          const header = req.headers.cookie ?? "";
-          return header.split(";").map((c) => {
-            const [name, ...rest] = c.trim().split("=");
-            return { name, value: rest.join("=") };
-          });
-        },
-        setAll(cookiesToSet) {
-          // Set response cookies (Set-Cookie headers)
-          for (const { name, value, options } of cookiesToSet) {
-            const parts = [`${name}=${value}`];
-            if (options.maxAge) parts.push(`Max-Age=${options.maxAge}`);
-            if (options.path) parts.push(`Path=${options.path}`);
-            if (options.domain) parts.push(`Domain=${options.domain}`);
-            if (options.secure) parts.push("Secure");
-            if (options.httpOnly) parts.push("HttpOnly");
-            if (options.sameSite) parts.push(`SameSite=${options.sameSite}`);
-            res.appendHeader("Set-Cookie", parts.join("; "));
-          }
-        },
-      },
-    },
-  );
+  return (await requireUserWithClient(req, res)).user;
+}
+
+/**
+ * Like {@link requireUser} but also returns the request-scoped Supabase client
+ * (RLS-enforced, riding the user's JWT). `client` is null when unauthenticated.
+ * Prefer this in handlers that go on to read/write the caller's own rows: the
+ * database enforces tenant isolation, so a forgotten filter can't leak.
+ */
+export async function requireUserWithClient(
+  req: NextApiRequest,
+  res: NextApiResponse,
+): Promise<{ user: User | null; client: SupabaseClient | null }> {
+  const supabase = createUserClient(req, res);
 
   const {
     data: { user },
@@ -42,9 +33,8 @@ export async function requireUser(
 
   if (!user) {
     res.status(401).json({ error: "unauthenticated" });
-    return null;
+    return { user: null, client: null };
   }
 
-  return user;
+  return { user, client: supabase };
 }
-

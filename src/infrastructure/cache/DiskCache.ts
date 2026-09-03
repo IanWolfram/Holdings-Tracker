@@ -53,15 +53,25 @@ export class DiskCache implements ICache {
 
   private getEntry(key: string): Entry | null {
     const inMem = this.memory.get(key);
-    if (inMem) return inMem;
+    // A fresh in-memory hit is authoritative — skip disk entirely (hot path).
+    if (inMem && Date.now() <= inMem.expiresAt) return inMem;
 
+    // No memory entry, or it has expired. Another PROCESS may have written a
+    // fresher entry to the same file (the worker patches sweep verdicts the UI
+    // process never observed in memory), so consult disk and keep whichever is
+    // newer. Without this, a UI process that once cached a key never sees the
+    // worker's later writes until its own TTL forces a full refetch. Within one
+    // cache subdir the TTL is constant, so a later expiresAt means a later write.
     try {
       const raw = fs.readFileSync(this.filePath(key), "utf-8");
-      const entry = JSON.parse(raw) as Entry;
-      this.memory.set(key, entry);
-      return entry;
+      const disk = JSON.parse(raw) as Entry;
+      if (!inMem || disk.expiresAt >= inMem.expiresAt) {
+        this.memory.set(key, disk);
+        return disk;
+      }
+      return inMem;
     } catch {
-      return null;
+      return inMem ?? null;
     }
   }
 
@@ -86,4 +96,43 @@ export class DiskCache implements ICache {
       fs.unlinkSync(this.filePath(key));
     } catch {}
   }
+}
+
+/**
+ * Delete cache files under `.cache/` not modified in the last `maxAgeMs`.
+ * DiskCache never evicts expired files on its own (the LRU in registry.ts frees
+ * memory, not disk), so per-user `news-<userId>` dirs accumulate forever. Run
+ * this once at worker boot. Best-effort — filesystem errors are swallowed.
+ */
+export function sweepStaleCacheFiles(maxAgeMs: number = 7 * 24 * 60 * 60 * 1000): { removed: number } {
+  const root = path.join(process.cwd(), ".cache");
+  const cutoff = Date.now() - maxAgeMs;
+  let removed = 0;
+
+  const walk = (dir: string): void => {
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(full);
+        continue;
+      }
+      try {
+        if (fs.statSync(full).mtimeMs < cutoff) {
+          fs.unlinkSync(full);
+          removed++;
+        }
+      } catch {
+        /* raced with another writer / already gone */
+      }
+    }
+  };
+
+  walk(root);
+  return { removed };
 }

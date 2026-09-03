@@ -47,6 +47,7 @@ import {
 import { runForecast } from "./forecast";
 import { buildMarketContextDigest } from "./market-context";
 import { emitSignals, qualifiesAsSignal, type SignalCandidate } from "./signals";
+import { acquireSweepLock, releaseSweepLock, touchSweepLock, type SweepLock } from "./run-lock";
 
 // How many positions analyze concurrently inside a sweep. callLlm retries 429s
 // but has no queue of its own, so this caps peak DeepSeek load to ~this many
@@ -59,14 +60,38 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
     throw new Error("An agent run is already in progress.");
   }
 
+  // Cross-process guard. Manual sweeps run in the Next.js process while cron
+  // sweeps (story_backlog / morning_digest) run in pulse-worker, so the
+  // in-memory check above can't see a run in the other process — only the DB
+  // lock can. Without it, concurrent same-user sweeps race on read-modify-write
+  // prediction files (lost updates) and double the LLM spend.
+  const lock = await acquireSweepLock(uid);
+  if (!lock) {
+    throw new Error("An agent run is already in progress.");
+  }
+  try {
+    return await runSweepLocked(uid, userId, lock);
+  } finally {
+    await releaseSweepLock(lock);
+  }
+}
+
+async function runSweepLocked(
+  uid: string,
+  userId: string | undefined,
+  lock: SweepLock
+): Promise<AgentRunResult> {
   // Capture this run's generation; cancelling bumps it, marking us stale.
   const runGen = getRunGeneration(uid);
   setCurrentProgress(uid, { status: "running", message: "Fetching live positions..." });
   const startedAt = Date.now();
 
-  // Use per-user services so cache patches land on the same NewsService
-  // instance the dashboard reads from. Falling back to the singleton makes
-  // the agent's verdicts invisible to the user's `news-<userId>` cache.
+  // Use per-user services so cache patches target the user's `news-<userId>`
+  // DiskCache. When the sweep runs in the same process as the dashboard, the
+  // patch is seen immediately. Cross-process (worker sweep vs. UI process), the
+  // DiskCache picks up the worker's disk write on the next stale read
+  // (src/infrastructure/cache/DiskCache.ts). Falling back to the singleton
+  // would write to the shared `news` cache, invisible to the user entirely.
   const services = userId ? await getServicesForUser(userId) : getServices();
 
   try {
@@ -531,6 +556,9 @@ export async function runStockAgent(userId?: string): Promise<AgentRunResult> {
           totalHolds += part.holds;
           signalCandidates.push(...part.signals);
           tickersCompleted++;
+          // Keep the DB claim fresh so a legitimately long sweep isn't
+          // mistaken for a crashed one and reclaimed (throttled internally).
+          touchSweepLock(lock);
           setCurrentProgress(uid, {
             ...getCurrentProgress(uid),
             phase: "analyzing",

@@ -51,7 +51,7 @@ npm run pm2:start | pm2:prod | pm2:dev | pm2:deploy | pm2:worker | pm2:status | 
 
 **Crons run in exactly one process.** `scripts/worker.ts` (pm2 app `pulse-worker`) is the intended 24/7 cron host; any Next boot also arms the crons unless `PULSE_CRONS=off` is set (the pm2 `pulse`/`pulse-dev` UI apps set it). The UI runs as `pulse` (production build) or `pulse-dev` (hot reload) — mutually exclusive on :3000, toggled from the SwiftBar menu (`scripts/menubar/pulse.15s.sh`) or `npm run pm2:prod`/`pm2:dev`; ship changes to prod with `npm run pm2:deploy`. Details in `docs/headless-worker.md`.
 
-No test framework is configured. There are no test commands.
+Tests run on **Vitest** (`npm test`, watch via `npm run test:watch`). Coverage is intentionally narrow — the pure, high-leverage seams of the forecasting/calibration loop and shared utilities live under `tests/`, backed by an `InMemoryVaultStore` double (`tests/helpers/`). UI and provider adapters are not unit-tested (they churn too fast to pay rent).
 
 ## Configuration & Secrets
 
@@ -129,7 +129,7 @@ A self-scoring directional-forecast loop. The agent emits dated predictions, the
 - **`world-brain/calibration.ts`** — `updateCalibration()` aggregates resolved outcomes into `calibration.json`; drives confidence/sector adjustments.
 - **`world-brain/resolve-all.ts`** — multi-tenant batch resolution; resolves every user's eligible predictions from their prediction files (works even without a linked brokerage).
 - **`lib/agent/sweep.ts`** — `runStockAgent()` orchestrates a full sweep: resolve prior predictions → analyze news → forecast each ticker across all horizons.
-- **`instrumentation.node.ts`** — five crons: **daily prediction resolution** (22:00 UTC, after US close), **monthly recalibration** (02:00 UTC on the 1st, then runs `scripts/recalibrate.ts --apply`), **daily congress ingest** (03:00 UTC), **per-user agent jobs** (every minute; `story_backlog` is enabled by default for every user — 15-min baseline, boosted to every minute for users active in the last 10 min per `user_activity.last_seen_at`, stamped by `/api/positions` via `lib/activity.ts`), and **stock-watch alerts** (every 2 min; `lib/agent/watch-evaluator.ts` evaluates `stock_watches` price/verdict rules → notifications). Hosted 24/7 by the headless worker (`scripts/worker.ts`, pm2 `pulse-worker`); Next boots also arm them unless `PULSE_CRONS=off`.
+- **`instrumentation.node.ts`** — five crons: **daily prediction resolution** (22:00 UTC, after US close), **monthly recalibration** (02:00 UTC on the 1st; runs `recalibrateSectorRules()` **in-process** against the SYSTEM user's Supabase vault — no longer spawns a CLI — plus a boot-time catch-up if a monthly run was missed while the worker was down, tracked via the `cron_runs` table), **daily congress ingest** (03:00 UTC), **per-user agent jobs** (every minute; `story_backlog` is enabled by default for every user — 15-min baseline, boosted to every minute for users active in the last 10 min per `user_activity.last_seen_at`, stamped by `/api/positions` via `lib/activity.ts`), and **stock-watch alerts** (every 2 min; `lib/agent/watch-evaluator.ts` evaluates `stock_watches` price/verdict rules → notifications). Hosted 24/7 by the headless worker (`scripts/worker.ts`, pm2 `pulse-worker`); Next boots also arm them unless `PULSE_CRONS=off`. **Sweeps (manual + cron) and the resolve cron take a cross-process per-user lock** (`sweep_locks` table, `lib/agent/run-lock.ts`) so one user's prediction files can't be written concurrently by the UI and worker processes.
 - **Agent job kinds** (`lib/agent/scheduler.ts` `AgentJobKind`): `story_backlog` (auto story analysis), `morning_digest` (daily sweep + per-user Telegram digest via `lib/agent/digest.ts`), and `congress`. The old `earnings_watch` / `concentration_risk` kinds were removed — they only ever ran the generic sweep.
 - Surfaced via `pages/api/predictions.ts` and `pages/api/calibration-status.ts`.
 
@@ -158,7 +158,7 @@ A self-scoring directional-forecast loop. The agent emits dated predictions, the
 
 - **Dual routing**: App Router (`app/`) for UI/auth, Pages Router (`pages/api/`) for API.
 - **Tailwind CSS 4** with `@theme` tokens in `app/globals.css`.
-- **Per-user cache scoping** via key prefixes, not separate cache instances (avoids memory-leak risk).
+- **Per-user cache scoping**: each user gets their own cache instances (`MapCache` + a `news-<userId>` `DiskCache`), held in an LRU-capped registry (`src/registry.ts`) that bounds memory. The `DiskCache` reads back from disk when its in-memory entry is stale, so a worker-process sweep's verdict patches become visible to the UI process (see `src/infrastructure/cache/DiskCache.ts`).
 - **App-layer encryption** for SnapTrade user secrets (AES-256-GCM, `ETRADE_TOKEN_ENC_KEY`), not Supabase Vault — simpler, portable, `key_version` enables rotation. (The env key keeps its historical `ETRADE_` name but is now the generic secret-encryption key.)
 - **Forecaster A/B via shadow predictions** — a candidate version writes predictions that are scored but never shown, so promotion is data-driven.
 
