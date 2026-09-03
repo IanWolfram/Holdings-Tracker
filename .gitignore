@@ -37,3 +37,9 @@ world-vault/
 # hook / `/graphify --update`; not tracked (bulky cache, and it publishes the
 # full code-structure graph on a public repo)
 graphify-out/
+
+# TypeScript incremental build cache
+tsconfig.tsbuildinfo
+
+# Supabase CLI temp state
+supabase/.temp/
