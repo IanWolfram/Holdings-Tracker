@@ -1,6 +1,8 @@
 # CLAUDE.md
 
-Guidance for Claude Code in this repo. Keep this file **navigational** — non-obvious truths and gotchas only. Anything derivable by reading code belongs in the code, not here.
+Guidance for AI coding agents (Claude Code) working in this repo. Humans should start with `README.md`.
+
+Keep this file **navigational**: non-obvious truths and gotchas only. Anything you can learn by reading the code belongs in the code, not here. **This repo is public**, so this file is too. Machine-specific or personal notes go in `CLAUDE.local.md` (gitignored).
 
 ## Project Overview
 
@@ -8,13 +10,17 @@ Guidance for Claude Code in this repo. Keep this file **navigational** — non-o
 
 **There is no single-user or offline mode.** Every request is scoped to an authenticated Supabase user.
 
-## Codebase navigation
+## Public repo: secret hygiene
 
-A graphify knowledge graph lives at `graphify-out/graph.json`, with an MCP server configured in `.mcp.json`.
+- Never commit secrets. `.env*.local` is gitignored; real keys live in Supabase `app_secrets` (see Gotchas).
+- Never hardcode a key in `.mcp.json` or any other tracked config. Reference an env var (`${VAR}`) instead.
+- Don't add personal paths, emails, or machine names to tracked files.
 
-**Prefer the graphify MCP tools over reading whole files** when exploring architecture, tracing dependencies, or answering "where is X used?" — it costs ~46x fewer tokens. Read source directly when you need exact implementation details, are editing, or are debugging a specific bug.
+## Codebase navigation (optional, local only)
 
-Tools: `query_graph` (broad context), `get_node`, `get_neighbors`, `get_community`, `shortest_path`, `god_nodes`, `graph_stats`. A git post-commit hook rebuilds the graph; `/graphify --update` re-extracts changed files manually.
+If `graphify-out/graph.json` exists, a graphify knowledge graph and its MCP server (`graphify` in `.mcp.json`) are available. **Prefer the graphify MCP tools over reading whole files** when exploring architecture or answering "where is X used?". It costs roughly 46x fewer tokens. Read source directly when you need exact implementation details, are editing, or are debugging.
+
+Tools: `query_graph`, `get_node`, `get_neighbors`, `get_community`, `shortest_path`, `god_nodes`, `graph_stats`. `graphify-out/` is untracked (rebuilt by a local post-commit hook, or `/graphify --update`), so a fresh clone won't have it. Fall back to normal search.
 
 ## Commands
 
@@ -73,10 +79,10 @@ Supabase Auth → middleware.ts (Edge, redirects to /login)
 
 User-facing API routes take `requireUserWithClient()` and pass the caller's RLS-scoped client into the vault store. Service-role access (`createServiceClient()`) is reserved for system-scoped and cross-tenant work.
 
-**Predictions/forecasting** is the key subsystem: the agent emits dated predictions, the system resolves them against the actual close at the horizon date, and calibration feeds back into the prompts. Horizons are 1, 7, and 30 days. Predictions live in the `predictions` table behind `lib/predictions/store.ts`. A shadow v2 forecaster records predictions without affecting production scoring, so promotion is data-driven.
+**Predictions/forecasting** is the key subsystem: the agent emits dated predictions, the system resolves them against the actual close at the horizon date, and calibration feeds back into the prompts. Horizons are 1, 7, and 30 days. Predictions live in the `predictions` table behind `lib/predictions/store.ts`. Production runs forecaster recipe **v4** (`version` option in `lib/agent/sweep.ts` → `lib/agent/forecast.ts`). A candidate recipe can run with `shadow: true`: its predictions are recorded and resolved but excluded from production scoring and signals. Compare with `npm run compare:forecasters` before promoting.
 
 **Vault storage** (`lib/vault/store.ts`) is the `vault_notes` table — markdown body plus JSONB frontmatter, unique on `(user_id, path)`.
 
 Schema lives in `supabase/migrations/`. Tables are RLS-protected on `auth.uid() = user_id` unless system-scoped; `congress_trades` and `app_secrets` are shared, and a `handle_new_user()` trigger seeds defaults on signup.
 
-Deeper detail: `docs/headless-worker.md` (worker runbook), `docs/congress-trades-system.md`, `docs/recalibration.md`, `docs/data-handling.md`, `docs/snaptrade-brokerage-ui.md`.
+Deeper detail: `docs/headless-worker.md` (worker runbook), `docs/congress-trades-system.md`, `docs/recalibration.md`, `docs/data-handling.md`, `docs/snaptrade-brokerage-ui.md`. Some docs predate the move from vault files to the `predictions` table and the E\*TRADE removal. Trust the code when they disagree.

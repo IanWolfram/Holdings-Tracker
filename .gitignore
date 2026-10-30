@@ -43,3 +43,6 @@ tsconfig.tsbuildinfo
 
 # Supabase CLI temp state
 supabase/.temp/
+
+# Personal, machine-specific agent notes (CLAUDE.md itself is public)
+CLAUDE.local.md
