@@ -31,8 +31,8 @@ export interface SignalCandidate {
 
 /** Minimum confidence for a directional forecast to surface as a signal. */
 export const SIGNAL_CONFIDENCE_MIN = 0.6;
-/** Only short-horizon forecasts are actionable enough to notify on. */
-const SIGNAL_HORIZONS = new Set([1, 7]);
+/** Only the shortest forecast horizon is actionable enough to notify on. */
+const SIGNAL_HORIZONS = new Set([7]);
 /** Don't re-notify the same ticker+direction within this window. */
 const DEDUP_WINDOW_DAYS = 3;
 

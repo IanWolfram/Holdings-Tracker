@@ -132,7 +132,7 @@ async function computeAggregate(): Promise<AggregateTrackRecord> {
       winRate: overall.n > 0 ? (overall.correct + overall.partial) / overall.n : 0,
       magnitudeRate: overall.n > 0 ? overall.correct / overall.n : 0,
     },
-    // Horizons in numeric order (1d, 7d, 30d); confidence buckets ascending.
+    // Horizons in numeric order (7d, 30d); confidence buckets ascending.
     byHorizon: toBuckets(horizon, (a, b) => parseInt(a.key) - parseInt(b.key)),
     byConfidenceBucket: toBuckets(confidence, (a, b) => a.key.localeCompare(b.key)),
   };

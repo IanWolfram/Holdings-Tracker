@@ -57,7 +57,7 @@ describe("prediction functions delegate to a PredictionStore when present", () =
   it("getAllPredictions groups the table store's rows by ticker", async () => {
     const store = new InMemoryVaultStore(new InMemoryPredictionStore());
     await appendPrediction(store, pending({ id: "a", ticker: "AAPL" }));
-    await appendPrediction(store, pending({ id: "m", ticker: "MSFT", horizonDays: 1 }));
+    await appendPrediction(store, pending({ id: "m", ticker: "MSFT", horizonDays: 30 }));
 
     const all = await getAllPredictions(store);
     expect(Object.keys(all).sort()).toEqual(["AAPL", "MSFT"]);

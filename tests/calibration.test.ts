@@ -38,8 +38,8 @@ describe("updateCalibration", () => {
       ])
     );
     await store.write(
-      "predictions/MSFT-1d.json",
-      JSON.stringify([resolved({ ticker: "MSFT", horizonDays: 1, outcome: "PARTIAL", catalystTypes: ["earnings-beat"] })])
+      "predictions/MSFT-30d.json",
+      JSON.stringify([resolved({ ticker: "MSFT", horizonDays: 30, outcome: "PARTIAL", catalystTypes: ["earnings-beat"] })])
     );
 
     const report = await updateCalibration(store);
@@ -48,7 +48,7 @@ describe("updateCalibration", () => {
     expect(report.byTicker.AAPL).toMatchObject({ n: 2, correct: 1, incorrect: 1, winRate: 0.5 });
     expect(report.byTicker.MSFT).toMatchObject({ n: 1, partial: 1 });
     expect(report.byHorizon["7d"].n).toBe(2);
-    expect(report.byHorizon["1d"].n).toBe(1);
+    expect(report.byHorizon["30d"].n).toBe(1);
     expect(report.byCatalyst["earnings-beat"].n).toBe(1);
     expect(report.byCatalyst.other.n).toBe(2); // no catalysts → "other" bucket
 

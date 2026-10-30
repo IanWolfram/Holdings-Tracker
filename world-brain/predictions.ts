@@ -10,7 +10,10 @@ import { FLAT_BAND_PCT, CORRECT_DIRECTION_MAGNITUDE_RATIO, parsePredictions } fr
 import type { DailyBar } from "../lib/marketdata/prices";
 import { findBarOnOrAfter, flatBandFromBars } from "../lib/marketdata/volatility";
 
-export const SUPPORTED_HORIZONS = [1, 7, 30] as const;
+/** Forecast horizons, in days. A 1d horizon existed until 2026-10-30 and was
+ *  removed (with all its history): a one-day move is mostly noise, too short a
+ *  window to forecast well. */
+export const SUPPORTED_HORIZONS = [7, 30] as const;
 export type SupportedHorizon = (typeof SUPPORTED_HORIZONS)[number];
 const DEFAULT_HORIZON: SupportedHorizon = 7;
 

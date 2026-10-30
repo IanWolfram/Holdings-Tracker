@@ -461,8 +461,8 @@ async function runSweepLocked(
       }
 
       // Forecast: synthesize this ticker's verdicts into directional predictions
-      // at multiple horizons (1d, 7d, 30d). Each horizon is gated independently
-      // so a 9am 1d forecast doesn't block the same day's 7d/30d forecasts.
+      // at each forecast horizon (7d, 30d). Each horizon is gated independently
+      // so one horizon's recent forecast doesn't block the other.
       if (userVaultStore && verdicts.length > 0 && !getIsCancelled(uid, runGen)) {
         try {
           const quote = basicQuoteCache[pos.ticker] ?? (await getBasicQuote(pos.ticker));

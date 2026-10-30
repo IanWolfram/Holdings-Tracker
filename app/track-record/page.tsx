@@ -73,7 +73,7 @@ export default async function TrackRecordPage() {
           <div className="mt-10 rounded-xl border border-[var(--color-rule)] bg-white/[0.02] p-8 text-center">
             <div className="font-[family-name:var(--font-headline)] text-xl font-bold text-white">The track record is being built.</div>
             <p className="mx-auto mt-2 max-w-md text-[13.5px] text-[var(--color-ink-dim)]">
-              Forecasts resolve as their horizons arrive (1, 7, and 30 days). Check back as
+              Forecasts resolve as their horizons arrive (7 and 30 days). Check back as
               the first predictions are scored — we’ll show every result here, win or lose.
             </p>
           </div>

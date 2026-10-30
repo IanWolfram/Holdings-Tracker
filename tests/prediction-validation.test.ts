@@ -40,7 +40,7 @@ describe("parsePredictions", () => {
 
   it("defaults missing non-critical fields rather than dropping the row", () => {
     const { predictions, dropped } = parsePredictions([
-      { id: "x", ticker: "MSFT", runAt: 1, priceAtPrediction: 10, direction: "FLAT", magnitudePct: 0, horizonDays: 1, confidence: 0.5, status: "pending" },
+      { id: "x", ticker: "MSFT", runAt: 1, priceAtPrediction: 10, direction: "FLAT", magnitudePct: 0, horizonDays: 7, confidence: 0.5, status: "pending" },
     ]);
     expect(dropped).toBe(0);
     expect(predictions[0].catalysts).toEqual([]);

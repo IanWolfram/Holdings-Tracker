@@ -65,17 +65,17 @@ describe("resolveEligiblePredictions", () => {
 
   it("keeps a prediction pending when the horizon-date bar has not arrived yet", async () => {
     const store = new InMemoryVaultStore();
-    // Horizon date Jan 19, but data lags — last bar is Jan 13. 2 days past
+    // Horizon date Jan 18, but data lags — last bar is Jan 13. 2 days past
     // horizon is well inside the 30-day grace window.
-    const p = pending({ runAt: NOW_MS - 2 * DAY_MS, horizonDays: 1 });
-    await savePredictions(store, "AAPL", [p], 1);
+    const p = pending({ runAt: NOW_MS - 9 * DAY_MS, horizonDays: 7 });
+    await savePredictions(store, "AAPL", [p], 7);
 
     const result = await resolveEligiblePredictions(store, "AAPL", null, NOW_MS, undefined, [
       bar("2026-01-13", 101),
     ]);
 
     expect(result).toEqual({ resolved: 0, expired: 0 });
-    const [still] = await loadPredictions(store, "AAPL", 1);
+    const [still] = await loadPredictions(store, "AAPL", 7);
     expect(still.status).toBe("pending");
   });
 
@@ -109,12 +109,13 @@ describe("resolveEligiblePredictions", () => {
   it("only touches the requested horizon when one is specified", async () => {
     const store = new InMemoryVaultStore();
     await savePredictions(store, "AAPL", [pending({ horizonDays: 7 })], 7);
-    await savePredictions(store, "AAPL", [pending({ horizonDays: 1, runAt: Date.parse("2026-01-05T15:00:00.000Z") })], 1);
+    // 30d prediction already past its horizon — would resolve if not filtered out.
+    await savePredictions(store, "AAPL", [pending({ horizonDays: 30, runAt: NOW_MS - 31 * DAY_MS })], 30);
 
     const result = await resolveEligiblePredictions(store, "AAPL", 106, NOW_MS, 7, null);
 
     expect(result.resolved).toBe(1);
-    const [oneDay] = await loadPredictions(store, "AAPL", 1);
-    expect(oneDay.status).toBe("pending");
+    const [thirtyDay] = await loadPredictions(store, "AAPL", 30);
+    expect(thirtyDay.status).toBe("pending");
   });
 });
