@@ -2,7 +2,7 @@
 
 **A multi-tenant portfolio dashboard with an AI forecaster that grades its own predictions.**
 
-Pulse connects to your brokerage, reads the news about what you own, and makes dated directional calls (UP / DOWN / FLAT) on each holding at 1, 7, and 30 days. When each horizon passes, it checks the call against the real closing price, scores it, and feeds that track record back into the next round of forecasts. Over time the system learns which signals it should trust and which it overrates.
+Pulse connects to your brokerage, reads the news about what you own, and makes dated directional calls (UP / DOWN / FLAT) on each holding at 7 and 30 days. When each horizon passes, it checks the call against the real closing price, scores it, and feeds that track record back into the next round of forecasts. Over time the system learns which signals it should trust and which it overrates.
 
 <!-- Screenshot / GIF of the /terminal dashboard goes here -->
 
@@ -16,7 +16,7 @@ Pulse connects to your brokerage, reads the news about what you own, and makes d
 |---|---|
 | **Live portfolio** | Positions and balances from any brokerage SnapTrade supports (E\*TRADE, Schwab, Fidelity, Robinhood, IBKR, …). |
 | **News verdicts** | Every story about a holding is classified BUY / SELL / HOLD by an LLM, with the catalyst type (earnings, analyst action, regulation, …) tagged. |
-| **Self-scoring forecasts** | 1 / 7 / 30-day directional predictions that resolve automatically and show up on a **Track Record** page. |
+| **Self-scoring forecasts** | 7- and 30-day directional predictions that resolve automatically and show up on a **Track Record** page. |
 | **Congress & insider signals** | Congressional trade disclosures (STOCK Act) and insider activity, matched against your holdings. |
 | **3D world view** | A three.js globe that lights up countries by news sentiment tied to your positions. |
 | **Agent & alerts** | On-demand or scheduled "sweeps" across the portfolio, a chat interface, and Telegram alerts. |
@@ -41,7 +41,9 @@ flowchart LR
 3. **Calibrate.** Resolved outcomes roll up into win rates by catalyst type, confidence bucket, and ticker. Catalysts whose real accuracy drifts more than 15 points from what the rules assume get flagged as *trusted* or *downweighted*.
 4. **Feed back.** That calibration block goes into the forecaster's prompt, so it sees its own track record before making the next call.
 
-**Changes are tested before they ship.** A candidate forecaster can run in **shadow mode**: its predictions are recorded and resolved but kept out of production scoring. `npm run compare:forecasters` then compares the two on the same tickers and dates. Example: an analysis showed v1 called FLAT about 73% of the time and almost never called DOWN, because the news feed skews roughly 6:1 bullish. The fix (v3) let the model commit to a direction from price and macro alone. In shadow testing it reached 88.9% directional precision on 18 resolved calls (Wilson 95% lower bound 67%) before being promoted. That's a small sample, and the system is built to keep re-checking it as more predictions resolve.
+**Changes are tested before they ship.** A candidate forecaster can run in **shadow mode**: its predictions are recorded and resolved but kept out of production scoring. `npm run compare:forecasters` then compares the two on the same tickers and dates.
+
+**What the numbers say so far (October 2026).** An analysis of v1 showed it called FLAT about 73% of the time and almost never called DOWN, because the news feed skews roughly 6:1 bullish. The fix (v3) let the model commit to a direction from price and macro alone. It looked strong in a small shadow test, but in production v3 and v4 have called direction right **15 of 39 times (38%, 95% range 25–54%)**. That's no evidence of an edge yet. Catching this is the point of the loop: the system scores itself honestly instead of showing a good-looking backtest, and the **Track Record** page (`/track-record`) shows the live numbers. One-day forecasts were dropped entirely because a single day's move is mostly noise.
 
 ---
 
