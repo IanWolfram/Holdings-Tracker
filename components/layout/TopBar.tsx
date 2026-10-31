@@ -72,7 +72,9 @@ export default function TopBar({
     slug: string | null;
     name: string | null;
     logo: string | null;
-  }>({ connected: false, slug: null, name: null, logo: null });
+    /** Id of a disabled connection that needs repair, if any. */
+    brokenId: string | null;
+  }>({ connected: false, slug: null, name: null, logo: null, brokenId: null });
   const isConnected = broker.connected;
   const [accountPanelOpen, setAccountPanelOpen] = useState(false);
 
@@ -93,18 +95,23 @@ export default function TopBar({
       if (res.ok) {
         const data = await res.json();
         const conns: Array<{
+          id?: string | null;
           name?: string | null;
           slug?: string | null;
           logo?: string | null;
           disabled?: boolean;
         }> = data.connections ?? [];
-        // Surface the primary brokerage — prefer an active (non-disabled) one.
-        const primary = conns.find((c) => !c.disabled) ?? conns[0] ?? null;
+        // A broken connection outranks a working one: showing "connected"
+        // for a healthy bank link while the brokerage link is dead hides the
+        // reason holdings are stale.
+        const broken = conns.find((c) => c.disabled) ?? null;
+        const primary = broken ?? conns[0] ?? null;
         setBroker({
           connected: !!data.connected,
           slug: primary?.slug ?? null,
           name: primary?.name ?? null,
           logo: primary?.logo ?? null,
+          brokenId: broken?.id ?? null,
         });
       }
     } catch {
@@ -195,6 +202,7 @@ export default function TopBar({
               brokerSlug={broker.slug}
               brokerName={broker.name}
               brokerLogo={broker.logo}
+              brokenConnectionId={broker.brokenId}
             />
           </div>
 

@@ -1,3 +1,5 @@
+import { authedFetch } from "@/lib/api/client-fetch";
+
 /**
  * Open the SnapTrade connection portal in a NEW browser tab only.
  *
@@ -24,4 +26,22 @@ export function openConnectionPortal(url: string): void {
   }
   win.opener = null;
   win.location.href = url;
+}
+
+/**
+ * Ask the server for a SnapTrade portal URL. Pass a connection id to open the
+ * portal in repair mode for a broken (disabled) connection.
+ */
+export async function requestConnectionPortal(reconnect?: string): Promise<string> {
+  const res = await authedFetch("/api/snaptrade/connect", {
+    method: "POST",
+    ...(reconnect
+      ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reconnect }) }
+      : {}),
+  });
+  const data = (await res.json().catch(() => ({}))) as { redirectURI?: string; error?: string };
+  if (!res.ok || !data.redirectURI) {
+    throw new Error(data.error ?? "Could not start the connection.");
+  }
+  return data.redirectURI;
 }

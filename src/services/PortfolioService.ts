@@ -1,6 +1,11 @@
 import type { IBrokerProvider } from "@/src/domain/interfaces/IBrokerProvider";
 import type { ICache } from "@/src/domain/interfaces/ICache";
 import type { Position } from "@/types/position.types";
+import type { QuoteData } from "@/types/market-data.types";
+import { applyLiveQuotes } from "@/lib/live-quotes";
+
+/** Fetches live quotes by ticker. Missing tickers are simply absent. */
+export type QuoteSource = (tickers: string[]) => Promise<Record<string, QuoteData>>;
 
 export interface PortfolioServiceConfig {
   hasOAuthTokens: boolean;
@@ -12,8 +17,21 @@ export class PortfolioService {
   constructor(
     private readonly provider: IBrokerProvider,
     private readonly cache: ICache,
-    private readonly cfg: PortfolioServiceConfig
+    private readonly cfg: PortfolioServiceConfig,
+    /** Optional live-price overlay. Brokerage prices freeze if a connection
+     *  breaks, so positions are repriced from live quotes when available. */
+    private readonly quotes?: QuoteSource
   ) {}
+
+  private async withLivePrices(positions: Position[]): Promise<Position[]> {
+    if (!this.quotes || positions.length === 0) return positions;
+    try {
+      return applyLiveQuotes(positions, await this.quotes(positions.map((p) => p.ticker)));
+    } catch (err) {
+      console.warn("[broker] Live quote overlay failed — using brokerage prices:", (err as Error).message);
+      return positions;
+    }
+  }
 
   private async fetchLive(): Promise<Position[]> {
     const CACHE_KEY = "positions";
@@ -66,7 +84,7 @@ export class PortfolioService {
     }
 
     try {
-      const positions = await this.fetchLive();
+      const positions = await this.withLivePrices(await this.fetchLive());
       return { positions, mock: false };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

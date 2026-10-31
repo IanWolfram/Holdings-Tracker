@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { authedFetch } from "@/lib/api/client-fetch";
-import { openConnectionPortal } from "@/lib/snaptrade/open-portal";
+import { openConnectionPortal, requestConnectionPortal } from "@/lib/snaptrade/open-portal";
 import { resolveBrokerageBrand } from "@/lib/brokerages/brand";
 
 // Disconnect recovery surface. A SnapTrade brokerage connection can silently
@@ -11,14 +11,17 @@ import { resolveBrokerageBrand } from "@/lib/brokerages/brand";
 // still reads "connected" (the authorization is still listed), but no positions
 // flow, so the dashboard looks empty for no obvious reason.
 //
-// This popup catches exactly that state: registered, but every connection is
-// disabled. It names the user's last-used brokerage and offers a one-click
-// reconnect that reopens the SnapTrade portal (new tab only). Never fires for a
-// never-connected user — that's FirstRunOnboarding's job (fires on !connected).
+// This popup catches that state: registered, and ANY connection is disabled.
+// It must not wait for every connection to break: a user with a working bank
+// link and a broken brokerage link would otherwise never be told. It names the
+// broken brokerage and reopens the SnapTrade portal in repair mode for that
+// connection (new tab only). Never fires for a never-connected user — that's
+// FirstRunOnboarding's job (fires on !connected).
 
 const DISMISS_KEY = "pulse_reconnect_dismissed";
 
 interface Connection {
+  id: string;
   name: string;
   slug?: string | null;
   logo?: string | null;
@@ -56,24 +59,21 @@ export default function ReconnectPrompt() {
     return () => window.removeEventListener("focus", onFocus);
   }, [refresh]);
 
+  const conns = status?.connections ?? [];
+  const broken = conns.find((c) => c.disabled) ?? null;
+
   const handleReconnect = useCallback(async () => {
     setConnecting(true);
     try {
-      const res = await authedFetch("/api/snaptrade/connect", { method: "POST" });
-      const data = await res.json();
-      if (res.ok && data.redirectURI) {
-        openConnectionPortal(data.redirectURI);
-        // Re-check once the user comes back from the portal tab.
-        window.addEventListener("focus", () => refresh(), { once: true });
-      } else {
-        window.alert(data.error ?? "Could not start the reconnection.");
-      }
-    } catch {
-      window.alert("Could not start the reconnection.");
+      openConnectionPortal(await requestConnectionPortal(broken?.id));
+      // Re-check once the user comes back from the portal tab.
+      window.addEventListener("focus", () => refresh(), { once: true });
+    } catch (err) {
+      window.alert((err as Error).message || "Could not start the reconnection.");
     } finally {
       setConnecting(false);
     }
-  }, [refresh]);
+  }, [refresh, broken?.id]);
 
   const dismiss = useCallback(() => {
     setDismissed(true);
@@ -84,14 +84,11 @@ export default function ReconnectPrompt() {
     }
   }, []);
 
-  const conns = status?.connections ?? [];
-  // Disconnected == registered, has authorizations, but every one is disabled.
-  const disconnected =
-    !!status &&
-    status.configured &&
-    status.registered &&
-    conns.length > 0 &&
-    conns.every((c) => c.disabled);
+  // Disconnected == registered, with at least one disabled authorization.
+  const disconnected = !!status && status.configured && status.registered && broken !== null;
+  // Other connections still work (e.g. a bank link), so only part of the
+  // portfolio is affected.
+  const partial = disconnected && conns.some((c) => !c.disabled);
 
   // Clear a stale session-dismiss once the connection is healthy again, so a
   // *future* disconnect in the same session still surfaces the prompt.
@@ -108,8 +105,8 @@ export default function ReconnectPrompt() {
   const visible = !dismissed && disconnected;
   if (!visible) return null;
 
-  // Last-used provider — the (disabled) authorization carries its brand.
-  const last = conns.find((c) => c.name) ?? conns[0];
+  // The broken authorization carries its own brand.
+  const last = broken;
   const brand = resolveBrokerageBrand(last?.slug, last?.name);
   const providerName = last?.name ?? "your brokerage";
 
@@ -152,9 +149,13 @@ export default function ReconnectPrompt() {
             Reconnect to <span className="gradient-text">{providerName}</span>
           </h2>
           <p className="mt-2 text-[13px] leading-relaxed text-[var(--color-ink-dim)]">
-            Your link to {providerName} expired or was revoked, so Pulse can&apos;t read
-            your live holdings. Reconnect to restore your portfolio — it only takes a
-            moment.
+            {partial
+              ? <>Your link to {providerName} expired or was revoked, so holdings from that
+                account may be missing or out of date. Reconnect to restore them. It only
+                takes a moment.</>
+              : <>Your link to {providerName} expired or was revoked, so Pulse can&apos;t read
+                your live holdings. Reconnect to restore your portfolio. It only takes a
+                moment.</>}
           </p>
 
           <div className="mt-6 flex items-center gap-3">

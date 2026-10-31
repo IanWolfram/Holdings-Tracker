@@ -10,6 +10,7 @@ import { ClassifierService } from "@/src/services/ClassifierService";
 import { PortfolioService } from "@/src/services/PortfolioService";
 import { NewsService } from "@/src/services/NewsService";
 import { MAX_ANALYZED_AGE_DAYS } from "@/lib/analyzedAge";
+import { getBasicQuotes } from "@/lib/market-data";
 import type { INewsProvider } from "@/src/domain/interfaces/INewsProvider";
 import type { IAccountInfoProvider } from "@/src/domain/interfaces/IAccountInfoProvider";
 import type { IBrokerProvider } from "@/src/domain/interfaces/IBrokerProvider";
@@ -162,11 +163,16 @@ async function buildServicesForUser(userId: string): Promise<Services> {
     console.warn("[registry] SnapTrade provider selection failed — empty portfolio:", err);
   }
 
-  const portfolioService = new PortfolioService(brokerProvider, portfolioCache, {
-    hasOAuthTokens: hasBrokerTokens,
-    newsTtlMs: cfg.cache.newsTtlMs,
-    accountTtlMs: cfg.cache.accountTtlMs,
-  });
+  const portfolioService = new PortfolioService(
+    brokerProvider,
+    portfolioCache,
+    {
+      hasOAuthTokens: hasBrokerTokens,
+      newsTtlMs: cfg.cache.newsTtlMs,
+      accountTtlMs: cfg.cache.accountTtlMs,
+    },
+    getBasicQuotes
+  );
 
   // News providers are global (no per-user state) — reuse the singleton's if available
   const classifier = new ClassifierService(cfg.ai, userId);

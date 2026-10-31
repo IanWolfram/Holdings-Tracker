@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { authedFetch } from "@/lib/api/client-fetch";
 import { resolveBrokerageBrand } from "@/lib/brokerages/brand";
-import { openConnectionPortal } from "@/lib/snaptrade/open-portal";
+import { openConnectionPortal, requestConnectionPortal } from "@/lib/snaptrade/open-portal";
 
 interface ConnectionControlsProps {
   isConnected: boolean;
@@ -11,6 +10,8 @@ interface ConnectionControlsProps {
   brokerSlug?: string | null;
   brokerName?: string | null;
   brokerLogo?: string | null;
+  /** When set, the shown brokerage's connection is broken; clicking repairs it. */
+  brokenConnectionId?: string | null;
 }
 
 export default function ConnectionControls({
@@ -20,26 +21,22 @@ export default function ConnectionControls({
   brokerSlug,
   brokerName,
   brokerLogo,
+  brokenConnectionId,
 }: ConnectionControlsProps) {
+  const needsReconnect = isConnected && !!brokenConnectionId;
   const [error, setError] = useState<string | null>(null);
 
   async function startConnect() {
     setError(null);
     setIsConnecting(true);
     try {
-      const res = await authedFetch("/api/snaptrade/connect", { method: "POST" });
-      const data = await res.json();
-      if (!res.ok || !data.redirectURI) {
-        setError(data.error || "Failed to start connection");
-        setIsConnecting(false);
-        return;
-      }
-      // Open the SnapTrade connection portal in a new tab; clear the connecting
-      // flag when the user returns (the parent polls status to pick up the link).
-      openConnectionPortal(data.redirectURI);
+      // Open the SnapTrade portal in a new tab (repair mode for a broken
+      // connection); clear the connecting flag when the user returns (the
+      // parent polls status to pick up the change).
+      openConnectionPortal(await requestConnectionPortal(brokenConnectionId ?? undefined));
       window.addEventListener("focus", () => setIsConnecting(false), { once: true });
-    } catch {
-      setError("Network error");
+    } catch (err) {
+      setError((err as Error).message || "Failed to start connection");
       setIsConnecting(false);
     }
   }
@@ -51,7 +48,13 @@ export default function ConnectionControls({
     <button
       onClick={startConnect}
       className="flex items-center gap-2.5 self-stretch px-3.5 bg-white/[0.05] hover:brightness-125 transition-all"
-      title={isConnected ? `${label} connected — click to add or manage` : "Connect a brokerage"}
+      title={
+        needsReconnect
+          ? `${label} connection is broken — holdings may be out of date. Click to reconnect.`
+          : isConnected
+            ? `${label} connected — click to add or manage`
+            : "Connect a brokerage"
+      }
     >
       {isConnected ? (
         <img
@@ -86,12 +89,14 @@ export default function ConnectionControls({
           className={`hidden sm:inline font-mono pr-1.5 text-[11px] font-bold tracking-[0.02em] ${
             isConnecting
               ? "text-slate-300"
-              : isConnected
-                ? brand.gradientClass
-                : "text-slate-400"
+              : needsReconnect
+                ? "text-[#eab308]"
+                : isConnected
+                  ? brand.gradientClass
+                  : "text-slate-400"
           }`}
         >
-          {isConnecting ? "connecting…" : isConnected ? "connected" : "connect"}
+          {isConnecting ? "connecting…" : needsReconnect ? "reconnect" : isConnected ? "connected" : "connect"}
         </span>
       )}
     </button>

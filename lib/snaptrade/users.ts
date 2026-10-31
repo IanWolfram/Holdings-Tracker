@@ -157,11 +157,16 @@ export async function ensureSnapTradeUser(userId: string): Promise<SnapTradeUser
  * Generate a SnapTrade Connection Portal redirect URL for the user to link a
  * brokerage. Registers the user first if needed.
  */
-export async function getConnectionPortalUrl(userId: string): Promise<string> {
+export async function getConnectionPortalUrl(
+  userId: string,
+  opts: { reconnect?: string } = {}
+): Promise<string> {
   const { snapTradeUserId, userSecret } = await ensureSnapTradeUser(userId);
   const res = await getSnapTradeClient().authentication.loginSnapTradeUser({
     userId: snapTradeUserId,
     userSecret,
+    // Repairs a disabled connection in place instead of adding a duplicate.
+    ...(opts.reconnect ? { reconnect: opts.reconnect } : {}),
   });
   // Response is a union; the redirect form carries redirectURI.
   const data = res.data as { redirectURI?: string };
