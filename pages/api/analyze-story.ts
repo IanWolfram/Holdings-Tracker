@@ -73,6 +73,8 @@ export default apiHandler(["POST"], async (req, res: NextApiResponse) => {
       isAnalyzed: true,
     },
     vaultStore,
+    undefined,
+    user.id,
   );
 
   return res.status(200).json(analysis);

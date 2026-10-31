@@ -191,7 +191,7 @@ async function refreshWorldData(
         await Promise.all(
           allGeoStories.map((story) => {
             const sector = profiles[story.ticker]?.sector;
-            return writeStoryNote(story, store, sector ?? undefined);
+            return writeStoryNote(story, store, sector ?? undefined, userId);
           })
         );
         const today = new Date().toISOString().split("T")[0];

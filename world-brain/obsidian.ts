@@ -92,8 +92,11 @@ function buildNoteContent(story: GeoStory, dateStr: string, sector?: string): st
 export async function writeStoryNote(
   story: GeoStory,
   store: VaultStore,
-  sector?: string,
-  userId: string = "system",
+  sector: string | undefined,
+  // Required: the vault index is cached per user. Defaulting to a shared key
+  // made writes into one user's store consult (and pollute) another index, and
+  // overwrite analyzed notes with unanalyzed copies.
+  userId: string,
 ): Promise<void> {
   try {
     const date = new Date(story.datetime * 1000);
